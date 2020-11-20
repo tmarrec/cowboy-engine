@@ -1,0 +1,140 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "GLTFExporter"
+  },
+  "scenes": [
+    {
+      "name": "Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "scene": 0,
+  "nodes": [
+    {
+      "name": "Tube",
+      "mesh": 0
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 540,
+      "target": 34962,
+      "byteStride": 12
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 540,
+      "byteLength": 540,
+      "target": 34962,
+      "byteStride": 12
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 1080,
+      "byteLength": 360,
+      "target": 34962,
+      "byteStride": 8
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 1440,
+      "byteLength": 384,
+      "target": 34963
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 1824,
+      "uri": "data:application/octet-stream;base64,AAAAAAAAgD8AAKBAAACAvzIxjSQAAKBAMjENpQAAgL8AAKBAAACAP8rJU6UAAKBAMjGNJQAAgD8AAKBAAAAAAAAAgD/yAHBAAACAvzIxjSTyAHBAMjENpQAAgL/yAHBAAACAP8rJU6XyAHBAMjGNJQAAgD/yAHBAAAAAAAAAgD88ACBAAACAvzIxjSQ8ACBAMjENpQAAgL88ACBAAACAP8rJU6U8ACBAMjGNJQAAgD88ACBAAAAAAAAAgD8AAKA/AACAvzIxjSQAAKA/MjENpQAAgL8AAKA/AACAP8rJU6UAAKA/MjGNJQAAgD8AAKA/AAAAAAAAgD9IPFA3AACAvzIxjSRIPFA3MjENpQAAgL9IPFA3AACAP8rJU6VIPFA3MjGNJQAAgD9IPFA3AAAAAAAAgD8ZAKC/AACAvzIxjSQZAKC/MjENpQAAgL8ZAKC/AACAP8rJU6UZAKC/MjGNJQAAgD8ZAKC/AAAAAAAAgD88ACDAAACAvzIxjSQ8ACDAMjENpQAAgL88ACDAAACAP8rJU6U8ACDAMjGNJQAAgD88ACDAAAAAAAAAgD+OAHDAAACAvzIxjSSOAHDAMjENpQAAgL+OAHDAAACAP8rJU6WOAHDAMjGNJQAAgD+OAHDAAAAAAAAAgD8AAKDAAACAvzIxjSQAAKDAMjENpQAAgL8AAKDAAACAP8rJU6UAAKDAMjGNJQAAgD8AAKDAAAAAgAAAgD8AAAAAAACAvzIxjSQAAAAAMjENpQAAgL8AAACAAACAP8rJU6UAAAAAMjGNJQAAgD8AAAAAAAAAgAAAgD8AAAAAAACAvzIxjSQAAAAAMjENpQAAgL8AAACAAACAP8rJU6UAAAAAMjGNJQAAgD8AAAAAAAAAgAAAgD8AAAAAAACAvzIxjSQAAAAAMjENpQAAgL8AAACAAACAP8rJU6UAAAAAMjGNJQAAgD8AAAAAAAAAgAAAgD8AAAAAAACAvzIxjSQAAAAAMjENpQAAgL8AAACAAACAP8rJU6UAAAAAMjGNJQAAgD8AAAAAAAAAgAAAgD8AAAAAAACAvzIxjSQAAAAAMjENpQAAgL8AAACAAACAP8rJU6UAAAAAMjGNJQAAgD8AAAAAAAAAgAAAgD8AAAAAAACAvzIxjSQAAAAAMjENpQAAgL8AAACAAACAP8rJU6UAAAAAMjGNJQAAgD8AAAAAAAAAgAAAgD8AAAAAAACAvzIxjSQAAAAAMjENpQAAgL8AAACAAACAP8rJU6UAAAAAMjGNJQAAgD8AAAAAAAAAgAAAgD8AAAAAAACAvzIxjSQAAAAAMjENpQAAgL8AAACAAACAP8rJU6UAAAAAMjGNJQAAgD8AAAAAAAAAgAAAgD8AAAAAAACAvzIxjSQAAAAAMjENpQAAgL8AAACAAACAP8rJU6UAAAAAMjGNJQAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPgAAAAAAAAA/AAAAAAAAQD8AAAAAAACAPwAAAD4AAAAAAAAAPgAAgD4AAAA+AAAAPwAAAD4AAEA/AAAAPgAAgD8AAIA+AAAAAAAAgD4AAIA+AACAPgAAAD8AAIA+AABAPwAAgD4AAIA/AADAPgAAAAAAAMA+AACAPgAAwD4AAAA/AADAPgAAQD8AAMA+AACAPwAAAD8AAAAAAAAAPwAAgD4AAAA/AAAAPwAAAD8AAEA/AAAAPwAAgD8AACA/AAAAAAAAID8AAIA+AAAgPwAAAD8AACA/AABAPwAAID8AAIA/AABAPwAAAAAAAEA/AACAPgAAQD8AAAA/AABAPwAAQD8AAEA/AACAPwAAYD8AAAAAAABgPwAAgD4AAGA/AAAAPwAAYD8AAEA/AABgPwAAgD8AAIA/AAAAAAAAgD8AAIA+AACAPwAAAD8AAIA/AABAPwAAgD8AAIA/AAAFAAEABQAGAAEAAQAGAAIABgAHAAIAAgAHAAMABwAIAAMAAwAIAAQACAAJAAQABQAKAAYACgALAAYABgALAAcACwAMAAcABwAMAAgADAANAAgACAANAAkADQAOAAkACgAPAAsADwAQAAsACwAQAAwAEAARAAwADAARAA0AEQASAA0ADQASAA4AEgATAA4ADwAUABAAFAAVABAAEAAVABEAFQAWABEAEQAWABIAFgAXABIAEgAXABMAFwAYABMAFAAZABUAGQAaABUAFQAaABYAGgAbABYAFgAbABcAGwAcABcAFwAcABgAHAAdABgAGQAeABoAHgAfABoAGgAfABsAHwAgABsAGwAgABwAIAAhABwAHAAhAB0AIQAiAB0AHgAjAB8AIwAkAB8AHwAkACAAJAAlACAAIAAlACEAJQAmACEAIQAmACIAJgAnACIAIwAoACQAKAApACQAJAApACUAKQAqACUAJQAqACYAKgArACYAJgArACcAKwAsACcA"
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 45,
+      "max": [
+        1,
+        1,
+        5
+      ],
+      "min": [
+        -1,
+        -1,
+        -5
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 45,
+      "max": [
+        1,
+        1,
+        0
+      ],
+      "min": [
+        -1,
+        -1,
+        0
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 45,
+      "max": [
+        1,
+        1
+      ],
+      "min": [
+        0,
+        0
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5123,
+      "count": 192,
+      "max": [
+        44
+      ],
+      "min": [
+        0
+      ],
+      "type": "SCALAR"
+    }
+  ],
+  "materials": [
+    {
+      "pbrMetallicRoughness": {
+        "metallicFactor": 0,
+        "roughnessFactor": 1
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "mode": 4,
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "indices": 3,
+          "material": 0
+        }
+      ]
+    }
+  ]
+}

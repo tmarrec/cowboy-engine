@@ -42,52 +42,8 @@ void GlWidget::_initScene()
 	_renderer->setActiveCamera(&camera->getComponent<CameraComponent>());
 
 	auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/frag.frag"});
-	Scene(_renderer, _ECS_manager, "models/inside-cube.gltf");
 
-	Cube c;
-
-	auto& light(_ECS_manager->addEntity());
-	light.addComponent<TransformComponent>(glm::vec3{-9.0f, 0.0f, -6.0f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.5f, 0.5f, 0.5f});
-	light.addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES, RD_DEBUG);
-	light.addComponent<LightComponent>(_renderer, glm::vec3{1.0f, 1.0f, 1.0f}, 0.25f);
-
-	auto & light2(_ECS_manager->addEntity());
-	light2.addComponent<TransformComponent>(glm::vec3{-1.5f, -2.0f, 6.0f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{1.0f, 1.0f, 1.0f});
-	light2.addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES, RD_DEBUG);
-	light2.addComponent<LightComponent>(_renderer, glm::vec3{1.0f, 1.0f, 1.0f}, 0.2f);
-
-	auto& mc(_ECS_manager->addEntity());
-	mc.addComponent<TransformComponent>(glm::vec3{0.0f, -2.75f, 0.0f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.5f, 0.5f, 0.5f});
-	mc.addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
-	mc.getComponent<DrawableComponent>().setColor({1.0f, 0.0f, 0.0f});
-	auto& marchingCubeComponent = mc.addComponent<MarchingCubeComponent>(6.0f, 9.0f, 9.0f, 0.5f);
-
-	auto& metaball(_ECS_manager->addEntity());
-	metaball.addComponent<TransformComponent>(glm::vec3{0.0f, -4.0f, -4.0f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{1.0f, 1.0f, 1.0f});
-	metaball.addComponent<MetaballComponent>(&marchingCubeComponent, 0.8f);
-
-	auto& metaball2(_ECS_manager->addEntity());
-	metaball2.addComponent<TransformComponent>(glm::vec3{0.0f, -4.0f, 4.0f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{1.0f, 1.0f, 1.0f});
-	metaball2.addComponent<MetaballComponent>(&marchingCubeComponent, 0.8f);
-
-	auto& metaball3(_ECS_manager->addEntity());
-	metaball3.addComponent<TransformComponent>(glm::vec3{0.0f, 4.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{1.0f, 1.0f, 1.0f});
-	metaball3.addComponent<MetaballComponent>(&marchingCubeComponent, 1.0f);
-
-
-	Pyramid p;
-	std::uint8_t n = 5;
-	for (std::uint8_t i = 0; i < n; ++i)
-	{
-		auto& subcube(_ECS_manager->addEntity());
-		subcube.addComponent<TransformComponent>(glm::vec3{i*2.5f-((float)n/2)*2.5f, 2.0f, -7.0f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{1.5f, 1.5f, 1.5f});
-		subcube.addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
-		subcube.addComponent<SubdivideComponent>(i);
-		auto& subp(_ECS_manager->addEntity());
-		subp.addComponent<TransformComponent>(glm::vec3{i*2.5f-((float)n/2)*2.5f, -2.0f, -7.0f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{1.5f, 1.5f, 1.5f});
-		subp.addComponent<DrawableComponent>(_renderer, shader, p.vertices, p.normals, p.indices, GL_TRIANGLES);
-		subp.addComponent<SubdivideComponent>(i);
-	}
+	auto scene = new Scene(_renderer, _ECS_manager, "models/skeleton.gltf");
 
 }
 

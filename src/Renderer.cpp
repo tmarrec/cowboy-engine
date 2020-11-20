@@ -12,6 +12,7 @@
 #include "src/DrawableComponent.h"
 #include "src/CameraComponent.h"
 #include "src/LightComponent.h"
+#include "src/SkeletonComponent.h"
 #include "Shader.h"
 #include "shapes.h"
 #include "ECS.h"
@@ -255,7 +256,6 @@ void Renderer::_useShader(DrawableComponent* __drawableComponent)
 		temp = std::string("shadowMaps["+std::to_string(i)+"]");
 		shader->set_1i(temp, i);
 	}
-
 }
 
 void Renderer::_useShaderLightSpace(DrawableComponent* __drawableComponent)

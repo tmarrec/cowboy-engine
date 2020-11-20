@@ -47,6 +47,7 @@ add_executable(${PROJECT_NAME}
 
  	src/main.cpp
 	src/shapes.h
+	src/Bone.h
 
 	src/InputManager.h
 	src/InputManager.cpp

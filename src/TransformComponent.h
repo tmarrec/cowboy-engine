@@ -15,10 +15,6 @@ public:
 	// Testings (frame rate dependent)
 	void update([[maybe_unused]] double __deltaTime) override
 	{
-		if (entity->getEntityID() < 4)
-		{
-			rotate({0.0f, 0.1f, 0.0f});
-		}
 	}
 
 	void move(glm::vec3 __moveVector)
