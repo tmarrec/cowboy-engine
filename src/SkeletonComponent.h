@@ -1,7 +1,9 @@
 #pragma once
 
 #include "ECS.h"
+#include "Shader.h"
 #include "TransformComponent.h"
+#include "DrawableComponent.h"
 #include "MarchingCubeComponent.h"
 #include "glm/gtx/string_cast.hpp"
 #include "src/Renderer.h"
@@ -15,18 +17,26 @@
 class SkeletonComponent : public Component
 {
 public:
-	SkeletonComponent()
+	SkeletonComponent(std::shared_ptr<Renderer> __renderer, std::shared_ptr<ECS_Manager> __ECS_manager)
 	: Component{}
-	, _root { Bone{1, {0, 0, 0}} }
+	, _root { __ECS_manager->addEntity() }
+	, _renderer { __renderer }
+	, _ECS_manager { __ECS_manager }
+	, _skeletonDraw { _ECS_manager->addEntity() }
 	{
+		_root.addComponent<TransformComponent>(glm::vec3{0,0,-4.5f}, glm::vec3{0,0,0}, glm::vec3{0.1f,0.1f,0.1f});
+		_root.addComponent<BoneComponent>(1);
+		auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/frag.frag"});
+		Cube c;
+		_root.addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
+
+		_skeletonDraw.addComponent<TransformComponent>(glm::vec3{0,0,0}, glm::vec3{0,0,0}, glm::vec3{1,1,1});
+		_skeletonDraw.addComponent<DrawableComponent>(_renderer, shader, vertices(), normals(), indices(), GL_LINES);
 	}
 
 	std::vector<GLfloat> vertices()
 	{
-		auto vertices = _root.getVertices();
-		for(const auto& v : vertices)
-			std::cout << v << " ";
-		std::cout << std::endl;
+		auto vertices = _root.getComponent<BoneComponent>().getVertices();
 		return vertices;
 	}
 	std::vector<GLfloat> normals() const
@@ -35,27 +45,33 @@ public:
 	}
 	std::vector<GLuint> indices()
 	{
-		auto indices = _root.getIndices(0);
-		for(const auto& i : indices)
-			std::cout << i << " ";
-		std::cout << std::endl;
+		auto indices = _root.getComponent<BoneComponent>().getIndices(0);
 		return indices;
 	}
 
 	void init() override
 	{
-		std::shared_ptr<Bone> b1 = std::make_shared<Bone>(Bone {10, {-1,0,-1}});
-		std::shared_ptr<Bone> b2 = std::make_shared<Bone>(Bone {100, {1,0,-1}});
-		std::shared_ptr<Bone> b3 = std::make_shared<Bone>(Bone {1000, {-2,0,-2}});
-		std::shared_ptr<Bone> b4 = std::make_shared<Bone>(Bone {10000, {-1,0,-2}});
-		std::shared_ptr<Bone> b5 = std::make_shared<Bone>(Bone {100000, {0,0,-2}});
-		std::shared_ptr<Bone> b6 = std::make_shared<Bone>(Bone {1000000, {-1,0,-3}});
-		_root.addChild(b1);
-		_root.addChild(b2);
-		b1->addChild(b3);
-		b1->addChild(b4);
-		b1->addChild(b5);
-		b4->addChild(b6);
+		//_b1 = std::make_shared<Bone>(Bone {10, {-10,0,0}});
+		Cube c;
+		auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/frag.frag"});
+
+		auto b1 = &_ECS_manager->addEntity();
+		b1->addComponent<TransformComponent>(glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.1f, 0.1f, 0.1f});
+		b1->addComponent<BoneComponent>(10);
+		b1->addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
+		_root.getComponent<BoneComponent>().addChild(b1);
+
+		auto b2 = &_ECS_manager->addEntity();
+		b2->addComponent<TransformComponent>(glm::vec3{0.0f, 0.0f, 4.5f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.1f, 0.1f, 0.1f});
+		b2->addComponent<BoneComponent>();
+		b2->addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
+		b1->getComponent<BoneComponent>().addChild(b2);
+
+		auto b3 = &_ECS_manager->addEntity();
+		b3->addComponent<TransformComponent>(glm::vec3{0.0f, 0.0f, 9.0f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.1f, 0.1f, 0.1f});
+		b3->addComponent<BoneComponent>();
+		b3->addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
+		b2->getComponent<BoneComponent>().addChild(b3);
 	}
 
 	void draw() override
@@ -64,10 +80,17 @@ public:
 
 	void update([[maybe_unused]] double __deltaTime) override
 	{
+		_skeletonDraw.getComponent<DrawableComponent>().setVertices(vertices());
+		_skeletonDraw.getComponent<DrawableComponent>().setIndices(indices());
+		_skeletonDraw.getComponent<DrawableComponent>().updateGeometry();
 	}
 	
 
 private:
 	Cube _c;
-	Bone _root;
+	Entity& _root;
+	Entity _b1;
+	std::shared_ptr<Renderer> _renderer;
+	std::shared_ptr<ECS_Manager> _ECS_manager;
+	Entity& _skeletonDraw;
 };

@@ -115,13 +115,7 @@ private:
 			}
 			entity.addComponent<TransformComponent>(translation, rotation, scale);
 			entity.addComponent<DrawableComponent>(_renderer, shader, shape.vertices, shape.normals, shape.indices, GL_TRIANGLES);
-			entity.addComponent<SkeletonComponent>();
-
-			auto& skeletonDraw = _ECS_manager->addEntity();
-			skeletonDraw.addComponent<TransformComponent>(translation, rotation, scale);
-			auto skeletonComponent = entity.getComponent<SkeletonComponent>();
-			skeletonDraw.addComponent<DrawableComponent>(_renderer, shader, skeletonComponent.vertices(), skeletonComponent.normals(), skeletonComponent.indices(), GL_LINES);
-
+			entity.addComponent<SkeletonComponent>(_renderer, _ECS_manager);
 
 		}
 		for (size_t i = 0; i < __node.children.size(); i++) {
