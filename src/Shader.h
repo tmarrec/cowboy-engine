@@ -81,7 +81,7 @@ private:
 	{
 		int location = glGetUniformLocation(_id, name.c_str());
 		if (location == -1) {
-			WARNING("Cannot find uniform location : " << name);
+			//WARNING("Cannot find uniform location : " << name);
 		}	
 		return location;
 	}

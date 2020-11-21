@@ -67,11 +67,19 @@ public:
 		b2->addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
 		b1->getComponent<BoneComponent>().addChild(b2);
 
-		auto b3 = &_ECS_manager->addEntity();
-		b3->addComponent<TransformComponent>(glm::vec3{0.0f, 0.0f, 9.0f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.1f, 0.1f, 0.1f});
-		b3->addComponent<BoneComponent>();
-		b3->addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
-		b2->getComponent<BoneComponent>().addChild(b3);
+		auto vertices = entity->getComponent<DrawableComponent>().vertices();
+		_root.getComponent<BoneComponent>().setWeights(_weights, vertices);
+		
+		for (const auto& bw : _weights)
+		{
+			for (const auto& w : bw)
+			{
+				std::cout << w << " ";
+			}
+			std::cout << std::endl << "." << std::endl;
+		}
+
+		_renderer->setBonePos(_root.getComponent<TransformComponent>().position());
 	}
 
 	void draw() override
@@ -90,6 +98,7 @@ private:
 	Cube _c;
 	Entity& _root;
 	Entity _b1;
+	std::vector<std::vector<float>> _weights;
 	std::shared_ptr<Renderer> _renderer;
 	std::shared_ptr<ECS_Manager> _ECS_manager;
 	Entity& _skeletonDraw;

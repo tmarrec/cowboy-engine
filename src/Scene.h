@@ -114,7 +114,8 @@ private:
 				}
 			}
 			entity.addComponent<TransformComponent>(translation, rotation, scale);
-			entity.addComponent<DrawableComponent>(_renderer, shader, shape.vertices, shape.normals, shape.indices, GL_TRIANGLES);
+			auto boneShader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/bone.frag"});
+			entity.addComponent<DrawableComponent>(_renderer, boneShader, shape.vertices, shape.normals, shape.indices, GL_TRIANGLES);
 			entity.addComponent<SkeletonComponent>(_renderer, _ECS_manager);
 
 		}

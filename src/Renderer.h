@@ -44,6 +44,12 @@ public:
 	void switchPolygonmode();
 	void switchShowNormals();
 	CameraComponent* getActiveCamera() const;
+	
+	// Debug bone
+	void setBonePos(glm::vec3 pos)
+	{
+		_bonePos = pos;
+	}
 
 
 private:
@@ -87,5 +93,7 @@ private:
 	Shader* _normalShader = nullptr;
 	bool _showNormals = false;
 
+	// Bone debug
+	glm::vec3 _bonePos = {0, 0, 0};
 };
 

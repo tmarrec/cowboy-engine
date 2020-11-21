@@ -8,6 +8,7 @@
 #include "src/TransformComponent.h"
 #include <GL/gl.h>
 #include <cstdint>
+#include <iterator>
 #include <memory>
 #include <vector>
 #include <iostream>
@@ -62,6 +63,31 @@ public:
 		return res;
 	}
 
+	void setWeights(std::vector<std::vector<float>>& weights, std::shared_ptr<std::vector<GLfloat>> vertices)
+	{
+		// Own weight
+		std::vector<float> boneWeights;
+		double sum = 0.0f;
+		for (std::uint64_t i = 0; i < vertices->size(); i += 3)
+		{
+			glm::vec3 vertPos = {(*vertices)[i], (*vertices)[i+1], (*vertices)[i+2]};
+			glm::vec3 bonePos = entity->getComponent<TransformComponent>().position();
+			float w = 1.0f/std::pow(glm::distance(vertPos, bonePos), 2);
+			boneWeights.emplace_back(w);
+			sum += w;
+		}
+		// Normalize
+		for (auto& w : boneWeights)
+			w = w / sum;
+		weights.emplace_back(boneWeights);
+
+		// Childs weights
+		for (auto it = _childs.begin(); it != _childs.end(); ++it)
+		{
+			(*it)->getComponent<BoneComponent>().setWeights(weights, vertices);
+		}
+	}
+
 	void addChild(Entity* child) { _childs.emplace_back(child); }
 
 	void move(glm::vec3 moveVec, glm::vec3 rotaVec)
@@ -93,7 +119,7 @@ public:
 	{
 		if (entity->getEntityID() == 5)
 		{
-			move({0.0f, 0.05f*__deltaTime, 0.0f},{0.5f*__deltaTime, 0.0f, 0.0f});
+			//move({0.0f, 0.05f*__deltaTime, 0.0f},{0.5f*__deltaTime, 0.0f, 0.0f});
 		}
 	}
 
