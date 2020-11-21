@@ -102,6 +102,13 @@ void InputManager::keyPressEvent(QKeyEvent *event)
 			break;
 		case Qt::Key_N:
 			_renderer->switchShowNormals();
+			break;
+		case Qt::Key_Left:
+			_renderer->switchBone(-1);
+			break;
+		case Qt::Key_Right:
+			_renderer->switchBone(1);
+			break;
 		default:
 			break;
 	}

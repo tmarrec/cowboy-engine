@@ -25,10 +25,11 @@ public:
 	, _skeletonDraw { _ECS_manager->addEntity() }
 	{
 		_root.addComponent<TransformComponent>(glm::vec3{0,0,-4.5f}, glm::vec3{0,0,0}, glm::vec3{0.1f,0.1f,0.1f});
-		_root.addComponent<BoneComponent>(1);
+		_root.addComponent<BoneComponent>();
 		auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/frag.frag"});
 		Cube c;
 		_root.addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
+		_bones.emplace_back(&_root);
 
 		_skeletonDraw.addComponent<TransformComponent>(glm::vec3{0,0,0}, glm::vec3{0,0,0}, glm::vec3{1,1,1});
 		_skeletonDraw.addComponent<DrawableComponent>(_renderer, shader, vertices(), normals(), indices(), GL_LINES);
@@ -48,24 +49,33 @@ public:
 		auto indices = _root.getComponent<BoneComponent>().getIndices(0);
 		return indices;
 	}
+	glm::vec3 position() const
+	{
+		return _bones[_selectedBone]->getComponent<TransformComponent>().position();
+	}
+	void changeSelectedBone(std::int64_t diff)
+	{
+		std::cout << diff << std::endl;
+		_selectedBone += diff;	
+		_selectedBone %= _bones.size();
+	}
+	
+	void addBone(glm::vec3 pos)
+	{
+		Cube c;
+		auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/frag.frag"});
+		Entity* bone = &_ECS_manager->addEntity();
+		bone->addComponent<TransformComponent>(pos, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.1f, 0.1f, 0.1f});
+		bone->addComponent<BoneComponent>();
+		bone->addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
+		_root.getComponent<BoneComponent>().addChild(bone);
+		_bones.emplace_back(bone);
+	}
 
 	void init() override
 	{
-		//_b1 = std::make_shared<Bone>(Bone {10, {-10,0,0}});
-		Cube c;
-		auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/frag.frag"});
-
-		auto b1 = &_ECS_manager->addEntity();
-		b1->addComponent<TransformComponent>(glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.1f, 0.1f, 0.1f});
-		b1->addComponent<BoneComponent>(10);
-		b1->addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
-		_root.getComponent<BoneComponent>().addChild(b1);
-
-		auto b2 = &_ECS_manager->addEntity();
-		b2->addComponent<TransformComponent>(glm::vec3{0.0f, 0.0f, 4.5f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.1f, 0.1f, 0.1f});
-		b2->addComponent<BoneComponent>();
-		b2->addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
-		b1->getComponent<BoneComponent>().addChild(b2);
+		addBone({0,0,0});
+		addBone({0,0,4.5f});
 
 		auto vertices = entity->getComponent<DrawableComponent>().vertices();
 		_root.getComponent<BoneComponent>().setWeights(_weights, vertices);
@@ -79,7 +89,7 @@ public:
 			std::cout << std::endl << "." << std::endl;
 		}
 
-		_renderer->setBonePos(_root.getComponent<TransformComponent>().position());
+		_renderer->setSkeleton(this);
 	}
 
 	void draw() override
@@ -102,4 +112,6 @@ private:
 	std::shared_ptr<Renderer> _renderer;
 	std::shared_ptr<ECS_Manager> _ECS_manager;
 	Entity& _skeletonDraw;
+	std::vector<Entity*> _bones;
+	std::uint64_t _selectedBone = 0;
 };

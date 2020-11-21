@@ -20,18 +20,9 @@ class BoneComponent : public Component
 public:
 	BoneComponent()
 	: Component{}
-	, _weight { 0 }
 	{
 	}
-
-	BoneComponent(float weight)
-	: Component{}
-	, _weight { weight }
-	{
-	}
-	float weight() const { return _weight; }
 	std::vector<Entity*>& childs() { return _childs; }
-
 
 	std::vector<GLuint> getIndices(std::uint64_t ind)
 	{
@@ -124,7 +115,6 @@ public:
 	}
 
 private:
-	float _weight;
 	std::vector<Entity*> _childs;
 };
 

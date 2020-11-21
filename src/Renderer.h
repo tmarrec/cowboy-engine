@@ -25,6 +25,7 @@ class CameraComponent;
 class LightComponent;
 class Shader;
 class ECS_Manager;
+class SkeletonComponent;
 
 class Renderer
 {
@@ -46,10 +47,8 @@ public:
 	CameraComponent* getActiveCamera() const;
 	
 	// Debug bone
-	void setBonePos(glm::vec3 pos)
-	{
-		_bonePos = pos;
-	}
+	void setSkeleton(SkeletonComponent* skeleton);
+	void switchBone(std::int64_t diff);
 
 
 private:
@@ -94,6 +93,6 @@ private:
 	bool _showNormals = false;
 
 	// Bone debug
-	glm::vec3 _bonePos = {0, 0, 0};
+	SkeletonComponent* _skeleton = nullptr;
 };
 
