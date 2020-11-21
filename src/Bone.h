@@ -83,7 +83,8 @@ public:
 
 	void move(glm::vec3 moveVec, glm::vec3 rotaVec)
 	{
-		//entity->getComponent<TransformComponent>().move(moveVec);
+		/*
+		entity->getComponent<TransformComponent>().move(moveVec);
 		entity->getComponent<TransformComponent>().rotate(rotaVec);
 
 		for (auto it = _childs.begin(); it != _childs.end(); ++it)
@@ -103,6 +104,7 @@ public:
 
 			(*it)->getComponent<BoneComponent>().move({0,0,0}, {0,0,0});
 		}
+		*/
 	}
 
 
@@ -110,7 +112,7 @@ public:
 	{
 		if (entity->getEntityID() == 5)
 		{
-			//move({0.0f, 0.05f*__deltaTime, 0.0f},{0.5f*__deltaTime, 0.0f, 0.0f});
+			move({0.0f, 0.05f*__deltaTime, 0.0f},{0.5f*__deltaTime, 0.0f, 0.0f});
 		}
 	}
 

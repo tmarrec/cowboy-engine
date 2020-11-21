@@ -5,6 +5,7 @@
 #include "TransformComponent.h"
 #include "DrawableComponent.h"
 #include "MarchingCubeComponent.h"
+#include "glm/geometric.hpp"
 #include "glm/gtx/string_cast.hpp"
 #include "src/Renderer.h"
 #include <GL/gl.h>
@@ -32,7 +33,7 @@ public:
 		_bones.emplace_back(&_root);
 
 		_skeletonDraw.addComponent<TransformComponent>(glm::vec3{0,0,0}, glm::vec3{0,0,0}, glm::vec3{1,1,1});
-		_skeletonDraw.addComponent<DrawableComponent>(_renderer, shader, vertices(), normals(), indices(), GL_LINES);
+		_skeletonDraw.addComponent<DrawableComponent>(_renderer, shader, vertices(), normals(), indices(), GL_TRIANGLES);
 	}
 
 	std::vector<GLfloat> vertices()
@@ -55,12 +56,12 @@ public:
 	}
 	void changeSelectedBone(std::int64_t diff)
 	{
-		std::cout << diff << std::endl;
 		_selectedBone += diff;	
-		_selectedBone %= _bones.size();
+		if (_selectedBone == (unsigned long)-1) _selectedBone = _bones.size()-1;
+		else _selectedBone %= _bones.size();
 	}
 	
-	void addBone(glm::vec3 pos)
+	Entity* addBone(Entity* parent, glm::vec3 pos)
 	{
 		Cube c;
 		auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/frag.frag"});
@@ -68,14 +69,15 @@ public:
 		bone->addComponent<TransformComponent>(pos, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.1f, 0.1f, 0.1f});
 		bone->addComponent<BoneComponent>();
 		bone->addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
-		_root.getComponent<BoneComponent>().addChild(bone);
+		parent->getComponent<BoneComponent>().addChild(bone);
 		_bones.emplace_back(bone);
+		return bone;
 	}
 
 	void init() override
 	{
-		addBone({0,0,0});
-		addBone({0,0,4.5f});
+		auto b1 = addBone(&_root, {0,0,0});
+		auto b2 = addBone(b1, {0,0,4.5f});
 
 		auto vertices = entity->getComponent<DrawableComponent>().vertices();
 		_root.getComponent<BoneComponent>().setWeights(_weights, vertices);
@@ -98,8 +100,79 @@ public:
 
 	void update([[maybe_unused]] double __deltaTime) override
 	{
-		_skeletonDraw.getComponent<DrawableComponent>().setVertices(vertices());
-		_skeletonDraw.getComponent<DrawableComponent>().setIndices(indices());
+		auto vert = vertices();
+		auto indi = indices();
+
+		for (const auto& i : indi)
+				std::cout << i << std::endl;
+
+		std::vector<GLfloat> newVertices;
+		for (std::uint64_t i = 0; i < indi.size(); i += 2)
+		{
+			glm::vec3 start = {vert[indi[i]*3], vert[indi[i]*3+1], vert[indi[i]*3+2]};
+			glm::vec3 end = {vert[indi[i+1]*3], vert[indi[i+1]*3+1], vert[indi[i+1]*3+2]};
+			float dist = glm::distance(start, end);
+
+			float r = dist/20;
+			glm::vec3 s1 = start + glm::vec3{r, r, r};
+			glm::vec3 s2 = start + glm::vec3{r, -r, r};
+			glm::vec3 s3 = start + glm::vec3{-r, -r, r};
+			glm::vec3 s4 = start + glm::vec3{-r, r, r};
+
+			// Totalement faux ofc (et ignoble en plus)
+			std::uint64_t oldSize = newVertices.size();
+			newVertices.resize(oldSize+9);
+			memcpy(&newVertices[oldSize], &start, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+3], &s1, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+6], &s2, sizeof(GLfloat)*3);
+			oldSize = newVertices.size();
+			newVertices.resize(oldSize+9);
+			memcpy(&newVertices[oldSize], &start, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+3], &s2, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+6], &s3, sizeof(GLfloat)*3);
+			oldSize = newVertices.size();
+			newVertices.resize(oldSize+9);
+			memcpy(&newVertices[oldSize], &start, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+3], &s3, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+6], &s4, sizeof(GLfloat)*3);
+			oldSize = newVertices.size();
+			newVertices.resize(oldSize+9);
+			memcpy(&newVertices[oldSize], &start, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+3], &s4, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+6], &s1, sizeof(GLfloat)*3);
+
+			oldSize = newVertices.size();
+			newVertices.resize(oldSize+9);
+			memcpy(&newVertices[oldSize], &end, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+3], &s1, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+6], &s2, sizeof(GLfloat)*3);
+			oldSize = newVertices.size();
+			newVertices.resize(oldSize+9);
+			memcpy(&newVertices[oldSize], &end, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+3], &s2, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+6], &s3, sizeof(GLfloat)*3);
+			oldSize = newVertices.size();
+			newVertices.resize(oldSize+9);
+			memcpy(&newVertices[oldSize], &end, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+3], &s3, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+6], &s4, sizeof(GLfloat)*3);
+			oldSize = newVertices.size();
+			newVertices.resize(oldSize+9);
+			memcpy(&newVertices[oldSize], &end, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+3], &s4, sizeof(GLfloat)*3);
+			memcpy(&newVertices[oldSize+6], &s1, sizeof(GLfloat)*3);
+		}
+
+		std::vector<GLuint> newIndices;
+		newIndices.resize(newVertices.size()/3);
+		std::iota(newIndices.begin(), newIndices.end(), 0);
+
+
+		_skeletonDraw.getComponent<DrawableComponent>().setVertices(newVertices);
+		_skeletonDraw.getComponent<DrawableComponent>().setIndices(newIndices);
+
+		
+
 		_skeletonDraw.getComponent<DrawableComponent>().updateGeometry();
 	}
 	
