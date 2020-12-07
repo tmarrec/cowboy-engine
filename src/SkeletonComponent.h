@@ -76,7 +76,7 @@ public:
 
 	void init() override
 	{
-		auto b1 = addBone(&_root, {0,0,0});
+		auto b1 = addBone(&_root, {1,1,0});
 		auto b2 = addBone(b1, {0,0,4.5f});
 
 		auto vertices = entity->getComponent<DrawableComponent>().vertices();
