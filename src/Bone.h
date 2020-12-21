@@ -81,38 +81,47 @@ public:
 
 	void addChild(Entity* child) { _childs.emplace_back(child); }
 
-	void move(glm::vec3 moveVec, glm::vec3 rotaVec)
+	void move(glm::mat4 transformMatrix, glm::vec3 origin)
 	{
-		/*
-		entity->getComponent<TransformComponent>().move(moveVec);
-		entity->getComponent<TransformComponent>().rotate(rotaVec);
+		entity->getComponent<TransformComponent>().applyTransformMatrix(transformMatrix);
 
 		for (auto it = _childs.begin(); it != _childs.end(); ++it)
 		{
-			auto p1 = entity->getComponent<TransformComponent>().position();
+
+			//(*it)->getComponent<BoneComponent>().move(transformMatrix);
+
+			auto p1 = origin;
 			auto p2 = (*it)->getComponent<TransformComponent>().position();
+			glm::vec3 res = transformMatrix * glm::vec4(p2-p1, 1);
+			(*it)->getComponent<TransformComponent>().move(res-(p2-p1));
 
-			auto x = glm::rotateX(p1-p2, glm::radians(rotaVec.x));
-			auto y = glm::rotateY(x, glm::radians(rotaVec.y));
-			auto res = glm::rotateZ(y, glm::radians(rotaVec.z));
 
+			/*
+			std::cout << std::endl;
 			std::cout << glm::to_string(p1) << std::endl;
 			std::cout << glm::to_string(p2) << std::endl;
+			std::cout << glm::to_string(p2-p1) << std::endl;
 			std::cout << glm::to_string(res) << std::endl;
 			std::cout << std::endl;
-			(*it)->getComponent<TransformComponent>().setPosition(-res);
+			*/
 
-			(*it)->getComponent<BoneComponent>().move({0,0,0}, {0,0,0});
+			// Propagate
+			(*it)->getComponent<BoneComponent>().move(transformMatrix, origin);
 		}
-		*/
+		
 	}
 
 
-	void update(double __deltaTime) override
+	void update([[maybe_unused]] double __deltaTime) override
 	{
-		if (entity->getEntityID() == 5)
+		if (entity->getEntityID() >= 5)
 		{
-			move({0.0f, 0.05f*__deltaTime, 0.0f},{0.5f*__deltaTime, 0.0f, 0.0f});
+			glm::mat4 model {1.0f};
+			model = glm::translate(model, {0, 0, 0});
+			model = glm::rotate(model, glm::radians(float(5.0f*__deltaTime)), glm::vec3(1.0f, 0.0f, 0.0f));
+			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			move(model, entity->getComponent<TransformComponent>().position());
 		}
 	}
 

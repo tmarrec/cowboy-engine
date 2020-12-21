@@ -8,6 +8,7 @@
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <glm/gtc/constants.hpp>
 
 #include <GL/gl.h>
 

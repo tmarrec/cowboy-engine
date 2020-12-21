@@ -25,6 +25,19 @@ public:
 	{
 		_rotation += __rotationVector;
 	}
+	void applyTransformMatrix(glm::mat4 __mat)
+	{
+		glm::vec3 translation;
+		glm::quat qrotation;
+		glm::vec3 scale;
+		glm::vec3 skew;
+		glm::vec4 perspective;
+		glm::decompose(__mat, scale, qrotation, translation, skew, perspective);
+		glm::vec3 rotation = glm::eulerAngles(qrotation) * glm::pi<float>() / 180.0f;
+
+		move(translation);
+		rotate(rotation);
+	}
 
 	void setPosition(glm::vec3 __position) { _position = __position; }
 

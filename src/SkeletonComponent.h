@@ -61,11 +61,17 @@ public:
 		else _selectedBone %= _bones.size();
 	}
 	
-	Entity* addBone(Entity* parent, glm::vec3 pos)
+	Entity* addBone(Entity* parent, glm::mat4 transformMatrix)
 	{
 		Cube c;
 		auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/frag.frag"});
 		Entity* bone = &_ECS_manager->addEntity();
+
+		glm::vec3 parentPos = parent->getComponent<TransformComponent>().position();
+		std::cout << glm::to_string(parentPos) << std::endl;
+		glm::vec3 pos = transformMatrix * glm::vec4(parentPos, 1);
+		std::cout << glm::to_string(pos) << std::endl;
+
 		bone->addComponent<TransformComponent>(pos, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.1f, 0.1f, 0.1f});
 		bone->addComponent<BoneComponent>();
 		bone->addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
@@ -76,9 +82,18 @@ public:
 
 	void init() override
 	{
-		auto b1 = addBone(&_root, {1,1,0});
-		auto b2 = addBone(b1, {0,0,4.5f});
+		glm::mat4 model {1.0f};
+		model = glm::translate(model, {0, 0, 2.0f});
+		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		auto b1 = addBone(&_root, model);
+		auto b2 = addBone(b1, model);
+		auto b3 = addBone(b2, model);
+		auto b4 = addBone(b3, model);
+		auto b5 = addBone(b4, model);
 
+		/*
 		auto vertices = entity->getComponent<DrawableComponent>().vertices();
 		_root.getComponent<BoneComponent>().setWeights(_weights, vertices);
 		
@@ -90,6 +105,7 @@ public:
 			}
 			std::cout << std::endl << "." << std::endl;
 		}
+		*/
 
 		_renderer->setSkeleton(this);
 	}
@@ -103,8 +119,10 @@ public:
 		auto vert = vertices();
 		auto indi = indices();
 
+		/*
 		for (const auto& i : indi)
 				std::cout << i << std::endl;
+		*/
 
 		std::vector<GLfloat> newVertices;
 		for (std::uint64_t i = 0; i < indi.size(); i += 2)
@@ -170,8 +188,6 @@ public:
 
 		_skeletonDraw.getComponent<DrawableComponent>().setVertices(newVertices);
 		_skeletonDraw.getComponent<DrawableComponent>().setIndices(newIndices);
-
-		
 
 		_skeletonDraw.getComponent<DrawableComponent>().updateGeometry();
 	}
