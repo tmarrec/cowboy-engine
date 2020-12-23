@@ -23,6 +23,7 @@ public:
 	, _shader { __shader }
 	, _drawMode { __drawMode }
 	, _debug { __debug }
+	, _undeformedVertices { std::make_shared<std::vector<GLfloat>>(__vertices) }
 	{}
 
 	void init() override
@@ -38,12 +39,24 @@ public:
 		_renderer->initDrawable(this);
 	}
 
-	void setVertices(const std::vector<GLfloat>& __vertices) {	_vertices = std::make_shared<std::vector<GLfloat>>(__vertices);	}
+	void setVertices(const std::vector<GLfloat>& __vertices)
+	{
+		_vertices = std::make_shared<std::vector<GLfloat>>(__vertices);
+		_undeformedVertices = std::make_shared<std::vector<GLfloat>>(*_vertices);
+	}
+	void setVerticesAnim(const std::vector<GLfloat>& __vertices)
+	{
+		_vertices = std::make_shared<std::vector<GLfloat>>(__vertices);
+	}
 	void setNormals(const std::vector<GLfloat>& __normals)	{ _normals = std::make_shared<std::vector<GLfloat>>(__normals);	}
 	void setIndices(const std::vector<GLuint>& __indices) { _indices = std::make_shared<std::vector<GLuint>>(__indices); }
 	void setColor(glm::vec3 __color) { _color = __color; }
 
 	std::shared_ptr<std::vector<GLfloat>> vertices() const { return _vertices; }
+	std::shared_ptr<std::vector<GLfloat>> undeformedVertices() const 
+	{
+		return _undeformedVertices;
+	}
 	std::shared_ptr<std::vector<GLfloat>> normals() const { return _normals; }
 	std::shared_ptr<std::vector<GLuint>> indices() const { return _indices; }
 	glm::vec3 color() const	{ return _color; }
@@ -68,6 +81,7 @@ public:
 private:
 	Renderer__ _renderer;
 	std::shared_ptr<std::vector<GLfloat>> _vertices;
+	std::shared_ptr<std::vector<GLfloat>> _undeformedVertices;
 	std::shared_ptr<std::vector<GLfloat>> _normals;
 	std::shared_ptr<std::vector<GLuint>>  _indices;
 

@@ -18,11 +18,31 @@
 class BoneComponent : public Component
 {
 public:
+	BoneComponent(glm::vec3 parentPos)
+	: Component{}
+	, _parentPos { parentPos }
+	, _root { false }
+	, _undeformedTransform { 1.0f }
+	, _deformedTransform { 1.0f }
+	{
+	}
 	BoneComponent()
 	: Component{}
+	, _parentPos { glm::vec3{0, 0, 0} }
+	, _root { true }
+	, _undeformedTransform { 1.0f }
+	, _deformedTransform { 1.0f }
 	{
 	}
 	std::vector<Entity*>& childs() { return _childs; }
+	glm::mat4 undeformedTransform() { return _undeformedTransform; }
+	glm::mat4 deformedTransform() { return _deformedTransform; }
+	bool root() { return _root; }
+	glm::vec3 position()
+	{
+		glm::vec3 pos = entity->getComponent<TransformComponent>().position();
+		return (pos+_parentPos)/glm::vec3{2,2,2};
+	}
 
 	std::vector<GLuint> getIndices(std::uint64_t ind)
 	{
@@ -54,23 +74,41 @@ public:
 		return res;
 	}
 
+	void setUndeformedTransform(glm::mat4 transform)
+	{
+		_undeformedTransform = transform;
+	}
+
+	void setDeformedTransform(glm::mat4 transform)
+	{
+		_deformedTransform = transform;
+	}
+
 	void setWeights(std::vector<std::vector<float>>& weights, std::shared_ptr<std::vector<GLfloat>> vertices)
 	{
-		// Own weight
-		std::vector<float> boneWeights;
-		double sum = 0.0f;
-		for (std::uint64_t i = 0; i < vertices->size(); i += 3)
+		if (!_root)
 		{
-			glm::vec3 vertPos = {(*vertices)[i], (*vertices)[i+1], (*vertices)[i+2]};
-			glm::vec3 bonePos = entity->getComponent<TransformComponent>().position();
-			float w = 1.0f/std::pow(glm::distance(vertPos, bonePos), 2);
-			boneWeights.emplace_back(w);
-			sum += w;
+			// Own weight
+			std::vector<float> boneWeights;
+			double sum = 0.0f;
+			for (std::uint64_t i = 0; i < vertices->size(); i += 3)
+			{
+				glm::vec3 vertPos = {(*vertices)[i], (*vertices)[i+1], (*vertices)[i+2]};
+				glm::vec3 bonePos = position();
+		
+				float dist = glm::distance(vertPos, bonePos);
+				if (dist == 0.0f)
+					dist = 0.00001f;
+				float w = 1.0f/std::pow(dist, 2);
+				boneWeights.emplace_back(w);
+				sum += w;
+			}
+			// Normalize
+			for (auto& w : boneWeights)
+				w = w / sum;
+	
+			weights.emplace_back(boneWeights);
 		}
-		// Normalize
-		for (auto& w : boneWeights)
-			w = w / sum;
-		weights.emplace_back(boneWeights);
 
 		// Childs weights
 		for (auto it = _childs.begin(); it != _childs.end(); ++it)
@@ -81,36 +119,23 @@ public:
 
 	void addChild(Entity* child) { _childs.emplace_back(child); }
 
-	void move(glm::mat4 transformMatrix, glm::vec3 origin)
+	void move(glm::mat4 transform, glm::vec3 origin)
 	{
-		entity->getComponent<TransformComponent>().applyTransformMatrix(transformMatrix);
+		setDeformedTransform(_deformedTransform*transform);
+		entity->getComponent<TransformComponent>().applyTransformMatrix(transform);
 
 		for (auto it = _childs.begin(); it != _childs.end(); ++it)
 		{
-
-			//(*it)->getComponent<BoneComponent>().move(transformMatrix);
-
 			auto p1 = origin;
 			auto p2 = (*it)->getComponent<TransformComponent>().position();
-			glm::vec3 res = transformMatrix * glm::vec4(p2-p1, 1);
+			glm::vec3 res = transform * glm::vec4(p2-p1, 1);
 			(*it)->getComponent<TransformComponent>().move(res-(p2-p1));
 
-
-			/*
-			std::cout << std::endl;
-			std::cout << glm::to_string(p1) << std::endl;
-			std::cout << glm::to_string(p2) << std::endl;
-			std::cout << glm::to_string(p2-p1) << std::endl;
-			std::cout << glm::to_string(res) << std::endl;
-			std::cout << std::endl;
-			*/
-
 			// Propagate
-			(*it)->getComponent<BoneComponent>().move(transformMatrix, origin);
+			(*it)->getComponent<BoneComponent>().move(transform, origin);
 		}
 		
 	}
-
 
 	void update([[maybe_unused]] double __deltaTime) override
 	{
@@ -118,7 +143,7 @@ public:
 		{
 			glm::mat4 model {1.0f};
 			model = glm::translate(model, {0, 0, 0});
-			model = glm::rotate(model, glm::radians(float(5.0f*__deltaTime)), glm::vec3(1.0f, 0.0f, 0.0f));
+			model = glm::rotate(model, glm::radians((float)(1.5f*__deltaTime)), glm::vec3(1.0f, 0.0f, 0.0f));
 			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 			move(model, entity->getComponent<TransformComponent>().position());
@@ -127,5 +152,9 @@ public:
 
 private:
 	std::vector<Entity*> _childs;
+	glm::vec3 _parentPos;
+	bool _root = false;
+	glm::mat4 _undeformedTransform;
+	glm::mat4 _deformedTransform;
 };
 
