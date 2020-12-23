@@ -17,13 +17,13 @@ public:
 	: Component{}
 	, _renderer { __renderer }
 	, _vertices { std::make_shared<std::vector<GLfloat>>(__vertices) }
+	, _undeformedVertices { std::make_shared<std::vector<GLfloat>>(__vertices) }
 	, _normals { std::make_shared<std::vector<GLfloat>>(__normals) }
 	, _indices { std::make_shared<std::vector<GLuint>>(__indices) }
 	, _color { glm::vec3{((double) rand() / (RAND_MAX)) + 1, ((double) rand() / (RAND_MAX)) + 1, ((double) rand() / (RAND_MAX)) + 1} }
 	, _shader { __shader }
 	, _drawMode { __drawMode }
 	, _debug { __debug }
-	, _undeformedVertices { std::make_shared<std::vector<GLfloat>>(__vertices) }
 	{}
 
 	void init() override

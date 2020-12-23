@@ -109,6 +109,8 @@ void InputManager::keyPressEvent(QKeyEvent *event)
 		case Qt::Key_Right:
 			_renderer->switchBone(1);
 			break;
+		case Qt::Key_Space:
+			_renderer->switchAnim();	
 		default:
 			break;
 	}

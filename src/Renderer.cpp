@@ -371,6 +371,11 @@ void Renderer::setSkeleton(SkeletonComponent* skeleton)
 	_skeleton = skeleton;
 }
 
+void Renderer::switchAnim()
+{
+	_skeleton->switchAnim();
+}
+
 void Renderer::switchBone(std::int64_t diff)
 {
 	_skeleton->changeSelectedBone(diff);

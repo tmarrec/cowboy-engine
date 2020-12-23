@@ -38,6 +38,7 @@ public:
 	glm::mat4 undeformedTransform() { return _undeformedTransform; }
 	glm::mat4 deformedTransform() { return _deformedTransform; }
 	bool root() { return _root; }
+	glm::vec3 parentPos() { return _parentPos; }
 	glm::vec3 position()
 	{
 		glm::vec3 pos = entity->getComponent<TransformComponent>().position();
@@ -122,31 +123,20 @@ public:
 	void move(glm::mat4 transform, glm::vec3 origin)
 	{
 		setDeformedTransform(_deformedTransform*transform);
+		// Bone transform
 		entity->getComponent<TransformComponent>().applyTransformMatrix(transform);
+
+		/*
+		auto p1 = origin;
+		auto p2 = entity->getComponent<TransformComponent>().position();
+		glm::vec3 res = transform * glm::vec4(p2-p1, 1);
+		entity->getComponent<TransformComponent>().move(res-(p2-p1));
+		*/
 
 		for (auto it = _childs.begin(); it != _childs.end(); ++it)
 		{
-			auto p1 = origin;
-			auto p2 = (*it)->getComponent<TransformComponent>().position();
-			glm::vec3 res = transform * glm::vec4(p2-p1, 1);
-			(*it)->getComponent<TransformComponent>().move(res-(p2-p1));
-
 			// Propagate
 			(*it)->getComponent<BoneComponent>().move(transform, origin);
-		}
-		
-	}
-
-	void update([[maybe_unused]] double __deltaTime) override
-	{
-		if (entity->getEntityID() >= 5)
-		{
-			glm::mat4 model {1.0f};
-			model = glm::translate(model, {0, 0, 0});
-			model = glm::rotate(model, glm::radians((float)(1.5f*__deltaTime)), glm::vec3(1.0f, 0.0f, 0.0f));
-			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			move(model, entity->getComponent<TransformComponent>().position());
 		}
 	}
 
