@@ -15,7 +15,7 @@ out VS_OUT
 
 void main(void)
 {
-	vs_out.FragPos = vec3(model * vec4(aPos, 1.0));
+	vs_out.FragPos = vec3(/*model**/vec4(aPos, 1.0));
 	vs_out.Normal = mat3(transpose(inverse(model))) * aNormal;
 	gl_Position = projection * view * vec4(vs_out.FragPos, 1.0);
 }

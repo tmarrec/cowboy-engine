@@ -50,6 +50,7 @@ public:
 	void setSkeleton(SkeletonComponent* skeleton);
 	void switchBone(std::int64_t diff);
 	void switchAnim();
+	void resetAnim();
 
 
 private:

@@ -30,17 +30,13 @@ public:
 	{
 		glm::vec3 pos = {0, 0, -5.0f};
 		_root.addComponent<TransformComponent>(pos, glm::vec3{0,0,0}, glm::vec3{0.1f,0.1f,0.1f});
-		_root.addComponent<BoneComponent>();
+		_root.addComponent<BoneComponent>(5.0f);
 		auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/frag.frag"});
 		Cube c;
 		_root.addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
-		//_bones.emplace_back(&_root);
 
 		_skeletonDraw.addComponent<TransformComponent>(glm::vec3{0,0,0}, glm::vec3{0,0,0}, glm::vec3{1,1,1});
 		_skeletonDraw.addComponent<DrawableComponent>(_renderer, shader, vertices(), normals(), indices(), GL_TRIANGLES);
-
-		//glm::mat4 model {1.0f};
-		//_uBonesMatrix.emplace_back(model);
 	}
 
 	std::vector<GLfloat> vertices()
@@ -68,61 +64,74 @@ public:
 		else _selectedBone %= _bones.size();
 	}
 	
-	Entity* addBone(Entity* parent, glm::mat4 transformMatrix)
+	Entity* addBone(Entity* parent, glm::mat4 transformMatrix, float size)
 	{
 		Cube c;
 		auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/frag.frag"});
 		Entity* bone = &_ECS_manager->addEntity();
 
 		glm::vec3 parentPos = parent->getComponent<TransformComponent>().position();
+		bone->addComponent<BoneComponent>(parentPos, size);
+
 		glm::vec3 pos = transformMatrix * glm::vec4(parentPos, 1);
+		pos += glm::vec3{0,0,bone->getComponent<BoneComponent>().size()};
 
 		bone->addComponent<TransformComponent>(pos, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.1f, 0.1f, 0.1f});
-		bone->addComponent<BoneComponent>(parentPos);
-		bone->addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
+
+		//bone->addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
 
 		parent->getComponent<BoneComponent>().addChild(bone);
 
+		bone->getComponent<BoneComponent>().setUndeformedTransform(transformMatrix);
+		bone->getComponent<BoneComponent>().setDeformedTransform(transformMatrix);
+
 		_bones.emplace_back(bone);
-
-		// Set bone undeformed transform
-		glm::mat4 parentTransform = parent->getComponent<BoneComponent>().undeformedTransform();
-		bone->getComponent<BoneComponent>().setUndeformedTransform(parentTransform*transformMatrix);
-
-		// Set bone deformed transform by default
-		bone->getComponent<BoneComponent>().setDeformedTransform(parentTransform*transformMatrix);
-
 		return bone;
 	}
 
 	void init() override
 	{
 		glm::mat4 model {1.0f};
-		model = glm::translate(model, {0, 0, 5.0f});
+		//model = glm::translate(model, {0, 0, 5.0f});
 		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		[[maybe_unused]] auto b1 = addBone(&_root, model);
-		[[maybe_unused]] auto b2 = addBone(b1, model);
+		[[maybe_unused]] auto b1 = addBone(&_root, model, 3.3f);
+		[[maybe_unused]] auto b2 = addBone(b1, model, 3.3f);
+		[[maybe_unused]] auto b3 = addBone(b2, model, 3.3f);
 		/*
-		[[maybe_unused]] auto b3 = addBone(b2, model);
-		[[maybe_unused]] auto b4 = addBone(b3, model);
-		[[maybe_unused]] auto b5 = addBone(b4, model);
+		[[maybe_unused]] auto b4 = addBone(b3, model, 5.0f);
+		[[maybe_unused]] auto b5 = addBone(b4, model, 5.0f);
 		*/
 
-		auto vertices = entity->getComponent<DrawableComponent>().vertices();
+		auto vertices = entity->getComponent<DrawableComponent>().modelVertices();
 		_root.getComponent<BoneComponent>().setWeights(_weights, vertices);
 
+		// Normalize sum to 1
+		// Bone loop
+		for (std::uint64_t j = 0; j < _weights[0].size(); ++j)
+		{
+			double sum = 0.0f;
+			for (std::uint64_t i = 0; i < _weights.size(); ++i)
+			{
+				sum += _weights[i][j];
+			}
+			for (std::uint64_t i = 0; i < _weights.size(); ++i)
+			{
+				_weights[i][j] /= sum;
+			}
+		}
 		_renderer->setSkeleton(this);
 	}
 
 	void moveBone(Entity* bone, glm::mat4 transform)
 	{
-		bone->getComponent<BoneComponent>().move(transform, bone->getComponent<BoneComponent>().parentPos());
+		bone->getComponent<BoneComponent>().move(transform);
 	}
 
 	void pmat4(glm::mat4 m)
 	{
+		/*
 		std::cout << std::endl;
 		for (std::uint8_t j = 0; j < 4; ++j)
 		{
@@ -132,6 +141,7 @@ public:
 			std::cout << "|" << std::endl;
 		}
 		std::cout << std::endl;
+		*/
 	}
 
 	void update([[maybe_unused]] double __deltaTime) override
@@ -140,14 +150,17 @@ public:
 		if (_anim)
 		{
 			glm::mat4 model {1.0f};
-			model = glm::translate(model, {0, 0.5f*__deltaTime, 0.0f});
-			model = glm::rotate(model, glm::radians((float)(0.0f*__deltaTime)), glm::vec3(1.0f, 0.0f, 0.0f));
-			model = glm::rotate(model, glm::radians((float)(0.0f*__deltaTime)), glm::vec3(0.0f, 1.0f, 0.0f));
-			model = glm::rotate(model, glm::radians((float)(0.0f*__deltaTime)), glm::vec3(0.0f, 0.0f, 1.0f));
+			//model = glm::translate(model, {0, 0.0f, 0.0f});
+			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			model = glm::rotate(model, glm::radians(11.25f), glm::vec3(0.0f, 0.0f, 1.0f));
 			moveBone(_bones[1], model);
+			moveBone(_bones[2], model);
+			switchAnim();	
 		}
 
 		auto uvertices = entity->getComponent<DrawableComponent>().undeformedVertices();
+		auto modele = entity->getComponent<DrawableComponent>().getModel();
 		
 		std::vector<GLfloat> newV;
 		// Vertex loop
@@ -156,15 +169,19 @@ public:
 			glm::vec3 vpos = {(*uvertices)[j], (*uvertices)[j+1], (*uvertices)[j+2]};
 
 			// Bone loop
-			glm::mat4 vTransform {1.0f};
+			glm::mat4 vTransform {0.0f};
 			for (std::uint64_t i = 0; i < _weights.size(); ++i)
 			{
 				auto w = _weights[i][int(j/3)];
 				auto bone = _bones[i]->getComponent<BoneComponent>();
 				vTransform += w * (bone.deformedTransform() * glm::inverse(bone.undeformedTransform()));
-				pmat4(bone.deformedTransform());
+				if (i == 1)
+				{
+					pmat4(bone.undeformedTransform());
+					pmat4(bone.deformedTransform());
+				}
 			}
-			glm::vec3 newVpos = vTransform * glm::vec4(vpos, 1);
+			glm::vec3 newVpos = vTransform * modele * glm::vec4(vpos, 1);
 			
 			newV.insert(newV.end(), {newVpos.x, newVpos.y, newVpos.z});
 		}
@@ -173,6 +190,7 @@ public:
 
 		auto vert = vertices();
 		auto indi = indices();
+		/*
 		std::vector<GLfloat> newVertices;
 		for (std::uint64_t i = 0; i < indi.size(); i += 2)
 		{
@@ -237,6 +255,7 @@ public:
 		_skeletonDraw.getComponent<DrawableComponent>().setVertices(newVertices);
 		_skeletonDraw.getComponent<DrawableComponent>().setIndices(newIndices);
 		_skeletonDraw.getComponent<DrawableComponent>().updateGeometry();
+		*/
 	}
 
 	void switchAnim()
@@ -252,6 +271,16 @@ public:
 			_anim = true;
 		}
 	}	
+
+	void resetAnim()
+	{
+		/*
+		for (const auto& b : _bones)
+		{
+			b->getComponent<BoneComponent>().reset();		
+		}
+		*/
+	}
 	
 
 private:

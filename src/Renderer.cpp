@@ -376,6 +376,11 @@ void Renderer::switchAnim()
 	_skeleton->switchAnim();
 }
 
+void Renderer::resetAnim()
+{
+	_skeleton->resetAnim();
+}
+
 void Renderer::switchBone(std::int64_t diff)
 {
 	_skeleton->changeSelectedBone(diff);

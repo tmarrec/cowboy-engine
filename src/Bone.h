@@ -18,20 +18,22 @@
 class BoneComponent : public Component
 {
 public:
-	BoneComponent(glm::vec3 parentPos)
+	BoneComponent(glm::vec3 parentPos, float __size)
 	: Component{}
 	, _parentPos { parentPos }
 	, _root { false }
-	, _undeformedTransform { 1.0f }
-	, _deformedTransform { 1.0f }
+	, _undeformedTransform { 0.0f }
+	, _deformedTransform { 0.0f }
+	, _size { __size }
 	{
 	}
-	BoneComponent()
+	BoneComponent(float __size)
 	: Component{}
 	, _parentPos { glm::vec3{0, 0, 0} }
 	, _root { true }
-	, _undeformedTransform { 1.0f }
-	, _deformedTransform { 1.0f }
+	, _undeformedTransform { 0.0f }
+	, _deformedTransform { 0.0f }
+	, _size { __size }
 	{
 	}
 	std::vector<Entity*>& childs() { return _childs; }
@@ -91,7 +93,6 @@ public:
 		{
 			// Own weight
 			std::vector<float> boneWeights;
-			double sum = 0.0f;
 			for (std::uint64_t i = 0; i < vertices->size(); i += 3)
 			{
 				glm::vec3 vertPos = {(*vertices)[i], (*vertices)[i+1], (*vertices)[i+2]};
@@ -102,12 +103,8 @@ public:
 					dist = 0.00001f;
 				float w = 1.0f/std::pow(dist, 2);
 				boneWeights.emplace_back(w);
-				sum += w;
 			}
-			// Normalize
-			for (auto& w : boneWeights)
-				w = w / sum;
-	
+
 			weights.emplace_back(boneWeights);
 		}
 
@@ -118,33 +115,41 @@ public:
 		}
 	}
 
-	void addChild(Entity* child) { _childs.emplace_back(child); }
-
-	void move(glm::mat4 transform, glm::vec3 origin)
+	void move(glm::mat4 transform)
 	{
 		setDeformedTransform(_deformedTransform*transform);
 		// Bone transform
-		entity->getComponent<TransformComponent>().applyTransformMatrix(transform);
+		//entity->getComponent<TransformComponent>().applyTransformMatrix(transform);
+		std::cout << glm::to_string(_parentPos) << std::endl;
+		glm::vec3 newPos = _deformedTransform * glm::vec4(_parentPos, 1);
+		entity->getComponent<TransformComponent>().setPosition(newPos);
 
-		/*
-		auto p1 = origin;
-		auto p2 = entity->getComponent<TransformComponent>().position();
-		glm::vec3 res = transform * glm::vec4(p2-p1, 1);
-		entity->getComponent<TransformComponent>().move(res-(p2-p1));
-		*/
-
+		// Propagate
 		for (auto it = _childs.begin(); it != _childs.end(); ++it)
 		{
-			// Propagate
-			(*it)->getComponent<BoneComponent>().move(transform, origin);
+			(*it)->getComponent<BoneComponent>().move(transform);
 		}
 	}
+
+	void reset()
+	{
+		setDeformedTransform(_undeformedTransform);
+		glm::mat4 transform {1.0f};
+		transform = _undeformedTransform;
+		entity->getComponent<TransformComponent>().setPosition(glm::vec3{0,0,0});
+		entity->getComponent<TransformComponent>().applyTransformMatrix(transform);
+	}
+
+	void addChild(Entity* child) { _childs.emplace_back(child); }
+	float size() { return _size; }
+
 
 private:
 	std::vector<Entity*> _childs;
 	glm::vec3 _parentPos;
-	bool _root = false;
+	bool _root;
 	glm::mat4 _undeformedTransform;
 	glm::mat4 _deformedTransform;
+	float _size;
 };
 

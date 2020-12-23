@@ -111,6 +111,11 @@ void InputManager::keyPressEvent(QKeyEvent *event)
 			break;
 		case Qt::Key_Space:
 			_renderer->switchAnim();	
+			break;
+		case Qt::Key_R:
+			_renderer->resetAnim();
+			break;
+
 		default:
 			break;
 	}

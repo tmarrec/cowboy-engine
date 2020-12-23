@@ -53,6 +53,21 @@ public:
 	void setColor(glm::vec3 __color) { _color = __color; }
 
 	std::shared_ptr<std::vector<GLfloat>> vertices() const { return _vertices; }
+	std::shared_ptr<std::vector<GLfloat>> modelVertices()
+	{
+		std::vector<GLfloat> nv;
+		auto model = getModel();
+		for (std::uint64_t i = 0; i < _vertices->size(); i += 3)
+		{
+			glm::vec3 vpos = {(*_vertices)[i], (*_vertices)[i+1], (*_vertices)[i+2]};
+			vpos = model * glm::vec4(vpos, 1);
+			nv.emplace_back(vpos.x);
+			nv.emplace_back(vpos.y);
+			nv.emplace_back(vpos.z);
+		}
+
+		return std::make_shared<std::vector<GLfloat>>(nv);
+	}
 	std::shared_ptr<std::vector<GLfloat>> undeformedVertices() const 
 	{
 		return _undeformedVertices;
