@@ -146,7 +146,7 @@ public:
 				float dist = glm::distance(vertPos, bonePos);
 				if (dist == 0.0f)
 					dist = 0.00001f;
-				float w = 1.0f/std::pow(dist, 2);
+				float w = 1.0f/std::pow(dist, 3);
 				boneWeights.emplace_back(w);
 			}
 			weights.emplace_back(boneWeights);

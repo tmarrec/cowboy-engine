@@ -83,12 +83,13 @@ private:
 			shape = _meshLoop(__model, __model.meshes[__node.mesh]);
 			// New entity creation for the mesh
 			// TODO SHADER
+			std::cout << "New entity created." << std::endl;
 			auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/frag.frag"});
 			auto& entity = _ECS_manager->addEntity();
 
 			glm::vec3 translation = {0.0f, 0.0f, 0.0f};
-			glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
-			glm::vec3 scale = {1.0f, 1.0f, 1.0f};
+			glm::vec3 rotation = {90.0f*3, 0.0f, -90.0f};
+			glm::vec3 scale = {0.1f, 0.1f, 0.1f};
 			if (__node.matrix.size() > 0)
 			{
 				glm::quat qrotation;

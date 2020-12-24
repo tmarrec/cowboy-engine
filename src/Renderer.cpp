@@ -237,6 +237,7 @@ void Renderer::_useShader(DrawableComponent* __drawableComponent)
 	shader->set_1i("_light_nb", _lights.size());
 	shader->set_1f("farPlane", _shadowFarPlane);
 	shader->set_3f("bonePos", _skeleton->position());
+	shader->set_1f("boneSize", _skeleton->selectedBoneSize());
 	
 	// Envoie les uniforms pour toutes les lumieres
 	for (size_t i = 0; i < _lights.size(); ++i) {

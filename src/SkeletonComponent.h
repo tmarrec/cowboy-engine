@@ -28,9 +28,9 @@ public:
 	, _ECS_manager { __ECS_manager }
 	, _skeletonDraw { _ECS_manager->addEntity() }
 	{
-		glm::vec3 pos = {0, 0, -5.0f};
+		glm::vec3 pos = {0.0f, -0.2f, 0.0f};
 		_root.addComponent<TransformComponent>(pos, glm::vec3{0,0,0}, glm::vec3{0.1f,0.1f,0.1f});
-		_root.addComponent<BoneComponent>(3.3f);
+		_root.addComponent<BoneComponent>(1.0f);
 		auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/skeleton.frag"});
 		_skeletonDraw.addComponent<TransformComponent>(glm::vec3{0,0,0}, glm::vec3{0,0,0}, glm::vec3{1,1,1});
 		_skeletonDraw.addComponent<DrawableComponent>(_renderer, shader, vertices(), normals(), indices(), GL_TRIANGLES);
@@ -54,7 +54,10 @@ public:
 	{
 		return _bones[_selectedBone]->getComponent<BoneComponent>().position();
 	}
-
+	float selectedBoneSize()
+	{
+		return _bones[_selectedBone]->getComponent<BoneComponent>().size();
+	}
 	void changeSelectedBone(std::int64_t diff)
 	{
 		_selectedBone += diff;	
@@ -86,14 +89,45 @@ public:
 	void init() override
 	{
 		glm::mat4 model {1.0f};
-		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		[[maybe_unused]] auto b1 = addBone(&_root, model, 2.0f);
-		[[maybe_unused]] auto b2 = addBone(b1, model, 2.0f);
-		[[maybe_unused]] auto b3 = addBone(b2, model, 2.0f);
-		[[maybe_unused]] auto b4 = addBone(b3, model, 2.0f);
-		[[maybe_unused]] auto b5 = addBone(b4, model, 2.0f);
+		[[maybe_unused]] auto body = addBone(&_root, model, 0.7f);
+		[[maybe_unused]] auto head = addBone(body, model, 1.0f);
+
+		model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		[[maybe_unused]] auto left_arm = addBone(body, model, 1.5f);
+		[[maybe_unused]] auto left_subarm = addBone(left_arm, model, 1.1f);
+		[[maybe_unused]] auto left_hand = addBone(left_subarm, model, 0.55f);
+
+		model = glm::rotate(model, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		[[maybe_unused]] auto right_arm = addBone(body, model, 1.5f);
+		[[maybe_unused]] auto right_subarm = addBone(right_arm, model, 1.1f);
+		[[maybe_unused]] auto right_hand = addBone(right_subarm, model, 0.55f);
+
+		auto saveModel = model;
+
+		model = glm::rotate(model, glm::radians(-30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(7.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		[[maybe_unused]] auto right_hip = addBone(&_root, model, 0.60f);
+		model = glm::rotate(model, glm::radians(-7.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(-60.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		[[maybe_unused]] auto right_leg = addBone(right_hip, model, 0.8f);
+		[[maybe_unused]] auto right_subleg = addBone(right_leg, model, 0.7f);
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		[[maybe_unused]] auto right_foot = addBone(right_subleg, model, 0.8f);
+
+		model = saveModel;
+		model = glm::rotate(model, glm::radians(-150.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(7.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		[[maybe_unused]] auto left_hip = addBone(&_root, model, 0.60f);
+		model = glm::rotate(model, glm::radians(-7.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(60.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		[[maybe_unused]] auto left_leg = addBone(left_hip, model, 0.8f);
+		[[maybe_unused]] auto left_subleg = addBone(left_leg, model, 0.7f);
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		[[maybe_unused]] auto left_foot = addBone(left_subleg, model, 0.8f);
+		
 
 		auto vertices = entity->getComponent<DrawableComponent>().modelVertices();
 		_root.getComponent<BoneComponent>().setWeights(_weights, vertices);

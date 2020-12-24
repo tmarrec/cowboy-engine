@@ -9,12 +9,13 @@ in VS_OUT
 out vec4 FragColor;
 
 uniform vec3 bonePos;
+uniform float boneSize;
 
 void main(void)
 {
 	float dist = distance(fs_in.FragPos, bonePos);
 	FragColor = vec4(1, 1, 0, 1.0);
-	if (dist < 1)
+	if (dist < boneSize/2)
 	{
 		FragColor = vec4(1, 0, 0, 1.0);
 	}

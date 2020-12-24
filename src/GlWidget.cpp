@@ -43,7 +43,7 @@ void GlWidget::_initScene()
 
 	auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/frag.frag"});
 
-	[[maybe_unused]] auto scene = new Scene(_renderer, _ECS_manager, "models/skeleton.gltf");
+	[[maybe_unused]] auto scene = new Scene(_renderer, _ECS_manager, "models/lol.gltf");
 
 }
 
