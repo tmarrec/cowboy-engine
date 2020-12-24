@@ -44,7 +44,7 @@ public:
 	glm::vec3 position()
 	{
 		glm::vec3 pos = entity->getComponent<TransformComponent>().position();
-		return (pos+_parentPos)/glm::vec3{2,2,2};
+		return (pos+_parentPos)*0.5f;
 	}
 
 	std::vector<GLuint> getIndices(std::uint64_t ind)
@@ -69,15 +69,55 @@ public:
 		glm::vec3 end = {0, 0, _size};
 		start = glm::vec3(_deformedTransform * glm::vec4(start, 1)) + _parentPos;
 		end = glm::vec3(_deformedTransform * glm::vec4(end, 1)) + _parentPos;
-		res.emplace_back(start.x);
-		res.emplace_back(start.y);
-		res.emplace_back(start.z);
-		res.emplace_back(end.x);
-		res.emplace_back(end.y);
-		res.emplace_back(end.z);
-		res.emplace_back(end.x);
-		res.emplace_back(end.y);
-		res.emplace_back(end.z);
+
+		float dist = glm::distance(start, end);
+		float r = dist/25;
+		glm::vec3 s1 = start + glm::vec3(_deformedTransform * glm::vec4{r, r, r, 1});
+		glm::vec3 s2 = start + glm::vec3(_deformedTransform * glm::vec4{r, -r, r, 1});
+		glm::vec3 s3 = start + glm::vec3(_deformedTransform * glm::vec4{-r, -r, r, 1});
+		glm::vec3 s4 = start + glm::vec3(_deformedTransform * glm::vec4{-r, r, r, 1});
+
+		std::uint64_t oldSize = res.size();
+		res.resize(oldSize+9);
+		memcpy(&res[oldSize], &start, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+3], &s1, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+6], &s2, sizeof(GLfloat)*3);
+		oldSize = res.size();
+		res.resize(oldSize+9);
+		memcpy(&res[oldSize], &start, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+3], &s2, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+6], &s3, sizeof(GLfloat)*3);
+		oldSize = res.size();
+		res.resize(oldSize+9);
+		memcpy(&res[oldSize], &start, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+3], &s3, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+6], &s4, sizeof(GLfloat)*3);
+		oldSize = res.size();
+		res.resize(oldSize+9);
+		memcpy(&res[oldSize], &start, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+3], &s4, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+6], &s1, sizeof(GLfloat)*3);
+
+		oldSize = res.size();
+		res.resize(oldSize+9);
+		memcpy(&res[oldSize], &end, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+3], &s1, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+6], &s2, sizeof(GLfloat)*3);
+		oldSize = res.size();
+		res.resize(oldSize+9);
+		memcpy(&res[oldSize], &end, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+3], &s2, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+6], &s3, sizeof(GLfloat)*3);
+		oldSize = res.size();
+		res.resize(oldSize+9);
+		memcpy(&res[oldSize], &end, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+3], &s3, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+6], &s4, sizeof(GLfloat)*3);
+		oldSize = res.size();
+		res.resize(oldSize+9);
+		memcpy(&res[oldSize], &end, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+3], &s4, sizeof(GLfloat)*3);
+		memcpy(&res[oldSize+6], &s1, sizeof(GLfloat)*3);
 
 		return res;
 	}
@@ -109,10 +149,8 @@ public:
 				float w = 1.0f/std::pow(dist, 2);
 				boneWeights.emplace_back(w);
 			}
-
 			weights.emplace_back(boneWeights);
 		}
-
 		// Childs weights
 		for (auto it = _childs.begin(); it != _childs.end(); ++it)
 		{
@@ -128,18 +166,16 @@ public:
 	void move(glm::mat4 transform)
 	{
 		setDeformedTransform(_deformedTransform*transform);
-		// Bone transform
-		//entity->getComponent<TransformComponent>().applyTransformMatrix(transform);
-		glm::vec3 newPos = _deformedTransform * glm::vec4(_parentPos, 1);
-		//entity->getComponent<TransformComponent>().setPosition(newPos);
-		//
-		glm::vec3 end = {0, 0, _size};
-		end = glm::vec3(_deformedTransform * glm::vec4(end, 1)) + _parentPos;
+		// Bone representation transform
+		glm::vec3 end = glm::vec3(_deformedTransform * glm::vec4{0, 0, _size, 1}) + _parentPos;
+		entity->getComponent<TransformComponent>().setPosition(end);
 
 		// Propagate
 		for (auto it = _childs.begin(); it != _childs.end(); ++it)
 		{
+			// Used for bone representation
 			(*it)->getComponent<BoneComponent>().setParentPos(end);
+			// Used for vertices transformations
 			(*it)->getComponent<BoneComponent>().move(transform);
 		}
 	}

@@ -31,10 +31,7 @@ public:
 		glm::vec3 pos = {0, 0, -5.0f};
 		_root.addComponent<TransformComponent>(pos, glm::vec3{0,0,0}, glm::vec3{0.1f,0.1f,0.1f});
 		_root.addComponent<BoneComponent>(3.3f);
-		auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/frag.frag"});
-		Cube c;
-		//_root.addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
-
+		auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/skeleton.frag"});
 		_skeletonDraw.addComponent<TransformComponent>(glm::vec3{0,0,0}, glm::vec3{0,0,0}, glm::vec3{1,1,1});
 		_skeletonDraw.addComponent<DrawableComponent>(_renderer, shader, vertices(), normals(), indices(), GL_TRIANGLES);
 	}
@@ -57,6 +54,7 @@ public:
 	{
 		return _bones[_selectedBone]->getComponent<BoneComponent>().position();
 	}
+
 	void changeSelectedBone(std::int64_t diff)
 	{
 		_selectedBone += diff;	
@@ -66,19 +64,15 @@ public:
 	
 	Entity* addBone(Entity* parent, glm::mat4 transformMatrix, float size)
 	{
-		Cube c;
-		auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/frag.frag"});
 		Entity* bone = &_ECS_manager->addEntity();
 
 		glm::vec3 parentPos = parent->getComponent<TransformComponent>().position();
 		bone->addComponent<BoneComponent>(parentPos, size);
 
 		glm::vec3 pos = transformMatrix * glm::vec4(parentPos, 1);
-		pos += glm::vec3{0,0,bone->getComponent<BoneComponent>().size()};
+		pos += glm::vec3{0, 0, bone->getComponent<BoneComponent>().size()};
 
 		bone->addComponent<TransformComponent>(pos, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.1f, 0.1f, 0.1f});
-
-		//bone->addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
 
 		parent->getComponent<BoneComponent>().addChild(bone);
 
@@ -92,7 +86,6 @@ public:
 	void init() override
 	{
 		glm::mat4 model {1.0f};
-		//model = glm::translate(model, {0, 0, 5.0f});
 		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -133,7 +126,6 @@ public:
 		if (_anim)
 		{
 			glm::mat4 model {1.0f};
-			//model = glm::translate(model, {0, 0.0f, 0.0f});
 			model = glm::rotate(model, glm::radians(10.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -144,8 +136,10 @@ public:
 		auto uvertices = entity->getComponent<DrawableComponent>().undeformedVertices();
 		auto modele = entity->getComponent<DrawableComponent>().getModel();
 		
-		std::vector<GLfloat> newV;
+		
+		// Apply transformation to each vertex
 		// Vertex loop
+		std::vector<GLfloat> newV;
 		for (std::uint64_t j = 0; j < uvertices->size(); j += 3)
 		{
 			glm::vec3 vpos = {(*uvertices)[j], (*uvertices)[j+1], (*uvertices)[j+2]};
@@ -167,80 +161,20 @@ public:
 
 		// Draw skeleton
 		std::vector<GLfloat> newVertices;
-		//auto v = _root.getComponent<BoneComponent>().getVertices();
-		//newVertices.insert(newVertices.end(), v.begin(), v.end());
-
 		for (const auto& b : _bones)
 		{
 			auto bone = b->getComponent<BoneComponent>();
 			auto v = bone.getVertices();
 			newVertices.insert(newVertices.end(), v.begin(), v.end());
 		}
+
 		std::vector<GLuint> newIndices;
 		newIndices.resize(newVertices.size()/3);
 		std::iota(newIndices.begin(), newIndices.end(), 0);
 		_skeletonDraw.getComponent<DrawableComponent>().setVertices(newVertices);
 		_skeletonDraw.getComponent<DrawableComponent>().setIndices(newIndices);
 		_skeletonDraw.getComponent<DrawableComponent>().updateGeometry();
-		/*
-		for (std::uint64_t i = 0; i < indi.size(); i += 2)
-		{
-			glm::vec3 start = {vert[indi[i]*3], vert[indi[i]*3+1], vert[indi[i]*3+2]};
-			glm::vec3 end = {vert[indi[i+1]*3], vert[indi[i+1]*3+1], vert[indi[i+1]*3+2]};
-			float dist = glm::distance(start, end);
-
-			float r = dist/25;
-			glm::vec3 s1 = start + glm::vec3{r, r, r};
-			glm::vec3 s2 = start + glm::vec3{r, -r, r};
-			glm::vec3 s3 = start + glm::vec3{-r, -r, r};
-			glm::vec3 s4 = start + glm::vec3{-r, r, r};
-
-			// Totalement faux ofc (et ignoble en plus)
-			std::uint64_t oldSize = newVertices.size();
-			newVertices.resize(oldSize+9);
-			memcpy(&newVertices[oldSize], &start, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+3], &s1, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+6], &s2, sizeof(GLfloat)*3);
-			oldSize = newVertices.size();
-			newVertices.resize(oldSize+9);
-			memcpy(&newVertices[oldSize], &start, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+3], &s2, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+6], &s3, sizeof(GLfloat)*3);
-			oldSize = newVertices.size();
-			newVertices.resize(oldSize+9);
-			memcpy(&newVertices[oldSize], &start, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+3], &s3, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+6], &s4, sizeof(GLfloat)*3);
-			oldSize = newVertices.size();
-			newVertices.resize(oldSize+9);
-			memcpy(&newVertices[oldSize], &start, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+3], &s4, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+6], &s1, sizeof(GLfloat)*3);
-
-			oldSize = newVertices.size();
-			newVertices.resize(oldSize+9);
-			memcpy(&newVertices[oldSize], &end, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+3], &s1, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+6], &s2, sizeof(GLfloat)*3);
-			oldSize = newVertices.size();
-			newVertices.resize(oldSize+9);
-			memcpy(&newVertices[oldSize], &end, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+3], &s2, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+6], &s3, sizeof(GLfloat)*3);
-			oldSize = newVertices.size();
-			newVertices.resize(oldSize+9);
-			memcpy(&newVertices[oldSize], &end, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+3], &s3, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+6], &s4, sizeof(GLfloat)*3);
-			oldSize = newVertices.size();
-			newVertices.resize(oldSize+9);
-			memcpy(&newVertices[oldSize], &end, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+3], &s4, sizeof(GLfloat)*3);
-			memcpy(&newVertices[oldSize+6], &s1, sizeof(GLfloat)*3);
-		}
-
-
-		*/
+		// End draw skeleton
 	}
 
 	void switchAnim()
