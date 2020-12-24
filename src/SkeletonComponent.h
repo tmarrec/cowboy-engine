@@ -30,10 +30,10 @@ public:
 	{
 		glm::vec3 pos = {0, 0, -5.0f};
 		_root.addComponent<TransformComponent>(pos, glm::vec3{0,0,0}, glm::vec3{0.1f,0.1f,0.1f});
-		_root.addComponent<BoneComponent>(5.0f);
+		_root.addComponent<BoneComponent>(3.3f);
 		auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/frag.frag"});
 		Cube c;
-		_root.addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
+		//_root.addComponent<DrawableComponent>(_renderer, shader, c.vertices, c.normals, c.indices, GL_TRIANGLES);
 
 		_skeletonDraw.addComponent<TransformComponent>(glm::vec3{0,0,0}, glm::vec3{0,0,0}, glm::vec3{1,1,1});
 		_skeletonDraw.addComponent<DrawableComponent>(_renderer, shader, vertices(), normals(), indices(), GL_TRIANGLES);
@@ -96,13 +96,11 @@ public:
 		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		[[maybe_unused]] auto b1 = addBone(&_root, model, 3.3f);
-		[[maybe_unused]] auto b2 = addBone(b1, model, 3.3f);
-		[[maybe_unused]] auto b3 = addBone(b2, model, 3.3f);
-		/*
-		[[maybe_unused]] auto b4 = addBone(b3, model, 5.0f);
-		[[maybe_unused]] auto b5 = addBone(b4, model, 5.0f);
-		*/
+		[[maybe_unused]] auto b1 = addBone(&_root, model, 2.0f);
+		[[maybe_unused]] auto b2 = addBone(b1, model, 2.0f);
+		[[maybe_unused]] auto b3 = addBone(b2, model, 2.0f);
+		[[maybe_unused]] auto b4 = addBone(b3, model, 2.0f);
+		[[maybe_unused]] auto b5 = addBone(b4, model, 2.0f);
 
 		auto vertices = entity->getComponent<DrawableComponent>().modelVertices();
 		_root.getComponent<BoneComponent>().setWeights(_weights, vertices);
@@ -129,21 +127,6 @@ public:
 		bone->getComponent<BoneComponent>().move(transform);
 	}
 
-	void pmat4(glm::mat4 m)
-	{
-		/*
-		std::cout << std::endl;
-		for (std::uint8_t j = 0; j < 4; ++j)
-		{
-			std::cout << " | ";
-			for (std::uint8_t i = 0; i < 4; ++i)
-				std::cout << std::to_string(m[j][i]).substr(0, 4) << " ";
-			std::cout << "|" << std::endl;
-		}
-		std::cout << std::endl;
-		*/
-	}
-
 	void update([[maybe_unused]] double __deltaTime) override
 	{
 		// Animation
@@ -151,11 +134,10 @@ public:
 		{
 			glm::mat4 model {1.0f};
 			//model = glm::translate(model, {0, 0.0f, 0.0f});
-			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			model = glm::rotate(model, glm::radians(10.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			model = glm::rotate(model, glm::radians(11.25f), glm::vec3(0.0f, 0.0f, 1.0f));
-			moveBone(_bones[1], model);
-			moveBone(_bones[2], model);
+			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			moveBone(_bones[_selectedBone], model);
 			switchAnim();	
 		}
 
@@ -175,11 +157,6 @@ public:
 				auto w = _weights[i][int(j/3)];
 				auto bone = _bones[i]->getComponent<BoneComponent>();
 				vTransform += w * (bone.deformedTransform() * glm::inverse(bone.undeformedTransform()));
-				if (i == 1)
-				{
-					pmat4(bone.undeformedTransform());
-					pmat4(bone.deformedTransform());
-				}
 			}
 			glm::vec3 newVpos = vTransform * modele * glm::vec4(vpos, 1);
 			
@@ -188,10 +165,24 @@ public:
 		entity->getComponent<DrawableComponent>().setVerticesAnim(newV);
 		entity->getComponent<DrawableComponent>().updateGeometry();
 
-		auto vert = vertices();
-		auto indi = indices();
-		/*
+		// Draw skeleton
 		std::vector<GLfloat> newVertices;
+		//auto v = _root.getComponent<BoneComponent>().getVertices();
+		//newVertices.insert(newVertices.end(), v.begin(), v.end());
+
+		for (const auto& b : _bones)
+		{
+			auto bone = b->getComponent<BoneComponent>();
+			auto v = bone.getVertices();
+			newVertices.insert(newVertices.end(), v.begin(), v.end());
+		}
+		std::vector<GLuint> newIndices;
+		newIndices.resize(newVertices.size()/3);
+		std::iota(newIndices.begin(), newIndices.end(), 0);
+		_skeletonDraw.getComponent<DrawableComponent>().setVertices(newVertices);
+		_skeletonDraw.getComponent<DrawableComponent>().setIndices(newIndices);
+		_skeletonDraw.getComponent<DrawableComponent>().updateGeometry();
+		/*
 		for (std::uint64_t i = 0; i < indi.size(); i += 2)
 		{
 			glm::vec3 start = {vert[indi[i]*3], vert[indi[i]*3+1], vert[indi[i]*3+2]};
@@ -248,38 +239,22 @@ public:
 			memcpy(&newVertices[oldSize+6], &s1, sizeof(GLfloat)*3);
 		}
 
-		std::vector<GLuint> newIndices;
-		newIndices.resize(newVertices.size()/3);
-		std::iota(newIndices.begin(), newIndices.end(), 0);
 
-		_skeletonDraw.getComponent<DrawableComponent>().setVertices(newVertices);
-		_skeletonDraw.getComponent<DrawableComponent>().setIndices(newIndices);
-		_skeletonDraw.getComponent<DrawableComponent>().updateGeometry();
 		*/
 	}
 
 	void switchAnim()
 	{
 		if (_anim)
-		{
-			std::cout << "Animation paused" << std::endl;
 			_anim = false;
-		}
 		else
-		{
-			std::cout << "Animation resumed" << std::endl;
 			_anim = true;
-		}
 	}	
 
 	void resetAnim()
 	{
-		/*
 		for (const auto& b : _bones)
-		{
 			b->getComponent<BoneComponent>().reset();		
-		}
-		*/
 	}
 	
 
@@ -293,5 +268,5 @@ private:
 	Entity& _skeletonDraw;
 	std::vector<Entity*> _bones;
 	std::uint64_t _selectedBone = 0;
-	bool _anim = true;
+	bool _anim = false;
 };

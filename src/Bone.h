@@ -65,15 +65,20 @@ public:
 	std::vector<GLfloat> getVertices()
 	{
 		std::vector<GLfloat> res;
-		auto pos = entity->getComponent<TransformComponent>().position();
-		res.emplace_back(pos.x);
-		res.emplace_back(pos.y);
-		res.emplace_back(pos.z);
-		for (auto it = _childs.begin(); it != _childs.end(); ++it)
-		{
-			auto vertices = (*it)->getComponent<BoneComponent>().getVertices();
-			res.insert(res.end(), vertices.begin(), vertices.end());
-		}
+		glm::vec3 start = {0, 0, 0};
+		glm::vec3 end = {0, 0, _size};
+		start = glm::vec3(_deformedTransform * glm::vec4(start, 1)) + _parentPos;
+		end = glm::vec3(_deformedTransform * glm::vec4(end, 1)) + _parentPos;
+		res.emplace_back(start.x);
+		res.emplace_back(start.y);
+		res.emplace_back(start.z);
+		res.emplace_back(end.x);
+		res.emplace_back(end.y);
+		res.emplace_back(end.z);
+		res.emplace_back(end.x);
+		res.emplace_back(end.y);
+		res.emplace_back(end.z);
+
 		return res;
 	}
 
@@ -115,18 +120,26 @@ public:
 		}
 	}
 
+	void setParentPos(glm::vec3 parentPos)
+	{
+		_parentPos = parentPos;
+	}
+
 	void move(glm::mat4 transform)
 	{
 		setDeformedTransform(_deformedTransform*transform);
 		// Bone transform
 		//entity->getComponent<TransformComponent>().applyTransformMatrix(transform);
-		std::cout << glm::to_string(_parentPos) << std::endl;
 		glm::vec3 newPos = _deformedTransform * glm::vec4(_parentPos, 1);
-		entity->getComponent<TransformComponent>().setPosition(newPos);
+		//entity->getComponent<TransformComponent>().setPosition(newPos);
+		//
+		glm::vec3 end = {0, 0, _size};
+		end = glm::vec3(_deformedTransform * glm::vec4(end, 1)) + _parentPos;
 
 		// Propagate
 		for (auto it = _childs.begin(); it != _childs.end(); ++it)
 		{
+			(*it)->getComponent<BoneComponent>().setParentPos(end);
 			(*it)->getComponent<BoneComponent>().move(transform);
 		}
 	}
@@ -134,10 +147,6 @@ public:
 	void reset()
 	{
 		setDeformedTransform(_undeformedTransform);
-		glm::mat4 transform {1.0f};
-		transform = _undeformedTransform;
-		entity->getComponent<TransformComponent>().setPosition(glm::vec3{0,0,0});
-		entity->getComponent<TransformComponent>().applyTransformMatrix(transform);
 	}
 
 	void addChild(Entity* child) { _childs.emplace_back(child); }
