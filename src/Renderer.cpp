@@ -236,6 +236,8 @@ void Renderer::_useShader(DrawableComponent* __drawableComponent)
 	shader->set_3f("_view_pos", _activeCamera->getView()[3]);
 	shader->set_1i("_light_nb", _lights.size());
 	shader->set_1f("farPlane", _shadowFarPlane);
+	shader->set_3f("startBonePos", _skeleton->startPosition());
+	shader->set_3f("endBonePos", _skeleton->endPosition());
 	shader->set_3f("bonePos", _skeleton->position());
 	shader->set_1f("boneSize", _skeleton->selectedBoneSize());
 	
@@ -372,9 +374,9 @@ void Renderer::setSkeleton(SkeletonComponent* skeleton)
 	_skeleton = skeleton;
 }
 
-void Renderer::switchAnim()
+void Renderer::switchAnim(std::uint8_t dir)
 {
-	_skeleton->switchAnim();
+	_skeleton->switchAnim(dir);
 }
 
 void Renderer::resetAnim()

@@ -13,7 +13,7 @@
 #include <functional>
 #include <memory>
 #include "shapes.h"
-#include "Bone.h"
+#include "BoneComponent.h"
 
 #include <unistd.h>
 #include <iomanip>
@@ -28,12 +28,13 @@ public:
 	, _ECS_manager { __ECS_manager }
 	, _skeletonDraw { _ECS_manager->addEntity() }
 	{
+		// Add root bone
 		glm::vec3 pos = {0.0f, -0.2f, 0.0f};
 		_root.addComponent<TransformComponent>(pos, glm::vec3{0,0,0}, glm::vec3{0.1f,0.1f,0.1f});
 		_root.addComponent<BoneComponent>(1.0f);
 		auto shader = std::make_shared<Shader>(Shader{"shaders/vert.vert", "shaders/skeleton.frag"});
 		_skeletonDraw.addComponent<TransformComponent>(glm::vec3{0,0,0}, glm::vec3{0,0,0}, glm::vec3{1,1,1});
-		_skeletonDraw.addComponent<DrawableComponent>(_renderer, shader, vertices(), normals(), indices(), GL_TRIANGLES);
+		_skeletonDraw.addComponent<DrawableComponent>(_renderer, shader, std::vector<GLfloat>{}, std::vector<GLfloat>{}, std::vector<GLuint>{}, GL_TRIANGLES);
 	}
 
 	std::vector<GLfloat> vertices()
@@ -45,14 +46,17 @@ public:
 	{
 		return {0};
 	}
-	std::vector<GLuint> indices()
-	{
-		auto indices = _root.getComponent<BoneComponent>().getIndices(0);
-		return indices;
-	}
 	glm::vec3 position() const
 	{
 		return _bones[_selectedBone]->getComponent<BoneComponent>().position();
+	}
+	glm::vec3 startPosition() const
+	{
+		return _bones[_selectedBone]->getComponent<BoneComponent>().startPosition();
+	}
+	glm::vec3 endPosition() const
+	{
+		return _bones[_selectedBone]->getComponent<BoneComponent>().endPosition();
 	}
 	float selectedBoneSize()
 	{
@@ -82,12 +86,16 @@ public:
 		bone->getComponent<BoneComponent>().setUndeformedTransform(transformMatrix);
 		bone->getComponent<BoneComponent>().setDeformedTransform(transformMatrix);
 
+		// Bone representation transform
+		bone->getComponent<TransformComponent>().setPosition(bone->getComponent<BoneComponent>().endPosition());
+
 		_bones.emplace_back(bone);
 		return bone;
 	}
 
 	void init() override
 	{
+		// Default pose skeleton
 		glm::mat4 model {1.0f};
 		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -149,27 +157,50 @@ public:
 		_renderer->setSkeleton(this);
 	}
 
+	// Apply transform to bone
 	void moveBone(Entity* bone, glm::mat4 transform)
 	{
 		bone->getComponent<BoneComponent>().move(transform);
+		_moved = true;
+	}
+
+	// Animate the skeleton with inputs
+	void animation()
+	{
+		// Animation
+		if (_animX || _animY || _animZ)
+		{
+			glm::mat4 model {1.0f};
+			if (_animX)
+			{
+				model = glm::rotate(model, glm::radians(20.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+				switchAnim(0);	
+			}
+			else if (_animY)
+			{
+				model = glm::rotate(model, glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+				switchAnim(1);	
+			}
+			if (_animZ)
+			{
+				model = glm::rotate(model, glm::radians(20.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+				switchAnim(2);	
+			}
+			moveBone(_bones[_selectedBone], model);
+		}
+
 	}
 
 	void update([[maybe_unused]] double __deltaTime) override
 	{
-		// Animation
-		if (_anim)
-		{
-			glm::mat4 model {1.0f};
-			model = glm::rotate(model, glm::radians(10.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			moveBone(_bones[_selectedBone], model);
-			switchAnim();	
-		}
+		animation();
+
+		if (!_moved)
+			return;
+		_moved = false;
 
 		auto uvertices = entity->getComponent<DrawableComponent>().undeformedVertices();
 		auto modele = entity->getComponent<DrawableComponent>().getModel();
-		
 		
 		// Apply transformation to each vertex
 		// Vertex loop
@@ -197,11 +228,9 @@ public:
 		std::vector<GLfloat> newVertices;
 		for (const auto& b : _bones)
 		{
-			auto bone = b->getComponent<BoneComponent>();
-			auto v = bone.getVertices();
+			auto v = b->getComponent<BoneComponent>().getVertices();
 			newVertices.insert(newVertices.end(), v.begin(), v.end());
 		}
-
 		std::vector<GLuint> newIndices;
 		newIndices.resize(newVertices.size()/3);
 		std::iota(newIndices.begin(), newIndices.end(), 0);
@@ -211,18 +240,45 @@ public:
 		// End draw skeleton
 	}
 
-	void switchAnim()
+	void switchAnim(std::uint8_t dir)
 	{
-		if (_anim)
-			_anim = false;
-		else
-			_anim = true;
+		if (dir == 0)
+		{
+			if (_animX)
+				_animX = false;
+			else
+				_animX = true;
+			_animY = false;
+			_animZ = false;
+		}
+		else if (dir == 1)
+		{
+			if (_animY)
+				_animY = false;
+			else
+				_animY = true;
+			_animX = false;
+			_animZ = false;
+		}
+		else if (dir == 2)
+		{
+			if (_animZ)
+				_animZ = false;
+			else
+				_animZ = true;
+			_animY = false;
+			_animX = false;
+		}
 	}	
 
 	void resetAnim()
 	{
 		for (const auto& b : _bones)
 			b->getComponent<BoneComponent>().reset();		
+		glm::mat4 model {1.0f};
+		for (auto& c : _root.getComponent<BoneComponent>().childs())
+			c->getComponent<BoneComponent>().move(model);
+		_moved = true;
 	}
 	
 
@@ -236,5 +292,8 @@ private:
 	Entity& _skeletonDraw;
 	std::vector<Entity*> _bones;
 	std::uint64_t _selectedBone = 0;
-	bool _anim = false;
+	bool _animX = false;
+	bool _animY = false;
+	bool _animZ = false;
+	bool _moved = true;
 };

@@ -18,6 +18,7 @@
 class BoneComponent : public Component
 {
 public:
+	// Non root bone
 	BoneComponent(glm::vec3 parentPos, float __size)
 	: Component{}
 	, _parentPos { parentPos }
@@ -27,6 +28,7 @@ public:
 	, _size { __size }
 	{
 	}
+	// Root bone
 	BoneComponent(float __size)
 	: Component{}
 	, _parentPos { glm::vec3{0, 0, 0} }
@@ -41,27 +43,68 @@ public:
 	glm::mat4 deformedTransform() { return _deformedTransform; }
 	bool root() { return _root; }
 	glm::vec3 parentPos() { return _parentPos; }
+	void setUndeformedTransform(glm::mat4 transform) { _undeformedTransform = transform; }
+	void setDeformedTransform(glm::mat4 transform) { _deformedTransform = transform; };
+	void setParentPos(glm::vec3 parentPos) { _parentPos = parentPos; }
+	glm::vec3 startPosition() { return _parentPos; }
+	glm::vec3 endPosition() { return glm::vec3(_deformedTransform * glm::vec4{0, 0, _size, 1}) + _parentPos; }
+	// Reset bone to default pose
+	void reset() { setDeformedTransform(_undeformedTransform); }
+	void addChild(Entity* child) { _childs.emplace_back(child); }
+	float size() { return _size; }
+
 	glm::vec3 position()
 	{
 		glm::vec3 pos = entity->getComponent<TransformComponent>().position();
+		// Middle point segment
 		return (pos+_parentPos)*0.5f;
 	}
 
-	std::vector<GLuint> getIndices(std::uint64_t ind)
+	void setWeights(std::vector<std::vector<float>>& weights, std::shared_ptr<std::vector<GLfloat>> vertices)
 	{
-		std::vector<GLuint> res;
-		std::uint64_t shift = 1;
+		if (!_root)
+		{
+			// Own weight
+			std::vector<float> boneWeights;
+			for (std::uint64_t i = 0; i < vertices->size(); i += 3)
+			{
+				glm::vec3 vertPos = {(*vertices)[i], (*vertices)[i+1], (*vertices)[i+2]};
+				float dist = glm::distance((vertPos - _parentPos), (endPosition() - _parentPos));
+				if (dist == 0.0f)
+					dist = 0.00001f;
+				float w = 1.0f/std::pow(dist, 4);
+				if (w < 0.04f)
+					w = 0.0f;
+				boneWeights.emplace_back(w);
+			}
+			weights.emplace_back(boneWeights);
+		}
+		// Childs weights
 		for (auto it = _childs.begin(); it != _childs.end(); ++it)
 		{
-			res.emplace_back(ind);
-			res.emplace_back(ind+shift);
-			auto indices = (*it)->getComponent<BoneComponent>().getIndices(ind+shift);
-			shift = indices.size() > 0 ? indices.back()+1-ind : shift+1;
-			res.insert(res.end(), indices.begin(), indices.end());
+			(*it)->getComponent<BoneComponent>().setWeights(weights, vertices);
 		}
-		return res;
 	}
 
+	// Move bone with a transformation matrix
+	void move(glm::mat4 transform)
+	{
+		setDeformedTransform(_deformedTransform*transform);
+		// Bone representation transform
+		glm::vec3 end = glm::vec3(_deformedTransform * glm::vec4{0, 0, _size, 1}) + _parentPos;
+		entity->getComponent<TransformComponent>().setPosition(end);
+
+		// Propagate
+		for (auto it = _childs.begin(); it != _childs.end(); ++it)
+		{
+			// Used for bone representation
+			(*it)->getComponent<BoneComponent>().setParentPos(end);
+			// Used for vertices transformations
+			(*it)->getComponent<BoneComponent>().move(transform);
+		}
+	}
+
+	// Get bone representation vertices
 	std::vector<GLfloat> getVertices()
 	{
 		std::vector<GLfloat> res;
@@ -121,73 +164,6 @@ public:
 
 		return res;
 	}
-
-	void setUndeformedTransform(glm::mat4 transform)
-	{
-		_undeformedTransform = transform;
-	}
-
-	void setDeformedTransform(glm::mat4 transform)
-	{
-		_deformedTransform = transform;
-	}
-
-	void setWeights(std::vector<std::vector<float>>& weights, std::shared_ptr<std::vector<GLfloat>> vertices)
-	{
-		if (!_root)
-		{
-			// Own weight
-			std::vector<float> boneWeights;
-			for (std::uint64_t i = 0; i < vertices->size(); i += 3)
-			{
-				glm::vec3 vertPos = {(*vertices)[i], (*vertices)[i+1], (*vertices)[i+2]};
-				glm::vec3 bonePos = position();
-		
-				float dist = glm::distance(vertPos, bonePos);
-				if (dist == 0.0f)
-					dist = 0.00001f;
-				float w = 1.0f/std::pow(dist, 3);
-				boneWeights.emplace_back(w);
-			}
-			weights.emplace_back(boneWeights);
-		}
-		// Childs weights
-		for (auto it = _childs.begin(); it != _childs.end(); ++it)
-		{
-			(*it)->getComponent<BoneComponent>().setWeights(weights, vertices);
-		}
-	}
-
-	void setParentPos(glm::vec3 parentPos)
-	{
-		_parentPos = parentPos;
-	}
-
-	void move(glm::mat4 transform)
-	{
-		setDeformedTransform(_deformedTransform*transform);
-		// Bone representation transform
-		glm::vec3 end = glm::vec3(_deformedTransform * glm::vec4{0, 0, _size, 1}) + _parentPos;
-		entity->getComponent<TransformComponent>().setPosition(end);
-
-		// Propagate
-		for (auto it = _childs.begin(); it != _childs.end(); ++it)
-		{
-			// Used for bone representation
-			(*it)->getComponent<BoneComponent>().setParentPos(end);
-			// Used for vertices transformations
-			(*it)->getComponent<BoneComponent>().move(transform);
-		}
-	}
-
-	void reset()
-	{
-		setDeformedTransform(_undeformedTransform);
-	}
-
-	void addChild(Entity* child) { _childs.emplace_back(child); }
-	float size() { return _size; }
-
 
 private:
 	std::vector<Entity*> _childs;

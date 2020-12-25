@@ -101,7 +101,7 @@ void InputManager::keyPressEvent(QKeyEvent *event)
 			_renderer->switchPolygonmode();
 			break;
 		case Qt::Key_N:
-			_renderer->switchShowNormals();
+			//_renderer->switchShowNormals();
 			break;
 		case Qt::Key_Left:
 			_renderer->switchBone(-1);
@@ -109,8 +109,14 @@ void InputManager::keyPressEvent(QKeyEvent *event)
 		case Qt::Key_Right:
 			_renderer->switchBone(1);
 			break;
-		case Qt::Key_Space:
-			_renderer->switchAnim();	
+		case Qt::Key_K:
+			_renderer->switchAnim(0);	
+			break;
+		case Qt::Key_L:
+			_renderer->switchAnim(1);	
+			break;
+		case Qt::Key_M:
+			_renderer->switchAnim(2);	
 			break;
 		case Qt::Key_R:
 			_renderer->resetAnim();

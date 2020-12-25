@@ -49,7 +49,7 @@ public:
 	// Debug bone
 	void setSkeleton(SkeletonComponent* skeleton);
 	void switchBone(std::int64_t diff);
-	void switchAnim();
+	void switchAnim(std::uint8_t dir);
 	void resetAnim();
 
 

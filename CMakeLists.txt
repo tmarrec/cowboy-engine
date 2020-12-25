@@ -47,7 +47,6 @@ add_executable(${PROJECT_NAME}
 
  	src/main.cpp
 	src/shapes.h
-	src/Bone.h
 
 	src/InputManager.h
 	src/InputManager.cpp
@@ -66,6 +65,8 @@ add_executable(${PROJECT_NAME}
 	src/SubdivideComponent.h
 	src/MetaballComponent.h
 	src/MarchingCubeComponent.h
+	src/BoneComponent.h
+	src/SkeletonComponent.h
 
 	src/ui/MainWindow.h
 	src/ui/MainWindow.cpp
