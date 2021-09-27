@@ -1,15 +1,16 @@
 <h1 align="center">Cowboy Engine</h1>
 <div align="center">
   <strong>OpenGL 4.6 Rendering Engine - Computer Graphics student project @ Paul Sabatier University - :fr:</strong>
-  <p>Shadow mapping, .glTF loading, simple geometry mesh generation, basic model transformations, Blinn-Phong lighting, B-Spline Surfaces, meshes Loop Subdivision<p>
+  <p>Shadow Mapping, Blinn-Phong Reflections, Tensor Product B-Splines Surfaces, Meshes Subdivision, Implicit surfaces, Skeletal Animation, .glTF Loader </p>
 </div>
 <br />
-<div align="center" margin="12px">
+<div align="center">
   <img src="https://img.shields.io/badge/stability-experimental-orange.svg"/>
   <img src="https://img.shields.io/github/license/Naereen/StrapDown.js.svg"/>
 </div>
 
-<div align="center" margin="12px">
-  <img src="https://i.imgur.com/dDlbtfr.png"/>
-  <img src="https://i.imgur.com/ief9gPl.png"/>
+<div align="center">
+  
+![render](https://user-images.githubusercontent.com/1809578/134940225-70969ab4-0088-411c-9580-989a63572748.png)
+
 </div>
