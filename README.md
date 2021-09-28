@@ -2,6 +2,9 @@
   <h3 align="center">Cowboy Engine</h3>
   <p align="center">
     OpenGL 4.6 Rendering Engine - Computer Graphics student project @ Paul Sabatier University - :fr:
+    <br />
+    <a href="#results"><strong>See the screenshots »</strong></a>
+    <br />
   </p>
   <div align="center">
     <img src="https://img.shields.io/badge/stability-experimental-orange.svg"/>
