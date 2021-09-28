@@ -72,38 +72,38 @@ To assist me with my Master's degree in Computer Graphics, I implemented an Open
 
 ## Screenshots
 <div align="center">
-
-
-</div>
-
+	
 ### Blinn-Phong Reflections
 
-![blinnphong](https://user-images.githubusercontent.com/1809578/135022371-b950902d-e367-4f69-99aa-43bec3f6aba6.png)
-
+<img src="https://user-images.githubusercontent.com/1809578/135022371-b950902d-e367-4f69-99aa-43bec3f6aba6.png" width="400">
+	
 ### Shadow Mapping
 
-![shadowmap](https://user-images.githubusercontent.com/1809578/135022387-581cc4aa-653f-4ff0-ac00-98d43a369b2e.png)
-
+<img src="https://user-images.githubusercontent.com/1809578/135022387-581cc4aa-653f-4ff0-ac00-98d43a369b2e.png" width="400">
+	
 ### Tensor Product B-Splines Surfaces
-
+	
 https://user-images.githubusercontent.com/1809578/135022406-267ad51f-3de3-42d2-a7df-45b3fa884504.mp4
 
-![bsplines](https://user-images.githubusercontent.com/1809578/135022397-c54d7e4b-37ec-4d8a-a4e4-c1177835bc5a.png)
+<br />	
+<img src="https://user-images.githubusercontent.com/1809578/135022397-c54d7e4b-37ec-4d8a-a4e4-c1177835bc5a.png" width="400">
 
-![tensor](https://user-images.githubusercontent.com/1809578/135022414-cf380871-9686-400b-86cc-6a9e0ce81851.png)
-
+<br />
+<img src="https://user-images.githubusercontent.com/1809578/135022414-cf380871-9686-400b-86cc-6a9e0ce81851.png" width="400">
+	
 ### Meshes Subdivision
 
-![subdivision-normals](https://user-images.githubusercontent.com/1809578/135022420-8783cb61-97b5-40cd-a3b5-efa7afab97f1.png)
-
+<img src="https://user-images.githubusercontent.com/1809578/135022420-8783cb61-97b5-40cd-a3b5-efa7afab97f1.png" width="400">
+	
 ### Implicit surfaces
-
+	
 https://user-images.githubusercontent.com/1809578/135022431-1ad40386-4f7c-4424-bfd2-040ca6f33dc0.mp4
-
+		
 ### Skeletal Animation
 
-![bones](https://user-images.githubusercontent.com/1809578/135022440-015a25e2-4df6-416c-b332-0abddeeba7d6.png)
+<img src="https://user-images.githubusercontent.com/1809578/135022440-015a25e2-4df6-416c-b332-0abddeeba7d6.png" width="400">
 
+</div>
 
 ## Contact
  » [contact@tmarrec.dev](mailto:contact@tmarrec.dev)
