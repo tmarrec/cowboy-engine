@@ -3,7 +3,7 @@
   <p align="center">
     OpenGL 4.6 Rendering Engine - Computer Graphics student project @ Paul Sabatier University - :fr:
     <br />
-    <a href="#results"><strong>See the screenshots »</strong></a>
+    <a href="#screenshots"><strong>See the screenshots »</strong></a>
     <br />
   </p>
   <div align="center">
