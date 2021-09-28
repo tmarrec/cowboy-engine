@@ -21,7 +21,7 @@ add_subdirectory("externals/OpenMesh")
 file(MAKE_DIRECTORY report)
 
 
-set(CMAKE_CXX_FLAGS "-std=c++17 -Wall -Wextra -pedantic -fopenmp -pthread -DGL_GLEXT_PROTOTYPES")
+set(CMAKE_CXX_FLAGS "-std=c++17 -Wall -pedantic -fopenmp -pthread -DGL_GLEXT_PROTOTYPES")
 set(CMAKE_CXX_FLAGS_DEBUG_INIT "${CMAKE_CXX_FLAGS} -O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE_INIT "${CMAKE_CXX_FLAGS} -O3")
 
