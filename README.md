@@ -27,9 +27,8 @@
 	<li><a href="#usage">Usage</a></li>
       </ul>
     </li>
-    <li><a href="#results">Results</a></li>
+    <li><a href="#screenshots">Screenshots</a></li>
     <li><a href="#contact">Contact</a></li>
-    <li><a href="#references">References</a></li>
     <li><a href="#license">License</a></li>
   </ol>
 </details>
@@ -83,7 +82,7 @@ To assist me with my Master's degree in Computer Graphics, I implemented an Open
 	
 ### Tensor Product B-Splines Surfaces
 	
-https://user-images.githubusercontent.com/1809578/135022406-267ad51f-3de3-42d2-a7df-45b3fa884504.mp4
+https://user-images.githubusercontent.com/1809578/135023659-6f001d9e-34f6-4060-8ef7-7e11c93b99f6.mp4
 
 <br />	
 <img src="https://user-images.githubusercontent.com/1809578/135022397-c54d7e4b-37ec-4d8a-a4e4-c1177835bc5a.png" width="400">
@@ -96,9 +95,9 @@ https://user-images.githubusercontent.com/1809578/135022406-267ad51f-3de3-42d2-a
 <img src="https://user-images.githubusercontent.com/1809578/135022420-8783cb61-97b5-40cd-a3b5-efa7afab97f1.png" width="400">
 	
 ### Implicit surfaces
+
+https://user-images.githubusercontent.com/1809578/135023686-deef3954-ea14-4dcd-8c88-a27ba2a6420e.mp4
 	
-https://user-images.githubusercontent.com/1809578/135022431-1ad40386-4f7c-4424-bfd2-040ca6f33dc0.mp4
-		
 ### Skeletal Animation
 
 <img src="https://user-images.githubusercontent.com/1809578/135022440-015a25e2-4df6-416c-b332-0abddeeba7d6.png" width="400">
