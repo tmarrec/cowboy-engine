@@ -22,7 +22,7 @@ int Core::Run()
     signature.set(COORDINATOR.GetComponentType<Transform>());
     COORDINATOR.SetSystemSignature<Physics>(signature);
 
-    std::vector<Entity> entities(MAX_ENTITIES);
+    std::vector<Entity> entities(64);
 
     std::default_random_engine generator;
     std::uniform_real_distribution<float> randPosition(-100.0f, 100.0f);
@@ -54,21 +54,17 @@ int Core::Run()
     }
 
     float dt = 0.0f;
-    
-    for (std::uint64_t i = 0; i < 2048; ++i)
+
+    while (!_window->WindowShouldClose())
     {
         auto startTime = std::chrono::high_resolution_clock::now();
+
+        _window->PollEvents();
 
         physicsSystem->Update(dt);
 
         auto stopTime = std::chrono::high_resolution_clock::now();
-
 		dt = std::chrono::duration<float, std::chrono::seconds::period>(stopTime - startTime).count();
-    }
-
-    for (auto& entity : entities)
-    {
-        COORDINATOR.DestroyEntity(entity);
     }
 
     return 0;  

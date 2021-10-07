@@ -12,3 +12,4 @@ const ComponentType MAX_COMPONENTS = 16;
 
 // Signature alias
 using Signature = std::bitset<MAX_COMPONENTS>;
+

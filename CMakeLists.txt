@@ -29,6 +29,7 @@ ADD_EXECUTABLE (${PROJECT_NAME}
 
     # Core
     src/Core/types.h
+    src/Core/utils.h
     src/Core/Core.h
     src/Core/Core.cpp
     src/Core/EntityManager.h
@@ -37,6 +38,8 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Core/System.h
     src/Core/SystemManager.h
     src/Core/Coordinator.h
+    src/Core/Window.h
+    src/Core/Window.cpp
 
     # Components
     src/Components/Gravity.h
