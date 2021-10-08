@@ -5,15 +5,15 @@
 #include "../Components/Transform.h"
 #include "../Core/Subsystems/ECS/ECSManager.h"
 
-extern ECSManager ECS_MANAGER;
+extern ECSManager g_ECSManager;
 
 void Physics::Update(float dt)
 {
     for (const auto& entity : _entities)
     {
-        auto& rigidBody = ECS_MANAGER.GetComponent<RigidBody>(entity);
-        auto& transform = ECS_MANAGER.GetComponent<Transform>(entity);
-        const auto& gravity = ECS_MANAGER.GetComponent<Gravity>(entity);
+        auto& rigidBody = g_ECSManager.getComponent<RigidBody>(entity);
+        auto& transform = g_ECSManager.getComponent<Transform>(entity);
+        const auto& gravity = g_ECSManager.getComponent<Gravity>(entity);
 
         transform.position += rigidBody.velocity * dt;
         rigidBody.velocity += gravity.force * dt;

@@ -9,37 +9,41 @@ WindowManager::WindowManager()
         ERROR("Failed to initialize GLFW.");
     }
 
-    glfwSetErrorCallback(&WindowManager::GlfwError);
+    glfwSetErrorCallback(&WindowManager::glfwError);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    WindowInit();
+    windowInit();
 }
 
 // Window closed event
-bool WindowManager::WindowShouldClose() const
+bool WindowManager::windowShouldClose() const
 {
 	return glfwWindowShouldClose(_glfwWindow.get());
 }
 
 // Poll window events
-void WindowManager::PollEvents()
+void WindowManager::pollEvents()
 {
 	glfwPollEvents();
 }
 
 // Returns the Vulkan instance extensions required by GLFW
-std::pair<const char**, std::uint32_t> WindowManager::WindowGetRequiredInstanceExtensions()
+std::pair<const char**, std::uint32_t> WindowManager::windowGetRequiredInstanceExtensions()
 {
 	std::uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;
 
 	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    if (!glfwExtensions)
+    {
+        ERROR("Failed to get required Vulkan instance extensions.");
+    }
 	return std::pair<const char**, std::uint32_t>(glfwExtensions, glfwExtensionCount);
 }
 
 // Create a Vulkan surface for the window
-void WindowManager::WindowCreateSurface(VkInstance instance, VkSurfaceKHR* surface)
+void WindowManager::windowCreateSurface(VkInstance instance, VkSurfaceKHR* surface)
 {
 	if (glfwCreateWindowSurface(instance, _glfwWindow.get(), nullptr, surface) != VK_SUCCESS)
 	{
@@ -48,19 +52,19 @@ void WindowManager::WindowCreateSurface(VkInstance instance, VkSurfaceKHR* surfa
 }
 
 // Create the window
-void WindowManager::WindowInit()
+void WindowManager::windowInit()
 {
 	_glfwWindow.reset(glfwCreateWindow(800, 800, "vulkan-testings", nullptr, nullptr));
 }
 
 // GLFW error callback
-void WindowManager::GlfwError(int error, const char* description)
+void WindowManager::glfwError(int error, const char* description)
 {
     WARNING(description);
 }
 
 // Destroy the window and terminate GLFW instance
-void GlfwDeleter::operator()(GLFWwindow* window)
+void glfwDeleter::operator()(GLFWwindow* window)
 {
     glfwSetErrorCallback(nullptr);
 	glfwDestroyWindow(window);

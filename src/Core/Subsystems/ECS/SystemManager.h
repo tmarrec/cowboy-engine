@@ -13,12 +13,11 @@ class SystemManager
     // Create a pointer to the system and return it so
     // it can be used externally
     template<typename T>
-    std::shared_ptr<T> RegisterSystem()
+    std::shared_ptr<T> registerSystem()
     {
         const char* typeName = typeid(T).name();
 
-        assert(_systems.find(typeName) == _systems.end()
-                && "Registering system more than once.");
+        assert(_systems.find(typeName) == _systems.end() && "Registering system more than once.");
 
         auto system = std::make_shared<T>();
         _systems.insert({typeName, system});
@@ -27,17 +26,16 @@ class SystemManager
 
     // Set the signature for this system
     template<typename T>
-    void SetSignature(Signature signature)
+    void setSignature(Signature signature)
     {
         const char* typeName = typeid(T).name();
 
-        assert(_systems.find(typeName) != _systems.end()
-                && "System used before registered.");
+        assert(_systems.find(typeName) != _systems.end() && "System used before registered.");
 
         _signatures.insert({typeName, signature});
     }
 
-    void EntityDestroyed(Entity entity)
+    void entityDestroyed(Entity entity)
     {
         // Erase a destroyed entity from all system lists
         // _entities is a set so no check needed
@@ -48,7 +46,7 @@ class SystemManager
         }
     }
 
-    void EntitySignatureChanged(Entity entity, const Signature& entitySignature)
+    void entitySignatureChanged(Entity entity, const Signature& entitySignature)
     {
         // Notify each system that an entity's signature changed
         for (const auto& pair : _systems)

@@ -12,7 +12,7 @@ class IComponentArray
 {
  public:
      virtual ~IComponentArray() = default;
-     virtual void EntityDestroyed(Entity entity) = 0;
+     virtual void entityDestroyed(Entity entity) = 0;
 };
 
 template<typename T>
@@ -20,10 +20,9 @@ class ComponentArray : public IComponentArray
 {
  public:
     // Link entity and component
-    void Insert(Entity entity, T component)
+    void insert(Entity entity, T component)
     {
-        assert(_entityToIndexMap[entity] == std::numeric_limits<Entity>::max() &&
-            "Component added to same entity more than once.");
+        assert(_entityToIndexMap[entity] == std::numeric_limits<Entity>::max() && "Component added to same entity more than once.");
 
         std::uint64_t newIndex = _size;
         _entityToIndexMap[entity] = newIndex;
@@ -33,10 +32,9 @@ class ComponentArray : public IComponentArray
     }
 
     // Remove entity and maintain array density
-    void Remove(Entity entity)
+    void remove(Entity entity)
     {
-        assert(_entityToIndexMap[entity] != std::numeric_limits<Entity>::max() &&
-            "Trying to remove non-existent component.");
+        assert(_entityToIndexMap[entity] != std::numeric_limits<Entity>::max() && "Trying to remove non-existent component.");
 
         // Copy element at end into deleted element's index
         // to maintain density
@@ -55,20 +53,19 @@ class ComponentArray : public IComponentArray
     }
 
     // Return reference to entity's component
-    T& Get(Entity entity)
+    T& get(Entity entity)
     {
-        assert(_entityToIndexMap[entity] != std::numeric_limits<Entity>::max() &&
-            "Trying to remove non-existent component.");
+        assert(_entityToIndexMap[entity] != std::numeric_limits<Entity>::max() && "Trying to remove non-existent component.");
 
         return _componentArray[_entityToIndexMap[entity]];
     }
 
     // Remove the entity's if it existed
-    void EntityDestroyed(Entity entity) override
+    void entityDestroyed(Entity entity) override
     {
         if (_entityToIndexMap[entity] != std::numeric_limits<Entity>::max())
         {
-            Remove(entity);
+            remove(entity);
         }
     }
 

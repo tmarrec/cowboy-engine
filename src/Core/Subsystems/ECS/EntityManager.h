@@ -19,7 +19,7 @@ class EntityManager
      }
 
      // Create a new entity
-     Entity CreateEntity()
+     Entity createEntity()
      {
         assert(_availableEntities.size() > 0 && "Reached entities limit.");
 
@@ -31,7 +31,7 @@ class EntityManager
      }
 
      // Destroy an entity
-     void DestroyEntity(Entity entity)
+     void destroyEntity(Entity entity)
      {
         assert(entity < MAX_ENTITIES && "Entity out of range.");
 
@@ -43,7 +43,7 @@ class EntityManager
      }
 
      // Set signature of an entity
-     Signature& Sig(Entity entity)
+     Signature& sig(Entity entity)
      {
         assert(entity < MAX_ENTITIES && "Entity out of range.");
 
@@ -51,7 +51,7 @@ class EntityManager
      }
 
      // Get signature of an entity
-     Signature Sig(Entity entity) const
+     Signature sig(Entity entity) const
      {
         assert(entity < MAX_ENTITIES && "Entity out of range.");
 

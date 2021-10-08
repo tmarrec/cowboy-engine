@@ -6,7 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <memory>
 
-struct GlfwDeleter
+struct glfwDeleter
 {
     void operator()(GLFWwindow* window);
 };
@@ -15,14 +15,14 @@ class WindowManager
 {
  public:
     WindowManager();
-    bool WindowShouldClose() const;
-    void PollEvents();
-    std::pair<const char**, std::uint32_t> WindowGetRequiredInstanceExtensions();
-    void WindowCreateSurface(VkInstance instance, VkSurfaceKHR* surface);
+    bool windowShouldClose() const;
+    void pollEvents();
+    std::pair<const char**, std::uint32_t> windowGetRequiredInstanceExtensions();
+    void windowCreateSurface(VkInstance instance, VkSurfaceKHR* surface);
 
  private:
-    void WindowInit();
-    static void GlfwError(int error, const char* description);
+    void windowInit();
+    static void glfwError(int error, const char* description);
 
-    std::unique_ptr<GLFWwindow, GlfwDeleter> _glfwWindow = nullptr;
+    std::unique_ptr<GLFWwindow, glfwDeleter> _glfwWindow = nullptr;
 };
