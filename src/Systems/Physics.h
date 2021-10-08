@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Core/System.h"
+#include "../Core/Subsystems/ECS/System.h"
 
 class Physics : public System
 {

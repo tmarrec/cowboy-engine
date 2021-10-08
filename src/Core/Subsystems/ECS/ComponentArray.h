@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.h"
+#include "../../types.h"
 
 #include <cassert>
 #include <array>
@@ -85,5 +85,5 @@ class ComponentArray : public IComponentArray
 
     std::array<Entity, MAX_ENTITIES> _entityToIndexMap = initArrays();
     std::array<Entity, MAX_ENTITIES> _indexToEntityMap = initArrays();
-    std::uint64_t _size;
+    std::uint64_t _size = 0;
 };

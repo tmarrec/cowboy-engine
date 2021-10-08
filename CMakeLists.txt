@@ -32,14 +32,22 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Core/utils.h
     src/Core/Core.h
     src/Core/Core.cpp
-    src/Core/EntityManager.h
-    src/Core/ComponentArray.h
-    src/Core/ComponentManager.h
-    src/Core/System.h
-    src/Core/SystemManager.h
-    src/Core/Coordinator.h
-    src/Core/Window.h
-    src/Core/Window.cpp
+
+    # ECS Subsytem
+    src/Core/Subsystems/ECS/EntityManager.h
+    src/Core/Subsystems/ECS/ComponentArray.h
+    src/Core/Subsystems/ECS/ComponentManager.h
+    src/Core/Subsystems/ECS/System.h
+    src/Core/Subsystems/ECS/SystemManager.h
+    src/Core/Subsystems/ECS/ECSManager.h
+    
+    # Window Subsystem
+    src/Core/Subsystems/Window/WindowManager.h
+    src/Core/Subsystems/Window/WindowManager.cpp
+
+    # Renderer Subsystem
+    src/Core/Subsystems/Renderer/RendererManager.h
+    src/Core/Subsystems/Renderer/RendererManager.cpp
 
     # Components
     src/Components/Gravity.h

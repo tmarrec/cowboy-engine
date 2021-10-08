@@ -1,7 +1,7 @@
 #pragma once
 
 #include "System.h"
-#include "types.h"
+#include "../../types.h"
 
 #include <memory>
 #include <unordered_map>
@@ -48,7 +48,7 @@ class SystemManager
         }
     }
 
-    void EntitySignatureChanged(Entity entity, Signature entitySignature)
+    void EntitySignatureChanged(Entity entity, const Signature& entitySignature)
     {
         // Notify each system that an entity's signature changed
         for (const auto& pair : _systems)

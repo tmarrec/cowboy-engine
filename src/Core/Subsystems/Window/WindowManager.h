@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils.h"
+#include "../../utils.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -11,10 +11,10 @@ struct GlfwDeleter
     void operator()(GLFWwindow* window);
 };
 
-class Window
+class WindowManager
 {
  public:
-    Window();
+    WindowManager();
     bool WindowShouldClose() const;
     void PollEvents();
     std::pair<const char**, std::uint32_t> WindowGetRequiredInstanceExtensions();

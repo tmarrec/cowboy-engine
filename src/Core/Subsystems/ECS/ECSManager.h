@@ -1,21 +1,14 @@
 #pragma once
 
-#include "ComponentManager.h"
-#include "EntityManager.h"
-#include "SystemManager.h"
+#include "./ComponentManager.h"
+#include "./EntityManager.h"
+#include "./SystemManager.h"
 
 #include <memory>
 
-class Coordinator
+class ECSManager
 {
  public:
-    Coordinator()
-    {
-        _componentManager = std::make_unique<ComponentManager>();
-        _entityManager = std::make_unique<EntityManager>();
-        _systemManager = std::make_unique<SystemManager>();
-    }
-
     // Create new entity and returns it
     Entity CreateEntity()
     {
@@ -83,7 +76,10 @@ class Coordinator
     }
 
  private:
-    std::unique_ptr<ComponentManager> _componentManager;
-    std::unique_ptr<EntityManager> _entityManager;
-    std::unique_ptr<SystemManager> _systemManager;
+    std::unique_ptr<ComponentManager> _componentManager
+        = std::make_unique<ComponentManager>();
+    std::unique_ptr<EntityManager> _entityManager
+        = std::make_unique<EntityManager>();
+    std::unique_ptr<SystemManager> _systemManager
+        = std::make_unique<SystemManager>();
 };

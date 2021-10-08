@@ -1,15 +1,15 @@
-#include "Window.h"
+#include "WindowManager.h"
 #include <GLFW/glfw3.h>
 
 // Init GLFW
-Window::Window()
+WindowManager::WindowManager()
 {
     if (glfwInit() != GLFW_TRUE)
     {
         ERROR("Failed to initialize GLFW.");
     }
 
-    glfwSetErrorCallback(&Window::GlfwError);
+    glfwSetErrorCallback(&WindowManager::GlfwError);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
@@ -17,19 +17,19 @@ Window::Window()
 }
 
 // Window closed event
-bool Window::WindowShouldClose() const
+bool WindowManager::WindowShouldClose() const
 {
 	return glfwWindowShouldClose(_glfwWindow.get());
 }
 
 // Poll window events
-void Window::PollEvents()
+void WindowManager::PollEvents()
 {
 	glfwPollEvents();
 }
 
 // Returns the Vulkan instance extensions required by GLFW
-std::pair<const char**, std::uint32_t> Window::WindowGetRequiredInstanceExtensions()
+std::pair<const char**, std::uint32_t> WindowManager::WindowGetRequiredInstanceExtensions()
 {
 	std::uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;
@@ -39,7 +39,7 @@ std::pair<const char**, std::uint32_t> Window::WindowGetRequiredInstanceExtensio
 }
 
 // Create a Vulkan surface for the window
-void Window::WindowCreateSurface(VkInstance instance, VkSurfaceKHR* surface)
+void WindowManager::WindowCreateSurface(VkInstance instance, VkSurfaceKHR* surface)
 {
 	if (glfwCreateWindowSurface(instance, _glfwWindow.get(), nullptr, surface) != VK_SUCCESS)
 	{
@@ -48,13 +48,13 @@ void Window::WindowCreateSurface(VkInstance instance, VkSurfaceKHR* surface)
 }
 
 // Create the window
-void Window::WindowInit()
+void WindowManager::WindowInit()
 {
 	_glfwWindow.reset(glfwCreateWindow(800, 800, "vulkan-testings", nullptr, nullptr));
 }
 
 // GLFW error callback
-void Window::GlfwError(int error, const char* description)
+void WindowManager::GlfwError(int error, const char* description)
 {
     WARNING(description);
 }

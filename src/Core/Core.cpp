@@ -1,26 +1,31 @@
 #include "Core.h"
-#include "EntityManager.h"
 
-#include "Coordinator.h"
 #include "../Components/Gravity.h"
 #include "../Components/RigidBody.h"
 #include "../Components/Transform.h"
+
 #include "../Systems/Physics.h"
+
+#include "Subsystems/ECS/ECSManager.h"
+#include "Subsystems/Window/WindowManager.h"
 
 #include <random>
 
-Coordinator COORDINATOR;
+// Entity Component System Manager
+ECSManager ECS_MANAGER;
+// Window Manager
+WindowManager WINDOW_MANAGER;
 
 int Core::Run()
 {
     RegisterAllComponents();
 
-    auto physicsSystem = COORDINATOR.RegisterSystem<Physics>();
+    auto physicsSystem = ECS_MANAGER.RegisterSystem<Physics>();
     Signature signature;
-    signature.set(COORDINATOR.GetComponentType<Gravity>());
-    signature.set(COORDINATOR.GetComponentType<RigidBody>());
-    signature.set(COORDINATOR.GetComponentType<Transform>());
-    COORDINATOR.SetSystemSignature<Physics>(signature);
+    signature.set(ECS_MANAGER.GetComponentType<Gravity>());
+    signature.set(ECS_MANAGER.GetComponentType<RigidBody>());
+    signature.set(ECS_MANAGER.GetComponentType<Transform>());
+    ECS_MANAGER.SetSystemSignature<Physics>(signature);
 
     std::vector<Entity> entities(64);
 
@@ -31,20 +36,20 @@ int Core::Run()
 
     for (auto& entity : entities)
     {
-        entity = COORDINATOR.CreateEntity();
+        entity = ECS_MANAGER.CreateEntity();
 
-        COORDINATOR.AddComponent(
+        ECS_MANAGER.AddComponent(
             entity,
             Gravity{glm::vec3(0.0f, randGravity(generator), 0.0f)});
 
-        COORDINATOR.AddComponent(
+        ECS_MANAGER.AddComponent(
             entity,
             RigidBody{
                 .velocity = glm::vec3(0.0f),
                 .acceleration = glm::vec3(0.0f)
             });
 
-        COORDINATOR.AddComponent(
+        ECS_MANAGER.AddComponent(
             entity,
             Transform{
                 .position = glm::vec3(randPosition(generator)),
@@ -55,11 +60,11 @@ int Core::Run()
 
     float dt = 0.0f;
 
-    while (!_window->WindowShouldClose())
+    while (!WINDOW_MANAGER.WindowShouldClose())
     {
         auto startTime = std::chrono::high_resolution_clock::now();
 
-        _window->PollEvents();
+        WINDOW_MANAGER.PollEvents();
 
         physicsSystem->Update(dt);
 
@@ -72,8 +77,8 @@ int Core::Run()
 
 void Core::RegisterAllComponents() const
 {
-    COORDINATOR.RegisterComponent<Gravity>();
-    COORDINATOR.RegisterComponent<RigidBody>();
-    COORDINATOR.RegisterComponent<Transform>();
+    ECS_MANAGER.RegisterComponent<Gravity>();
+    ECS_MANAGER.RegisterComponent<RigidBody>();
+    ECS_MANAGER.RegisterComponent<Transform>();
 }
 
