@@ -11,6 +11,7 @@ RendererManager::RendererManager()
     createInstance();
     createSurface();
     pickPhysicalDevice();
+    createLogicalDevice();
 }
 
 // Choose the GPU to use
@@ -18,7 +19,7 @@ void RendererManager::pickPhysicalDevice()
 {
     // Get all the availables GPUs
     std::uint32_t deviceCount = 0;
-	vkEnumeratePhysicalDevices(_vkInstance, &deviceCount, nullptr);
+	vkEnumeratePhysicalDevices(_vkInstance, &deviceCount, VK_NULL_HANDLE);
 	if (deviceCount == 0)
 	{
 		ERROR("Failed to find GPUs with Vulkan support.");
@@ -75,7 +76,7 @@ QueueFamilyIndices RendererManager::findQueueFamilies(VkPhysicalDevice device)
 	QueueFamilyIndices indices;
 
 	std::uint32_t queueFamilyCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, VK_NULL_HANDLE);
 
 	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
@@ -113,7 +114,7 @@ void RendererManager::createInstance()
     // Engine informations
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pNext = nullptr;
+	appInfo.pNext = VK_NULL_HANDLE;
 	appInfo.pApplicationName = "vulkan-testings";
 	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	appInfo.pEngineName = "vulkan-testings";
@@ -128,8 +129,8 @@ void RendererManager::createInstance()
 
     // No validation layers as we are using the vkconfig overwrite
     createInfo.enabledLayerCount = 0;
-    createInfo.ppEnabledLayerNames = nullptr;
-    createInfo.pNext = nullptr;
+    createInfo.ppEnabledLayerNames = VK_NULL_HANDLE;
+    createInfo.pNext = VK_NULL_HANDLE;
 
     // Get required extensions by the Window Manager
     std::pair<const char**, std::uint32_t> windowRequiredInstanceExt = g_WindowManager.windowGetRequiredInstanceExtensions();
@@ -139,16 +140,53 @@ void RendererManager::createInstance()
 	createInfo.enabledExtensionCount = static_cast<std::uint32_t>(vkExtensions.size());
 	createInfo.ppEnabledExtensionNames = vkExtensions.data();
 
-	if (vkCreateInstance(&createInfo, nullptr, &_vkInstance))
+	if (vkCreateInstance(&createInfo, VK_NULL_HANDLE, &_vkInstance))
 	{
 		ERROR("Cannot create Vulkan instance.");
 	}
 }
 
+// Create the logical Vulkan device
+void RendererManager::createLogicalDevice()
+{
+    QueueFamilyIndices indices = findQueueFamilies(_vkPhysicalDevice);
+	float queuePriority = 1.0f;
+
+    // Graphics queue informations
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.pNext = VK_NULL_HANDLE;
+    queueCreateInfo.flags = 0;
+    queueCreateInfo.queueFamilyIndex = indices.graphics.value();
+    queueCreateInfo.queueCount = 1;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+	VkPhysicalDeviceFeatures deviceFeatures{};
+
+    // Logical device informations
+	VkDeviceCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	createInfo.pNext = VK_NULL_HANDLE;
+	createInfo.flags = 0;
+	createInfo.queueCreateInfoCount = 1;
+	createInfo.pQueueCreateInfos = &queueCreateInfo;
+	createInfo.enabledExtensionCount = 0;
+	createInfo.ppEnabledExtensionNames = VK_NULL_HANDLE;
+	createInfo.pEnabledFeatures = &deviceFeatures;
+	createInfo.enabledLayerCount = 0;
+
+	if (vkCreateDevice(_vkPhysicalDevice, &createInfo, VK_NULL_HANDLE, &_vkDevice) != VK_SUCCESS)
+	{
+		ERROR("Failed to create logical Vulkan device.")
+	}
+
+	vkGetDeviceQueue(_vkDevice, indices.graphics.value(), 0, &_vkGraphicsQueue);
+}
+
 // Clean Vulkan
 RendererManager::~RendererManager()
 {
-    vkDestroyDevice(_vkDevice, nullptr);
-	vkDestroySurfaceKHR(_vkInstance, _vkSurface, nullptr);
-    vkDestroyInstance(_vkInstance, nullptr);
+    vkDestroyDevice(_vkDevice, VK_NULL_HANDLE);
+	vkDestroySurfaceKHR(_vkInstance, _vkSurface, VK_NULL_HANDLE);
+    vkDestroyInstance(_vkInstance, VK_NULL_HANDLE);
 }

@@ -5,6 +5,7 @@
 #include <memory>
 #include <iostream>
 #include <optional>
+#include <set>
 
 struct QueueFamilyIndices
 {
@@ -29,9 +30,11 @@ class RendererManager
     void pickPhysicalDevice();
     bool isPhysicalDeviceSuitable(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    void createLogicalDevice();
 
     VkInstance _vkInstance = VK_NULL_HANDLE;
     VkPhysicalDevice _vkPhysicalDevice = VK_NULL_HANDLE;
     VkSurfaceKHR _vkSurface = VK_NULL_HANDLE;
     VkDevice _vkDevice = VK_NULL_HANDLE;
+    VkQueue _vkGraphicsQueue = VK_NULL_HANDLE;
 };
