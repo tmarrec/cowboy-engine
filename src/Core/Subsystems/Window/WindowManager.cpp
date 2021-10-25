@@ -16,6 +16,14 @@ WindowManager::WindowManager()
     windowInit();
 }
 
+// Destroy the window and terminate GLFW instance
+void glfwDeleter::operator()(GLFWwindow* window)
+{
+    glfwSetErrorCallback(nullptr);
+	glfwDestroyWindow(window);
+	glfwTerminate();
+}
+
 // Window closed event
 bool WindowManager::windowShouldClose() const
 {
@@ -32,9 +40,7 @@ void WindowManager::pollEvents()
 std::pair<const char**, std::uint32_t> WindowManager::windowGetRequiredInstanceExtensions()
 {
 	std::uint32_t glfwExtensionCount = 0;
-	const char** glfwExtensions;
-
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
     if (!glfwExtensions)
     {
         ERROR("Failed to get required Vulkan instance extensions.");
@@ -63,10 +69,11 @@ void WindowManager::glfwError(int error, const char* description)
     WARNING(description);
 }
 
-// Destroy the window and terminate GLFW instance
-void glfwDeleter::operator()(GLFWwindow* window)
+void WindowManager::windowGetFramebufferSize(std::uint32_t& width, std::uint32_t& height)
 {
-    glfwSetErrorCallback(nullptr);
-	glfwDestroyWindow(window);
-	glfwTerminate();
+    int intWidth, intHeight;
+    glfwGetFramebufferSize(_glfwWindow.get(), &intWidth, &intHeight);
+    width = static_cast<std::uint32_t>(intWidth);
+    height = static_cast<std::uint32_t>(intHeight);
 }
+

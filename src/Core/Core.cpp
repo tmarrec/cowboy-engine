@@ -23,11 +23,15 @@ int Core::Run()
 {
     RegisterAllComponents();
 
-    auto physicsSystem = g_ECSManager.registerSystem<Physics>();
-    Signature signature;
-    signature.set(g_ECSManager.getComponentType<Gravity>());
-    signature.set(g_ECSManager.getComponentType<RigidBody>());
-    signature.set(g_ECSManager.getComponentType<Transform>());
+    // Physics initialization
+    const auto physicsSystem = g_ECSManager.registerSystem<Physics>();
+    const Signature signature = [&](){
+        Signature s;
+        s.set(g_ECSManager.getComponentType<Gravity>());
+        s.set(g_ECSManager.getComponentType<RigidBody>());
+        s.set(g_ECSManager.getComponentType<Transform>());
+        return s;
+    }();
     g_ECSManager.setSystemSignature<Physics>(signature);
 
     std::vector<Entity> entities(64);
@@ -65,13 +69,13 @@ int Core::Run()
 
     while (!g_WindowManager.windowShouldClose())
     {
-        auto startTime = std::chrono::high_resolution_clock::now();
+        const auto startTime = std::chrono::high_resolution_clock::now();
 
         g_WindowManager.pollEvents();
 
         physicsSystem->Update(dt);
 
-        auto stopTime = std::chrono::high_resolution_clock::now();
+        const auto stopTime = std::chrono::high_resolution_clock::now();
 		dt = std::chrono::duration<float, std::chrono::seconds::period>(stopTime - startTime).count();
     }
 

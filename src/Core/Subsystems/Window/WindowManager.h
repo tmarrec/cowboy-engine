@@ -19,6 +19,7 @@ class WindowManager
     void pollEvents();
     std::pair<const char**, std::uint32_t> windowGetRequiredInstanceExtensions();
     void windowCreateSurface(VkInstance instance, VkSurfaceKHR* surface);
+    void windowGetFramebufferSize(std::uint32_t& width, std::uint32_t& height);
 
  private:
     void windowInit();
