@@ -19,7 +19,7 @@ struct QueueFamilyIndices
 	}
 };
 
-struct SwapChainSupportDetails
+struct SwapchainSupportDetails
 {
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
@@ -42,24 +42,28 @@ class RendererManager
     bool checkDeviceExtensionSupport(const VkPhysicalDevice device);
 
     // Swapchain
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+    SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice device);
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-    void createSwapChain();
+    void createSwapchain();
+
+    // Image views
+    void createImageViews();
 
     const std::vector<const char*> _deviceExtensions =
     {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
-    VkInstance              _vkInstance         = VK_NULL_HANDLE;
-    VkPhysicalDevice        _vkPhysicalDevice   = VK_NULL_HANDLE;
-    VkSurfaceKHR            _vkSurface          = VK_NULL_HANDLE;
-    VkDevice                _vkDevice           = VK_NULL_HANDLE;
-    VkQueue                 _vkGraphicsQueue    = VK_NULL_HANDLE;
-    VkSwapchainKHR          _vkSwapChain        = VK_NULL_HANDLE;
-    VkFormat                _vkSwapChainFormat  = {};
-    VkExtent2D              _vkSwapChainExtent  = {};
-    std::vector<VkImage>    _vkSwapChainImages  = {};
+    VkInstance                  _vkInstance         = VK_NULL_HANDLE;
+    VkPhysicalDevice            _vkPhysicalDevice   = VK_NULL_HANDLE;
+    VkSurfaceKHR                _vkSurface          = VK_NULL_HANDLE;
+    VkDevice                    _vkDevice           = VK_NULL_HANDLE;
+    VkQueue                     _vkGraphicsQueue    = VK_NULL_HANDLE;
+    VkSwapchainKHR              _vkSwapchain        = VK_NULL_HANDLE;
+    VkFormat                    _vkSwapchainFormat  = {};
+    VkExtent2D                  _vkSwapchainExtent  = {};
+    std::vector<VkImage>        _vkSwapchainImages  = {};
+    std::vector<VkImageView>    _vkSwapchainImageViews = {};
 };
