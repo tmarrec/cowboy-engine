@@ -20,11 +20,26 @@ RendererManager::RendererManager()
     createImageViews();
     createRenderPass();
     createGraphicsPipeline();
+    createFramebuffers();
+    createCommandPool();
+    createCommandBuffers();
+    createSyncObjects();
 }
 
-// Clean Vulkan
+// Clean all the objects related to Vulkan
 RendererManager::~RendererManager()
 {
+    for (std::uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        vkDestroySemaphore(_vkDevice, _vkImageAvailableSemaphores[i], VK_NULL_HANDLE);
+        vkDestroySemaphore(_vkDevice, _vkRenderFinishedSemaphores[i], VK_NULL_HANDLE);
+        vkDestroyFence(_vkDevice, _vkInFlightFences[i], VK_NULL_HANDLE);
+    }
+    vkDestroyCommandPool(_vkDevice, _vkCommandPool, VK_NULL_HANDLE);
+    for (auto& framebuffer : _vkSwapchainFramebuffers)
+    {
+        vkDestroyFramebuffer(_vkDevice, framebuffer, VK_NULL_HANDLE);
+    }
     vkDestroyPipeline(_vkDevice, _vkGraphicsPipeline, VK_NULL_HANDLE);
     vkDestroyPipelineLayout(_vkDevice, _vkPipelineLayout, VK_NULL_HANDLE);
     vkDestroyRenderPass(_vkDevice, _vkRenderPass, VK_NULL_HANDLE);
@@ -215,6 +230,7 @@ void RendererManager::createLogicalDevice()
 	}
 
 	vkGetDeviceQueue(_vkDevice, indices.graphics.value(), 0, &_vkGraphicsQueue);
+	vkGetDeviceQueue(_vkDevice, indices.present.value(), 0, &_vkPresentQueue);
 }
 
 // Get the details of the device swapchain support
@@ -267,14 +283,14 @@ VkPresentModeKHR RendererManager::chooseSwapPresentMode(const std::vector<VkPres
             return availablePresentMode;
         }
     }
-    WARNING("Unable to find desired swapchain present mode. Will use VK_PRESENT_MODE_FIFO_KHR.");
-    return VK_PRESENT_MODE_FIFO_KHR;
+    WARNING("Unable to find desired swapchain present mode. Will use VK_PRESENT_MODE_IMMEDIATE_KHR.");
+    return VK_PRESENT_MODE_IMMEDIATE_KHR;
 }
 
 // Choose the swap extent based on the window manager informations
 VkExtent2D RendererManager::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities)
 {
-    if (capabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max())
+    if (capabilities.currentExtent.width != UINT32_MAX)
     {
         return capabilities.currentExtent;
     }
@@ -646,12 +662,13 @@ VkShaderModule RendererManager::createShaderModule(const std::vector<std::uint32
     VkShaderModule shaderModule;
     if (vkCreateShaderModule(_vkDevice, &createInfo, VK_NULL_HANDLE, &shaderModule) != VK_SUCCESS)
     {
-        ERROR("Failed to create shader module.");
+        ERROR_EXIT("Failed to create shader module.");
     }
 
     return shaderModule;
 }
 
+// Create the Vulkan render pass
 void RendererManager::createRenderPass()
 {
     VkAttachmentDescription colorAttachment{};
@@ -681,6 +698,14 @@ void RendererManager::createRenderPass()
     subpass.preserveAttachmentCount = 0;
     subpass.pPreserveAttachments = VK_NULL_HANDLE;
 
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; 
+
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.pNext = VK_NULL_HANDLE;
@@ -689,12 +714,208 @@ void RendererManager::createRenderPass()
     renderPassInfo.pAttachments = &colorAttachment;
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 0;
-    renderPassInfo.pDependencies = VK_NULL_HANDLE;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
 
     if (vkCreateRenderPass(_vkDevice, &renderPassInfo, VK_NULL_HANDLE, &_vkRenderPass) != VK_SUCCESS)
     {
-        ERROR("Failed to create render pass.");
+        ERROR_EXIT("Failed to create render pass.");
     }
 }
 
+// Create all the framebuffers needed
+void RendererManager::createFramebuffers()
+{
+    _vkSwapchainFramebuffers.resize(_vkSwapchainImageViews.size());
+    for (std::uint64_t i = 0; i < _vkSwapchainImageViews.size(); ++i)
+    {
+        VkImageView attachments[] =
+        {
+            _vkSwapchainImageViews[i]
+        };
+
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.pNext = VK_NULL_HANDLE;
+        framebufferInfo.flags = 0;
+        framebufferInfo.renderPass = _vkRenderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.width = _vkSwapchainExtent.width;
+        framebufferInfo.height = _vkSwapchainExtent.height;
+        framebufferInfo.layers = 1;
+
+        if (vkCreateFramebuffer(_vkDevice, &framebufferInfo, VK_NULL_HANDLE, &_vkSwapchainFramebuffers[i]) != VK_SUCCESS)
+        {
+            ERROR_EXIT("Failed to create framebuffer.");
+        }
+    }
+}
+
+// Create the Vulkan command pool
+void RendererManager::createCommandPool()
+{
+    QueueFamilyIndices queueFamilyIndices = findQueueFamilies(_vkPhysicalDevice);
+
+    VkCommandPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.pNext = VK_NULL_HANDLE;
+    poolInfo.flags = 0;
+    poolInfo.queueFamilyIndex = queueFamilyIndices.graphics.value();
+
+    if (vkCreateCommandPool(_vkDevice, &poolInfo, VK_NULL_HANDLE, &_vkCommandPool) != VK_SUCCESS)
+    {
+        ERROR_EXIT("Failed to create command pool.");
+    }
+}
+
+// Create all the Vulkan command buffers and initialize them
+void RendererManager::createCommandBuffers()
+{
+    _vkCommandBuffers.resize(_vkSwapchainFramebuffers.size());
+
+    VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
+    commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    commandBufferAllocateInfo.pNext = VK_NULL_HANDLE;
+    commandBufferAllocateInfo.commandPool = _vkCommandPool;
+    commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    commandBufferAllocateInfo.commandBufferCount = static_cast<std::uint32_t>(_vkCommandBuffers.size());
+
+    if (vkAllocateCommandBuffers(_vkDevice, &commandBufferAllocateInfo, _vkCommandBuffers.data()) != VK_SUCCESS)
+    {
+        ERROR_EXIT("Failed to create command buffers.");
+    }
+
+    for (std::uint64_t i = 0; i < _vkCommandBuffers.size(); ++i)
+    {
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.pNext = VK_NULL_HANDLE;
+        beginInfo.flags = 0;
+        beginInfo.pInheritanceInfo = VK_NULL_HANDLE;
+
+        if (vkBeginCommandBuffer(_vkCommandBuffers[i], &beginInfo) != VK_SUCCESS)
+        {
+            ERROR_EXIT("Failed to begin recording command buffer.");
+        }
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.pNext = VK_NULL_HANDLE;
+        renderPassInfo.renderPass = _vkRenderPass;
+        renderPassInfo.framebuffer = _vkSwapchainFramebuffers[i];
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = _vkSwapchainExtent;
+        VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.pClearValues = &clearColor;
+
+        vkCmdBeginRenderPass(_vkCommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindPipeline(_vkCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, _vkGraphicsPipeline);
+
+        vkCmdDraw(_vkCommandBuffers[i], 3, 1, 0, 0);
+
+        vkCmdEndRenderPass(_vkCommandBuffers[i]);
+
+        if (vkEndCommandBuffer(_vkCommandBuffers[i]) != VK_SUCCESS)
+        {
+            ERROR_EXIT("Failed to record command buffer.");
+        }
+    }
+}
+
+// Create all the synchronisation objects for the drawFrame
+void RendererManager::createSyncObjects()
+{
+    _vkImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    _vkRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    _vkInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+    _vkImagesInFlight.resize(_vkSwapchainImages.size(), VK_NULL_HANDLE);
+
+
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    semaphoreInfo.pNext = VK_NULL_HANDLE;
+    semaphoreInfo.flags = 0;
+
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.pNext = VK_NULL_HANDLE;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for (std::uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        if (
+                vkCreateSemaphore(_vkDevice, &semaphoreInfo, VK_NULL_HANDLE, &_vkImageAvailableSemaphores[i]) != VK_SUCCESS
+            ||  vkCreateSemaphore(_vkDevice, &semaphoreInfo, VK_NULL_HANDLE, &_vkRenderFinishedSemaphores[i]) != VK_SUCCESS
+            ||  vkCreateFence(_vkDevice, &fenceInfo, VK_NULL_HANDLE, &_vkInFlightFences[i]) != VK_SUCCESS
+        )
+        {
+            ERROR_EXIT("Failed to create synchronisation objects.");
+        }
+    }
+}
+
+// Draw the frame by executing the queues while staying synchronised
+void RendererManager::drawFrame()
+{
+    vkWaitForFences(_vkDevice, 1, &_vkInFlightFences[_currentFrame], VK_TRUE, UINT64_MAX);
+
+    std::uint32_t imageIndex;
+    vkAcquireNextImageKHR(_vkDevice, _vkSwapchain, UINT64_MAX, _vkImageAvailableSemaphores[_currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+    // Check if a previous frame is using this image
+    if (_vkImagesInFlight[imageIndex] != VK_NULL_HANDLE)
+    {
+        vkWaitForFences(_vkDevice, 1, &_vkImagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
+    }
+    // Mark the image as now being in use by this frame
+    _vkImagesInFlight[imageIndex] = _vkInFlightFences[_currentFrame];
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.pNext = VK_NULL_HANDLE;
+
+    VkSemaphore waitSemaphores[] = {_vkImageAvailableSemaphores[_currentFrame]};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &_vkCommandBuffers[imageIndex];
+
+    VkSemaphore signalSemaphores[] = {_vkRenderFinishedSemaphores[_currentFrame]};
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+    vkResetFences(_vkDevice, 1, &_vkInFlightFences[_currentFrame]);
+    if (vkQueueSubmit(_vkGraphicsQueue, 1, &submitInfo, _vkInFlightFences[_currentFrame]) != VK_SUCCESS)
+    {
+        ERROR_EXIT("Failed to submit draw command buffer.");
+    }
+
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.pNext = VK_NULL_HANDLE;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+
+    VkSwapchainKHR swapchains[] = {_vkSwapchain};
+    presentInfo.swapchainCount= 1;
+    presentInfo.pSwapchains = swapchains;
+    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pResults = VK_NULL_HANDLE;
+
+    vkQueuePresentKHR(_vkPresentQueue, &presentInfo);
+
+    vkQueueWaitIdle(_vkPresentQueue);
+
+    _currentFrame = (_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+// Wait that the Vulkan device is idle
+void RendererManager::waitIdle()
+{
+    vkDeviceWaitIdle(_vkDevice);
+}

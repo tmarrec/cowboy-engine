@@ -73,11 +73,16 @@ int Core::Run()
 
         g_WindowManager.pollEvents();
 
+        g_RendererManager.drawFrame();
+
         physicsSystem->Update(dt);
 
         const auto stopTime = std::chrono::high_resolution_clock::now();
 		dt = std::chrono::duration<float, std::chrono::seconds::period>(stopTime - startTime).count();
+        INFO("FPS: " << 1.0/dt);
     }
+
+    g_RendererManager.waitIdle();
 
     return 0;  
 }
