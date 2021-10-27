@@ -3,6 +3,8 @@
 #include "../Window/WindowManager.h"
 #include <cstdint>
 #include <limits>
+#include <shaderc/shaderc.h>
+#include <shaderc/shaderc.hpp>
 #include <vulkan/vulkan_core.h>
 
 extern WindowManager g_WindowManager;
@@ -16,11 +18,16 @@ RendererManager::RendererManager()
     createLogicalDevice();
     createSwapchain();
     createImageViews();
+    createRenderPass();
+    createGraphicsPipeline();
 }
 
 // Clean Vulkan
 RendererManager::~RendererManager()
 {
+    vkDestroyPipeline(_vkDevice, _vkGraphicsPipeline, VK_NULL_HANDLE);
+    vkDestroyPipelineLayout(_vkDevice, _vkPipelineLayout, VK_NULL_HANDLE);
+    vkDestroyRenderPass(_vkDevice, _vkRenderPass, VK_NULL_HANDLE);
     for (auto& imageView : _vkSwapchainImageViews)
     {
         vkDestroyImageView(_vkDevice, imageView, VK_NULL_HANDLE);
@@ -39,7 +46,7 @@ void RendererManager::pickPhysicalDevice()
 	vkEnumeratePhysicalDevices(_vkInstance, &deviceCount, VK_NULL_HANDLE);
 	if (deviceCount == 0)
 	{
-		ERROR("Failed to find GPUs with Vulkan support.");
+		ERROR_EXIT("Failed to find GPUs with Vulkan support.");
 	}
 	std::vector<VkPhysicalDevice> devices{deviceCount};
 	vkEnumeratePhysicalDevices(_vkInstance, &deviceCount, devices.data());
@@ -56,7 +63,7 @@ void RendererManager::pickPhysicalDevice()
 	
 	if (_vkPhysicalDevice == VK_NULL_HANDLE)
 	{
-		ERROR("Failed to find suitable GPU.");
+		ERROR_EXIT("Failed to find suitable GPU.");
 	}
 
     // Get selected GPU informations
@@ -169,7 +176,7 @@ void RendererManager::createInstance()
 
 	if (vkCreateInstance(&createInfo, VK_NULL_HANDLE, &_vkInstance))
 	{
-		ERROR("Cannot create Vulkan instance.");
+		ERROR_EXIT("Cannot create Vulkan instance.");
 	}
 }
 
@@ -204,7 +211,7 @@ void RendererManager::createLogicalDevice()
 
 	if (vkCreateDevice(_vkPhysicalDevice, &createInfo, VK_NULL_HANDLE, &_vkDevice) != VK_SUCCESS)
 	{
-		ERROR("Failed to create logical Vulkan device.")
+		ERROR_EXIT("Failed to create logical Vulkan device.")
 	}
 
 	vkGetDeviceQueue(_vkDevice, indices.graphics.value(), 0, &_vkGraphicsQueue);
@@ -341,7 +348,7 @@ void RendererManager::createSwapchain()
     // Create the swapchain
     if (vkCreateSwapchainKHR(_vkDevice, &createInfo, VK_NULL_HANDLE, &_vkSwapchain) != VK_SUCCESS)
     {
-        ERROR("Failed to create swap chain.");
+        ERROR_EXIT("Failed to create swap chain.");
     }
 
     // Link the swapchain to the vector of images
@@ -372,12 +379,322 @@ void RendererManager::createImageViews()
         createInfo.subresourceRange.baseMipLevel = 0;
         createInfo.subresourceRange.levelCount = 1;
         createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 0;
+        createInfo.subresourceRange.layerCount = 1;
 
         if (vkCreateImageView(_vkDevice, &createInfo, VK_NULL_HANDLE, &_vkSwapchainImageViews[i]) != VK_SUCCESS)
         {
-            ERROR("Failed to create image view.");
+            ERROR_EXIT("Failed to create image view.");
         }
+    }
+}
+
+// Create the graphics pipeline
+void RendererManager::createGraphicsPipeline()
+{
+    loadShaders(); 
+
+    VkShaderModule vertShaderModule = createShaderModule(_vertShaderCode);
+    VkShaderModule fragShaderModule = createShaderModule(_fragShaderCode);
+
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfo.pNext = VK_NULL_HANDLE;
+    vertShaderStageInfo.flags = 0;
+    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.pName = "main";
+    vertShaderStageInfo.pSpecializationInfo = VK_NULL_HANDLE;
+
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfo.pNext = VK_NULL_HANDLE;
+    fragShaderStageInfo.flags = 0;
+    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragShaderStageInfo.module = fragShaderModule;
+    fragShaderStageInfo.pName = "main";
+    fragShaderStageInfo.pSpecializationInfo = VK_NULL_HANDLE;
+
+    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+
+    // Vertex input
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputInfo.pNext = VK_NULL_HANDLE;
+    vertexInputInfo.flags = 0;
+    vertexInputInfo.vertexBindingDescriptionCount = 0;
+    vertexInputInfo.pVertexBindingDescriptions = VK_NULL_HANDLE;
+    vertexInputInfo.vertexAttributeDescriptionCount = 0;
+    vertexInputInfo.pVertexAttributeDescriptions = VK_NULL_HANDLE;
+
+    // Input assembly
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo{};
+    inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssemblyInfo.pNext = VK_NULL_HANDLE;
+    inputAssemblyInfo.flags = 0;
+    inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
+
+    // Viewport and Scissor
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = static_cast<float>(_vkSwapchainExtent.width);
+    viewport.height = static_cast<float>(_vkSwapchainExtent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 0.0f;
+
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = _vkSwapchainExtent;
+
+    VkPipelineViewportStateCreateInfo viewportStateInfo{};
+    viewportStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportStateInfo.pNext = VK_NULL_HANDLE;
+    viewportStateInfo.flags = 0;
+    viewportStateInfo.viewportCount = 1;
+    viewportStateInfo.pViewports = &viewport;
+    viewportStateInfo.scissorCount = 1;
+    viewportStateInfo.pScissors = &scissor;
+
+    // Rasterizer
+    VkPipelineRasterizationStateCreateInfo rasterizerInfo{};
+    rasterizerInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizerInfo.pNext = VK_NULL_HANDLE;
+    rasterizerInfo.flags = 0;
+    rasterizerInfo.depthClampEnable = VK_FALSE;
+    rasterizerInfo.rasterizerDiscardEnable = VK_FALSE;
+    rasterizerInfo.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizerInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizerInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizerInfo.depthBiasEnable = VK_FALSE;
+    rasterizerInfo.depthBiasConstantFactor = 0.0f;
+    rasterizerInfo.depthBiasClamp = 0.0f;
+    rasterizerInfo.depthBiasSlopeFactor = 0.0f;
+    rasterizerInfo.lineWidth = 1.0f;
+
+    // Multisampling
+    VkPipelineMultisampleStateCreateInfo multisamplingInfo{};
+    multisamplingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisamplingInfo.pNext = VK_NULL_HANDLE;
+    multisamplingInfo.flags = 0;
+    multisamplingInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisamplingInfo.sampleShadingEnable = VK_FALSE;
+    multisamplingInfo.minSampleShading = 1.0f;
+    multisamplingInfo.pSampleMask = VK_NULL_HANDLE;
+    multisamplingInfo.alphaToCoverageEnable = VK_FALSE;
+    multisamplingInfo.alphaToOneEnable = VK_FALSE;
+
+    // Color blending
+    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+    colorBlendAttachment.blendEnable = VK_TRUE;
+    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+    VkPipelineColorBlendStateCreateInfo colorBlendingInfo{};
+    colorBlendingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlendingInfo.pNext = VK_NULL_HANDLE;
+    colorBlendingInfo.flags = 0;
+    colorBlendingInfo.logicOpEnable = VK_FALSE;
+    colorBlendingInfo.logicOp = VK_LOGIC_OP_COPY;
+    colorBlendingInfo.attachmentCount = 1;
+    colorBlendingInfo.pAttachments = &colorBlendAttachment;
+    colorBlendingInfo.blendConstants[0] = 0.0f;
+    colorBlendingInfo.blendConstants[1] = 0.0f;
+    colorBlendingInfo.blendConstants[2] = 0.0f;
+    colorBlendingInfo.blendConstants[3] = 0.0f;
+
+    // Pipeline layout
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.pNext = VK_NULL_HANDLE;
+    pipelineLayoutInfo.flags = 0;
+    pipelineLayoutInfo.setLayoutCount = 0;
+    pipelineLayoutInfo.pSetLayouts = VK_NULL_HANDLE;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.pPushConstantRanges = VK_NULL_HANDLE;
+
+    if (vkCreatePipelineLayout(_vkDevice, &pipelineLayoutInfo, VK_NULL_HANDLE, &_vkPipelineLayout) != VK_SUCCESS)
+    {
+        ERROR("Failed to create pipeline layout.");
+    }
+
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.pNext = VK_NULL_HANDLE;
+    pipelineInfo.flags = 0;
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssemblyInfo;
+    pipelineInfo.pTessellationState = VK_NULL_HANDLE;
+    pipelineInfo.pViewportState = &viewportStateInfo;
+    pipelineInfo.pRasterizationState = &rasterizerInfo;
+    pipelineInfo.pMultisampleState = &multisamplingInfo;
+    pipelineInfo.pDepthStencilState = VK_NULL_HANDLE;
+    pipelineInfo.pColorBlendState = &colorBlendingInfo;
+    pipelineInfo.pDynamicState = VK_NULL_HANDLE;
+    pipelineInfo.layout = _vkPipelineLayout;
+    pipelineInfo.renderPass = _vkRenderPass;
+    pipelineInfo.subpass = 0;
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+    pipelineInfo.basePipelineIndex = -1;
+
+    if (vkCreateGraphicsPipelines(_vkDevice, VK_NULL_HANDLE, 1, &pipelineInfo, VK_NULL_HANDLE, &_vkGraphicsPipeline) != VK_SUCCESS)
+    {
+        ERROR("Failed to create graphics pipeline.");
+    }
+
+    vkDestroyShaderModule(_vkDevice, vertShaderModule, VK_NULL_HANDLE);
+    vkDestroyShaderModule(_vkDevice, fragShaderModule, VK_NULL_HANDLE);
+}
+
+// load shaders from string to bytecode
+void RendererManager::loadShaders()
+{
+    // Vertex shader
+    const char vertGlslString[] = "#version 460 core\n                  \
+        layout(location = 0) out vec3 fragColor;                        \
+                                                                        \
+        vec2 positions[3] = vec2[](                                     \
+            vec2(0.0, -0.5),                                            \
+            vec2(0.5, 0.5),                                             \
+            vec2(-0.5, 0.5)                                             \
+        );                                                              \
+                                                                        \
+        vec3 colors[3] = vec3[](                                        \
+            vec3(1.0, 0.0, 0.0),                                        \
+            vec3(0.0, 1.0, 0.0),                                        \
+            vec3(0.0, 0.0, 1.0)                                         \
+        );                                                              \
+                                                                        \
+        void main() {                                                   \
+            gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);    \
+            fragColor = colors[gl_VertexIndex];                         \
+        }                                                               \
+    ";
+    shaderc::Compiler compiler;
+    shaderc::CompileOptions options;
+    options.SetOptimizationLevel(shaderc_optimization_level_performance);
+
+    // Preprocess
+    shaderc::PreprocessedSourceCompilationResult preprocessed = compiler.PreprocessGlsl(vertGlslString, shaderc_glsl_vertex_shader, "source_name", options);
+    if (preprocessed.GetCompilationStatus() != shaderc_compilation_status_success)
+    {
+        ERROR(preprocessed.GetErrorMessage());
+        ERROR_EXIT("Shader preprocess failed.");
+    }
+    
+    // Compile
+    shaderc::CompilationResult assembly = compiler.CompileGlslToSpv(vertGlslString, shaderc_glsl_vertex_shader, "source_name", options);
+    if (assembly.GetCompilationStatus() != shaderc_compilation_status_success)
+    {
+        ERROR(assembly.GetErrorMessage());
+        ERROR_EXIT("Shader compilation failed.");
+    }
+    
+    _vertShaderCode = {assembly.cbegin(), assembly.cend()};
+
+    // Fragment shader
+    const char fragGlslString[] = "#version 460 core\n  \
+                                                        \
+        layout(location = 0) in vec3 fragColor;         \
+                                                        \
+        layout(location = 0) out vec4 outColor;         \
+                                                        \
+        void main() {                                   \
+            outColor = vec4(fragColor, 1.0);            \
+        }                                               \
+    ";
+    shaderc::Compiler compiler2;
+    shaderc::CompileOptions options2;
+    options2.SetOptimizationLevel(shaderc_optimization_level_performance);
+
+    // Preprocess
+    shaderc::PreprocessedSourceCompilationResult preprocessed2 = compiler2.PreprocessGlsl(fragGlslString, shaderc_glsl_fragment_shader, "source_name", options2);
+    if (preprocessed2.GetCompilationStatus() != shaderc_compilation_status_success)
+    {
+        ERROR(preprocessed2.GetErrorMessage());
+        ERROR_EXIT("Shader preprocess failed.");
+    }
+    
+    // Compile
+    shaderc::CompilationResult assembly2 = compiler2.CompileGlslToSpv(fragGlslString, shaderc_glsl_fragment_shader, "source_name", options2);
+    if (assembly2.GetCompilationStatus() != shaderc_compilation_status_success)
+    {
+        ERROR(assembly2.GetErrorMessage());
+        ERROR_EXIT("Shader compilation failed.");
+    }
+    
+    _fragShaderCode = {assembly2.cbegin(), assembly2.cend()};
+}
+
+// Create Vulkan shader module from shader bytecode
+VkShaderModule RendererManager::createShaderModule(const std::vector<std::uint32_t>& code)
+{
+    VkShaderModuleCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.pNext = VK_NULL_HANDLE;
+    createInfo.flags = 0;
+    createInfo.codeSize = code.size() * sizeof(std::uint32_t);
+    createInfo.pCode = code.data();
+
+    VkShaderModule shaderModule;
+    if (vkCreateShaderModule(_vkDevice, &createInfo, VK_NULL_HANDLE, &shaderModule) != VK_SUCCESS)
+    {
+        ERROR("Failed to create shader module.");
+    }
+
+    return shaderModule;
+}
+
+void RendererManager::createRenderPass()
+{
+    VkAttachmentDescription colorAttachment{};
+    colorAttachment.flags = 0;
+    colorAttachment.format = _vkSwapchainFormat;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentReference colorAttachmentRef{};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.flags = 0;
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.inputAttachmentCount = 0;
+    subpass.pInputAttachments = VK_NULL_HANDLE;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+    subpass.pResolveAttachments = VK_NULL_HANDLE;
+    subpass.pDepthStencilAttachment = VK_NULL_HANDLE;
+    subpass.preserveAttachmentCount = 0;
+    subpass.pPreserveAttachments = VK_NULL_HANDLE;
+
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.pNext = VK_NULL_HANDLE;
+    renderPassInfo.flags = 0;
+    renderPassInfo.attachmentCount = 1;
+    renderPassInfo.pAttachments = &colorAttachment;
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 0;
+    renderPassInfo.pDependencies = VK_NULL_HANDLE;
+
+    if (vkCreateRenderPass(_vkDevice, &renderPassInfo, VK_NULL_HANDLE, &_vkRenderPass) != VK_SUCCESS)
+    {
+        ERROR("Failed to create render pass.");
     }
 }
 

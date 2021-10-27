@@ -59,3 +59,4 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Systems/Physics.cpp
 )
 
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} libshaderc_combined.a)

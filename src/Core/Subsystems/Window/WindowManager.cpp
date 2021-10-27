@@ -6,7 +6,7 @@ WindowManager::WindowManager()
 {
     if (glfwInit() != GLFW_TRUE)
     {
-        ERROR("Failed to initialize GLFW.");
+        ERROR_EXIT("Failed to initialize GLFW.");
     }
 
     glfwSetErrorCallback(&WindowManager::glfwError);
@@ -43,7 +43,7 @@ std::pair<const char**, std::uint32_t> WindowManager::windowGetRequiredInstanceE
 	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
     if (!glfwExtensions)
     {
-        ERROR("Failed to get required Vulkan instance extensions.");
+        ERROR_EXIT("Failed to get required Vulkan instance extensions.");
     }
 	return std::pair<const char**, std::uint32_t>(glfwExtensions, glfwExtensionCount);
 }
@@ -53,7 +53,7 @@ void WindowManager::windowCreateSurface(VkInstance instance, VkSurfaceKHR* surfa
 {
 	if (glfwCreateWindowSurface(instance, _glfwWindow.get(), nullptr, surface) != VK_SUCCESS)
 	{
-        ERROR("Failed to create GLFW window surface.");
+        ERROR_EXIT("Failed to create GLFW window surface.");
 	}
 }
 

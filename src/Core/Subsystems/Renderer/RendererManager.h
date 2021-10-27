@@ -1,11 +1,11 @@
 #pragma once
-
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <memory>
 #include <iostream>
 #include <optional>
 #include <set>
+#include <shaderc/shaderc.hpp>
 #include <vulkan/vulkan_core.h>
 
 struct QueueFamilyIndices
@@ -48,8 +48,16 @@ class RendererManager
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     void createSwapchain();
 
-    // Image views
+    // Image Views
     void createImageViews();
+
+    // Graphics Pipeline
+    void createRenderPass();
+    void createGraphicsPipeline();
+
+    // Shaders (temp, should use shader class in future)
+    void loadShaders();
+    VkShaderModule createShaderModule(const std::vector<std::uint32_t>& code);
 
     const std::vector<const char*> _deviceExtensions =
     {
@@ -62,8 +70,16 @@ class RendererManager
     VkDevice                    _vkDevice           = VK_NULL_HANDLE;
     VkQueue                     _vkGraphicsQueue    = VK_NULL_HANDLE;
     VkSwapchainKHR              _vkSwapchain        = VK_NULL_HANDLE;
-    VkFormat                    _vkSwapchainFormat  = {};
-    VkExtent2D                  _vkSwapchainExtent  = {};
-    std::vector<VkImage>        _vkSwapchainImages  = {};
-    std::vector<VkImageView>    _vkSwapchainImageViews = {};
+    VkPipelineLayout            _vkPipelineLayout   = VK_NULL_HANDLE;
+    VkRenderPass                _vkRenderPass       = VK_NULL_HANDLE;
+    VkPipeline                  _vkGraphicsPipeline = VK_NULL_HANDLE;
+
+    VkFormat                    _vkSwapchainFormat      = {};
+    VkExtent2D                  _vkSwapchainExtent      = {};
+    std::vector<VkImage>        _vkSwapchainImages      = {};
+    std::vector<VkImageView>    _vkSwapchainImageViews  = {};
+
+    std::vector<std::uint32_t>  _vertShaderCode = {};
+    std::vector<std::uint32_t>  _fragShaderCode = {};
+
 };

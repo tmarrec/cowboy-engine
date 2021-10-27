@@ -27,6 +27,12 @@
 
 #define ERROR(m) \
     {\
+    std::cerr << "  \033[41m\033[1m[ERROR]\033[49m\033[0m "; \
+    std::cerr << m << '\n'; \
+    }
+
+#define ERROR_EXIT(m) \
+    {\
     std::cerr << '\n'; \
     std::cerr << "\033[41m\033[1m[ERROR]\033[49m\033[0m " << '\n'; \
     std::cerr << "\033[1mFILE\033[0m    : " << __FILE__ << '\n'; \
