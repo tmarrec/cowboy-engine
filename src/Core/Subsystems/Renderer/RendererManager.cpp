@@ -22,24 +22,36 @@ RendererManager::RendererManager()
     createGraphicsPipeline();
     createFramebuffers();
     createCommandPool();
-    createCommandBuffers();
+    allocateCommandBuffers();
     createSyncObjects();
 }
 
 // Clean all the objects related to Vulkan
 RendererManager::~RendererManager()
 {
+    cleanupSwapchain();
+
     for (std::uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         vkDestroySemaphore(_vkDevice, _vkImageAvailableSemaphores[i], VK_NULL_HANDLE);
         vkDestroySemaphore(_vkDevice, _vkRenderFinishedSemaphores[i], VK_NULL_HANDLE);
         vkDestroyFence(_vkDevice, _vkInFlightFences[i], VK_NULL_HANDLE);
     }
+
     vkDestroyCommandPool(_vkDevice, _vkCommandPool, VK_NULL_HANDLE);
+    vkDestroyDevice(_vkDevice, VK_NULL_HANDLE);
+	vkDestroySurfaceKHR(_vkInstance, _vkSurface, VK_NULL_HANDLE);
+    vkDestroyInstance(_vkInstance, VK_NULL_HANDLE);
+}
+
+// Clean all the swapchain related objects
+void RendererManager::cleanupSwapchain()
+{
     for (auto& framebuffer : _vkSwapchainFramebuffers)
     {
         vkDestroyFramebuffer(_vkDevice, framebuffer, VK_NULL_HANDLE);
     }
+    vkFreeCommandBuffers(_vkDevice, _vkCommandPool, static_cast<std::uint32_t>(_vkCommandBuffers.size()), _vkCommandBuffers.data());
     vkDestroyPipeline(_vkDevice, _vkGraphicsPipeline, VK_NULL_HANDLE);
     vkDestroyPipelineLayout(_vkDevice, _vkPipelineLayout, VK_NULL_HANDLE);
     vkDestroyRenderPass(_vkDevice, _vkRenderPass, VK_NULL_HANDLE);
@@ -48,9 +60,6 @@ RendererManager::~RendererManager()
         vkDestroyImageView(_vkDevice, imageView, VK_NULL_HANDLE);
     }
     vkDestroySwapchainKHR(_vkDevice, _vkSwapchain, VK_NULL_HANDLE);
-    vkDestroyDevice(_vkDevice, VK_NULL_HANDLE);
-	vkDestroySurfaceKHR(_vkInstance, _vkSurface, VK_NULL_HANDLE);
-    vkDestroyInstance(_vkInstance, VK_NULL_HANDLE);
 }
 
 // Choose the GPU to use
@@ -359,12 +368,12 @@ void RendererManager::createSwapchain()
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = presentMode;
     createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
+    createInfo.oldSwapchain = _vkSwapchain;
 
     // Create the swapchain
     if (vkCreateSwapchainKHR(_vkDevice, &createInfo, VK_NULL_HANDLE, &_vkSwapchain) != VK_SUCCESS)
     {
-        ERROR_EXIT("Failed to create swap chain.");
+        ERROR_EXIT("Failed to create swapchain.");
     }
 
     // Link the swapchain to the vector of images
@@ -524,6 +533,20 @@ void RendererManager::createGraphicsPipeline()
     colorBlendingInfo.blendConstants[2] = 0.0f;
     colorBlendingInfo.blendConstants[3] = 0.0f;
 
+    // Dynamic state to handle window resize
+    VkDynamicState dynamicStates[] =
+    {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR
+    };
+
+    VkPipelineDynamicStateCreateInfo dynamicStateInfo{};
+    dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicStateInfo.pNext = VK_NULL_HANDLE;
+    dynamicStateInfo.flags = 0;
+    dynamicStateInfo.dynamicStateCount = 2;
+    dynamicStateInfo.pDynamicStates = dynamicStates;
+
     // Pipeline layout
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -553,7 +576,7 @@ void RendererManager::createGraphicsPipeline()
     pipelineInfo.pMultisampleState = &multisamplingInfo;
     pipelineInfo.pDepthStencilState = VK_NULL_HANDLE;
     pipelineInfo.pColorBlendState = &colorBlendingInfo;
-    pipelineInfo.pDynamicState = VK_NULL_HANDLE;
+    pipelineInfo.pDynamicState = &dynamicStateInfo;
     pipelineInfo.layout = _vkPipelineLayout;
     pipelineInfo.renderPass = _vkRenderPass;
     pipelineInfo.subpass = 0;
@@ -760,7 +783,7 @@ void RendererManager::createCommandPool()
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.pNext = VK_NULL_HANDLE;
-    poolInfo.flags = 0;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphics.value();
 
     if (vkCreateCommandPool(_vkDevice, &poolInfo, VK_NULL_HANDLE, &_vkCommandPool) != VK_SUCCESS)
@@ -770,7 +793,7 @@ void RendererManager::createCommandPool()
 }
 
 // Create all the Vulkan command buffers and initialize them
-void RendererManager::createCommandBuffers()
+void RendererManager::allocateCommandBuffers()
 {
     _vkCommandBuffers.resize(_vkSwapchainFramebuffers.size());
 
@@ -784,44 +807,6 @@ void RendererManager::createCommandBuffers()
     if (vkAllocateCommandBuffers(_vkDevice, &commandBufferAllocateInfo, _vkCommandBuffers.data()) != VK_SUCCESS)
     {
         ERROR_EXIT("Failed to create command buffers.");
-    }
-
-    for (std::uint64_t i = 0; i < _vkCommandBuffers.size(); ++i)
-    {
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.pNext = VK_NULL_HANDLE;
-        beginInfo.flags = 0;
-        beginInfo.pInheritanceInfo = VK_NULL_HANDLE;
-
-        if (vkBeginCommandBuffer(_vkCommandBuffers[i], &beginInfo) != VK_SUCCESS)
-        {
-            ERROR_EXIT("Failed to begin recording command buffer.");
-        }
-
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.pNext = VK_NULL_HANDLE;
-        renderPassInfo.renderPass = _vkRenderPass;
-        renderPassInfo.framebuffer = _vkSwapchainFramebuffers[i];
-        renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = _vkSwapchainExtent;
-        VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-        renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor;
-
-        vkCmdBeginRenderPass(_vkCommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-        vkCmdBindPipeline(_vkCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, _vkGraphicsPipeline);
-
-        vkCmdDraw(_vkCommandBuffers[i], 3, 1, 0, 0);
-
-        vkCmdEndRenderPass(_vkCommandBuffers[i]);
-
-        if (vkEndCommandBuffer(_vkCommandBuffers[i]) != VK_SUCCESS)
-        {
-            ERROR_EXIT("Failed to record command buffer.");
-        }
     }
 }
 
@@ -857,13 +842,82 @@ void RendererManager::createSyncObjects()
     }
 }
 
+void RendererManager::createCommandBuffer(const std::uint32_t commandBufferIndex)
+{
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.pNext = VK_NULL_HANDLE;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    beginInfo.pInheritanceInfo = VK_NULL_HANDLE;
+
+    if (vkBeginCommandBuffer(_vkCommandBuffers[commandBufferIndex], &beginInfo) != VK_SUCCESS)
+    {
+        ERROR_EXIT("Failed to begin recording command buffer.");
+    }
+
+    VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.pNext = VK_NULL_HANDLE;
+    renderPassInfo.renderPass = _vkRenderPass;
+    renderPassInfo.framebuffer = _vkSwapchainFramebuffers[commandBufferIndex];
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = _vkSwapchainExtent;
+    VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+    renderPassInfo.clearValueCount = 1;
+    renderPassInfo.pClearValues = &clearColor;
+
+    vkCmdBeginRenderPass(_vkCommandBuffers[commandBufferIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    // Viewport and Scissor
+    std::uint32_t width, height;
+    g_WindowManager.windowGetFramebufferSize(width, height);
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = width;
+    viewport.height = height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 0.0f;
+    vkCmdSetViewport(_vkCommandBuffers[commandBufferIndex], 0, 1, &viewport);
+
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = _vkSwapchainExtent;
+    vkCmdSetScissor(_vkCommandBuffers[commandBufferIndex], 0, 1, &scissor);
+
+    vkCmdBindPipeline(_vkCommandBuffers[commandBufferIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, _vkGraphicsPipeline);
+
+    vkCmdDraw(_vkCommandBuffers[commandBufferIndex], 3, 1, 0, 0);
+
+    vkCmdEndRenderPass(_vkCommandBuffers[commandBufferIndex]);
+
+    if (vkEndCommandBuffer(_vkCommandBuffers[commandBufferIndex]) != VK_SUCCESS)
+    {
+        ERROR_EXIT("Failed to record command buffer.");
+    }
+}
+
 // Draw the frame by executing the queues while staying synchronised
 void RendererManager::drawFrame()
 {
     vkWaitForFences(_vkDevice, 1, &_vkInFlightFences[_currentFrame], VK_TRUE, UINT64_MAX);
 
     std::uint32_t imageIndex;
-    vkAcquireNextImageKHR(_vkDevice, _vkSwapchain, UINT64_MAX, _vkImageAvailableSemaphores[_currentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult acquireNextImageResult = vkAcquireNextImageKHR(_vkDevice, _vkSwapchain, UINT64_MAX, _vkImageAvailableSemaphores[_currentFrame], VK_NULL_HANDLE, &imageIndex);
+    if (acquireNextImageResult == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        // Out of date image, the window has probably been resized
+        // Need to update the swapchain, imageviews and framebuffers
+        vkDeviceWaitIdle(_vkDevice);
+        createSwapchain();
+        createImageViews();
+        createFramebuffers();
+        return;
+    }
+    else if (acquireNextImageResult != VK_SUCCESS && acquireNextImageResult != VK_SUBOPTIMAL_KHR)
+    {
+        ERROR_EXIT("Failed to acquire next image");
+    }
 
     // Check if a previous frame is using this image
     if (_vkImagesInFlight[imageIndex] != VK_NULL_HANDLE)
@@ -872,6 +926,8 @@ void RendererManager::drawFrame()
     }
     // Mark the image as now being in use by this frame
     _vkImagesInFlight[imageIndex] = _vkInFlightFences[_currentFrame];
+
+    createCommandBuffer(imageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -890,6 +946,7 @@ void RendererManager::drawFrame()
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     vkResetFences(_vkDevice, 1, &_vkInFlightFences[_currentFrame]);
+
     if (vkQueueSubmit(_vkGraphicsQueue, 1, &submitInfo, _vkInFlightFences[_currentFrame]) != VK_SUCCESS)
     {
         ERROR_EXIT("Failed to submit draw command buffer.");

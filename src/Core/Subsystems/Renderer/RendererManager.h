@@ -8,7 +8,7 @@
 #include <shaderc/shaderc.hpp>
 #include <vulkan/vulkan_core.h>
 
-const std::uint8_t MAX_FRAMES_IN_FLIGHT = 8;
+const std::uint8_t MAX_FRAMES_IN_FLIGHT = 2;
 
 struct QueueFamilyIndices
 {
@@ -51,6 +51,7 @@ class RendererManager
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     void createSwapchain();
+    void cleanupSwapchain();
 
     // Image Views
     void createImageViews();
@@ -61,8 +62,9 @@ class RendererManager
 
     void createFramebuffers();
     void createCommandPool();
-    void createCommandBuffers();
+    void allocateCommandBuffers();
     void createSyncObjects();
+    void createCommandBuffer(const std::uint32_t commandBufferIndex);
 
 
     // Shaders (temp, should use shader class in future)
@@ -102,4 +104,5 @@ class RendererManager
     std::vector<std::uint32_t>      _fragShaderCode = {};
 
     std::uint8_t                    _currentFrame = 0;
+
 };
