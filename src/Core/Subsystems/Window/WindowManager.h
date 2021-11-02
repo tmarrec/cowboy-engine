@@ -24,6 +24,7 @@ class WindowManager
  private:
     void windowInit();
     static void glfwError(int error, const char* description);
+    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
     std::unique_ptr<GLFWwindow, glfwDeleter> _glfwWindow = nullptr;
 };

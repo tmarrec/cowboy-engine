@@ -1,4 +1,5 @@
 #pragma once
+
 #include <array>
 #include <vulkan/vulkan.h>
 #include <vector>
@@ -6,7 +7,6 @@
 #include <iostream>
 #include <optional>
 #include <set>
-#include <shaderc/shaderc.hpp>
 #include <vulkan/vulkan_core.h>
 #include <glm/glm.hpp>
 #include <cstring>
@@ -14,6 +14,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <chrono>
+
+#include "Shader.h"
+
 const std::uint8_t MAX_FRAMES_IN_FLIGHT = 2;
 
 struct Vertex
@@ -83,6 +86,7 @@ class RendererManager
     ~RendererManager();
     void drawFrame();
     void waitIdle();
+    void updateGraphicsPipeline();
 
  private:
     void createInstance();
@@ -127,8 +131,8 @@ class RendererManager
     void createDescriptorSets();
 
 
+
     // Shaders (temp, should use shader class in future)
-    void loadShaders();
     VkShaderModule createShaderModule(const std::vector<std::uint32_t>& code);
 
     const std::vector<const char*> _deviceExtensions =
@@ -168,9 +172,9 @@ class RendererManager
     std::vector<VkBuffer>           _uniformBuffers             = {};
     std::vector<VkDeviceMemory>     _uniformBuffersMemory       = {};
     std::vector<VkDescriptorSet>    _vkDescriptorSets           = {};
-
-    std::vector<std::uint32_t>      _vertShaderCode = {};
-    std::vector<std::uint32_t>      _fragShaderCode = {};
+    
+    Shader                          _vertShader = {"vert.vert", SHADER_TYPE_VERTEX};
+    Shader                          _fragShader = {"frag.frag", SHADER_TYPE_FRAGMENT};
 
     std::uint8_t                    _currentFrame = 0;
     

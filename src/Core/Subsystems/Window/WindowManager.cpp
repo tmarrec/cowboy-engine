@@ -1,6 +1,10 @@
 #include "WindowManager.h"
 #include <GLFW/glfw3.h>
 
+#include "../Renderer/RendererManager.h"
+
+extern RendererManager g_RendererManager;
+
 // Init GLFW
 WindowManager::WindowManager()
 {
@@ -14,6 +18,8 @@ WindowManager::WindowManager()
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     windowInit();
+
+    glfwSetKeyCallback(_glfwWindow.get(), &WindowManager::keyCallback);
 }
 
 // Destroy the window and terminate GLFW instance
@@ -77,3 +83,10 @@ void WindowManager::windowGetFramebufferSize(std::uint32_t& width, std::uint32_t
     height = static_cast<std::uint32_t>(intHeight);
 }
 
+void WindowManager::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_R && action == GLFW_PRESS)
+    {
+        g_RendererManager.updateGraphicsPipeline();
+    }
+}

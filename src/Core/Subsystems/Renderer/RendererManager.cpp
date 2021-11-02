@@ -3,9 +3,6 @@
 #include "../Window/WindowManager.h"
 #include <chrono>
 #include <cstdint>
-#include <limits>
-#include <shaderc/shaderc.h>
-#include <shaderc/shaderc.hpp>
 #include <vulkan/vulkan_core.h>
 
 extern WindowManager g_WindowManager;
@@ -21,7 +18,7 @@ RendererManager::RendererManager()
     createImageViews();
     createRenderPass();
     createDescriptorSetLayout();
-    createGraphicsPipeline();
+    updateGraphicsPipeline();
     createFramebuffers();
     createCommandPool();
     createVertexBuffer();
@@ -437,10 +434,10 @@ void RendererManager::createImageViews()
 // Create the graphics pipeline
 void RendererManager::createGraphicsPipeline()
 {
-    loadShaders(); 
-
-    VkShaderModule vertShaderModule = createShaderModule(_vertShaderCode);
-    VkShaderModule fragShaderModule = createShaderModule(_fragShaderCode);
+    _vertShader.compile();
+    _fragShader.compile();
+    VkShaderModule vertShaderModule = createShaderModule(_vertShader.code());
+    VkShaderModule fragShaderModule = createShaderModule(_fragShader.code());
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -616,80 +613,10 @@ void RendererManager::createGraphicsPipeline()
     vkDestroyShaderModule(_vkDevice, fragShaderModule, VK_NULL_HANDLE);
 }
 
-// Load shaders from string to bytecode
-void RendererManager::loadShaders()
+// Update the Vulkan graphics pipeline
+void RendererManager::updateGraphicsPipeline()
 {
-    // Vertex shader
-    const char vertGlslString[] = "#version 460 core\n                  \
-        layout (binding = 0) uniform UniformBufferObject {              \
-            mat4 model;                                                 \
-            mat4 view;                                                  \
-            mat4 proj;                                                  \
-        } ubo;                                                          \
-                                                                        \
-        layout (location = 0) in vec2 inPosition;                       \
-        layout (location = 1) in vec3 inColor;                          \
-        layout (location = 0) out vec3 fragColor;                       \
-                                                                        \
-        void main() {                                                   \
-            gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 0.0, 1.0);\
-            fragColor = inColor;                                        \
-        }                                                               \
-    ";
-    shaderc::Compiler compiler;
-    shaderc::CompileOptions options;
-    options.SetOptimizationLevel(shaderc_optimization_level_performance);
-
-    // Preprocess
-    shaderc::PreprocessedSourceCompilationResult preprocessed = compiler.PreprocessGlsl(vertGlslString, shaderc_glsl_vertex_shader, "source_name", options);
-    if (preprocessed.GetCompilationStatus() != shaderc_compilation_status_success)
-    {
-        ERROR(preprocessed.GetErrorMessage());
-        ERROR_EXIT("Shader preprocess failed.");
-    }
-    
-    // Compile
-    shaderc::CompilationResult assembly = compiler.CompileGlslToSpv(vertGlslString, shaderc_glsl_vertex_shader, "source_name", options);
-    if (assembly.GetCompilationStatus() != shaderc_compilation_status_success)
-    {
-        ERROR(assembly.GetErrorMessage());
-        ERROR_EXIT("Shader compilation failed.");
-    }
-    
-    _vertShaderCode = {assembly.cbegin(), assembly.cend()};
-
-    // Fragment shader
-    const char fragGlslString[] = "#version 460 core\n  \
-                                                        \
-        layout(location = 0) in vec3 fragColor;         \
-                                                        \
-        layout(location = 0) out vec4 outColor;         \
-                                                        \
-        void main() {                                   \
-            outColor = vec4(fragColor, 1.0);            \
-        }                                               \
-    ";
-    shaderc::Compiler compiler2;
-    shaderc::CompileOptions options2;
-    options2.SetOptimizationLevel(shaderc_optimization_level_performance);
-
-    // Preprocess
-    shaderc::PreprocessedSourceCompilationResult preprocessed2 = compiler2.PreprocessGlsl(fragGlslString, shaderc_glsl_fragment_shader, "source_name", options2);
-    if (preprocessed2.GetCompilationStatus() != shaderc_compilation_status_success)
-    {
-        ERROR(preprocessed2.GetErrorMessage());
-        ERROR_EXIT("Shader preprocess failed.");
-    }
-    
-    // Compile
-    shaderc::CompilationResult assembly2 = compiler2.CompileGlslToSpv(fragGlslString, shaderc_glsl_fragment_shader, "source_name", options2);
-    if (assembly2.GetCompilationStatus() != shaderc_compilation_status_success)
-    {
-        ERROR(assembly2.GetErrorMessage());
-        ERROR_EXIT("Shader compilation failed.");
-    }
-    
-    _fragShaderCode = {assembly2.cbegin(), assembly2.cend()};
+    createGraphicsPipeline();
 }
 
 // Create Vulkan shader module from shader bytecode

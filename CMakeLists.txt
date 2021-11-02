@@ -48,6 +48,8 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     # Renderer Subsystem
     src/Core/Subsystems/Renderer/RendererManager.h
     src/Core/Subsystems/Renderer/RendererManager.cpp
+    src/Core/Subsystems/Renderer/Shader.h
+    src/Core/Subsystems/Renderer/Shader.cpp
 
     # Components
     src/Components/Gravity.h
