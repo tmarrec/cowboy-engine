@@ -7,7 +7,6 @@
 #include <iostream>
 #include <optional>
 #include <set>
-#include <vulkan/vulkan_core.h>
 #include <glm/glm.hpp>
 #include <cstring>
 #define GLM_FORCE_RADIANS
@@ -16,6 +15,7 @@
 #include <chrono>
 
 #include "Shader.h"
+#include "Swapchain.h"
 
 const std::uint8_t MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -54,24 +54,6 @@ struct Vertex
     }
 };
 
-struct QueueFamilyIndices
-{
-	std::optional<std::uint32_t> graphics;
-	std::optional<std::uint32_t> present;
-
-	bool isComplete()
-	{
-		return graphics.has_value() && present.has_value();
-	}
-};
-
-struct SwapchainSupportDetails
-{
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
-
 struct UniformBufferObject
 {
     alignas(16) glm::mat4 model;
@@ -98,12 +80,10 @@ class RendererManager
     bool checkDeviceExtensionSupport(const VkPhysicalDevice device);
 
     // Swapchain
-    SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice device);
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     void createSwapchain();
     void cleanupSwapchain();
+    
+    Swapchain _swapchain = {};
 
     // Image Views
     void createImageViews();
@@ -146,7 +126,6 @@ class RendererManager
     VkDevice                        _vkDevice                   = VK_NULL_HANDLE;
     VkQueue                         _vkGraphicsQueue            = VK_NULL_HANDLE;
     VkQueue                         _vkPresentQueue             = VK_NULL_HANDLE;
-    VkSwapchainKHR                  _vkSwapchain                = VK_NULL_HANDLE;
     VkPipelineLayout                _vkPipelineLayout           = VK_NULL_HANDLE;
     VkRenderPass                    _vkRenderPass               = VK_NULL_HANDLE;
     VkPipeline                      _vkGraphicsPipeline         = VK_NULL_HANDLE;
@@ -157,9 +136,6 @@ class RendererManager
     VkDeviceMemory                  _vkIndexBufferMemory        = VK_NULL_HANDLE;
     VkDescriptorSetLayout           _vkDescriptorSetLayout      = VK_NULL_HANDLE;
     VkDescriptorPool                _vkDescriptorPool           = VK_NULL_HANDLE;
-
-    VkFormat                        _vkSwapchainFormat = {};
-    VkExtent2D                      _vkSwapchainExtent = {};
 
     std::vector<VkImage>            _vkSwapchainImages          = {};
     std::vector<VkImageView>        _vkSwapchainImageViews      = {};

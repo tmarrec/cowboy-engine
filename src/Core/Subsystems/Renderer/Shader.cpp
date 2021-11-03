@@ -1,5 +1,4 @@
 #include "Shader.h"
-#include <shaderc/shaderc.hpp>
 
 // Read the shader code from filename and compile it to spir-v bytecode
 void Shader::compile()

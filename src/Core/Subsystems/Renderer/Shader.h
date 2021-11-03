@@ -11,6 +11,8 @@ enum ShaderType
     SHADER_TYPE_FRAGMENT
 };
 
+// Class handling the shaders reading
+// Read the GLSL code and compile it to SPIR-V bytecode
 class Shader
 {
  public:

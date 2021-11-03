@@ -50,6 +50,8 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Core/Subsystems/Renderer/RendererManager.cpp
     src/Core/Subsystems/Renderer/Shader.h
     src/Core/Subsystems/Renderer/Shader.cpp
+    src/Core/Subsystems/Renderer/Swapchain.h
+    src/Core/Subsystems/Renderer/Swapchain.cpp
 
     # Components
     src/Components/Gravity.h
