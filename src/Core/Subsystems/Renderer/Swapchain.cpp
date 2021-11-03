@@ -1,4 +1,5 @@
 #include "Swapchain.h"
+#include <vulkan/vulkan_core.h>
 
 extern WindowManager g_WindowManager;
 
@@ -22,38 +23,42 @@ void Swapchain::create(const VkPhysicalDevice physicalDevice, const VkDevice dev
     _extent = chooseExtent(swapchainSupport.capabilities);
 
     // Fill the swapchain informations
-    VkSwapchainCreateInfoKHR createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.pNext = VK_NULL_HANDLE;
-    createInfo.flags = 0;
-    createInfo.surface = surface;
-    createInfo.minImageCount = _imageCount;
-    createInfo.imageFormat = _surfaceFormat;
-    createInfo.imageColorSpace = surfaceFormat.colorSpace;
-    createInfo.imageExtent = _extent;
-    createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-    std::array<std::uint32_t, 2> queueFamilyIndices = {indices.graphics.value(), indices.present.value()};
-
-    if (indices.graphics != indices.present)
+    const VkSwapchainCreateInfoKHR createInfo = [&]()
     {
-        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        createInfo.queueFamilyIndexCount = 2;
-        createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
-    }
-    else
-    {
-        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        createInfo.queueFamilyIndexCount = 0;
-        createInfo.pQueueFamilyIndices = VK_NULL_HANDLE;
-    }
+        VkSwapchainCreateInfoKHR createInfo =
+        {
+            .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+            .pNext = VK_NULL_HANDLE,
+            .flags = 0,
+            .surface = surface,
+            .minImageCount = _imageCount,
+            .imageFormat = _surfaceFormat,
+            .imageColorSpace = surfaceFormat.colorSpace,
+            .imageExtent = _extent,
+            .imageArrayLayers = 1,
+            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            .preTransform = swapchainSupport.capabilities.currentTransform,
+            .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+            .presentMode = presentMode,
+            .clipped = VK_TRUE,
+            .oldSwapchain = _swapchain,
+        };
+        if (indices.graphics != indices.present)
+        {
+            const std::array<std::uint32_t, 2> queueFamilyIndices = {indices.graphics.value(), indices.present.value()};
+            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            createInfo.queueFamilyIndexCount = 2;
+            createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
+        }
+        else
+        {
+            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            createInfo.queueFamilyIndexCount = 0;
+            createInfo.pQueueFamilyIndices = VK_NULL_HANDLE;
+        }
+        return createInfo;
+    }();
 
-    createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
-    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    createInfo.presentMode = presentMode;
-    createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = _swapchain;
 
     // Create the swapchain
     if (vkCreateSwapchainKHR(device, &createInfo, VK_NULL_HANDLE, &_swapchain) != VK_SUCCESS)
@@ -101,14 +106,14 @@ VkExtent2D Swapchain::chooseExtent(const VkSurfaceCapabilitiesKHR capabilities)
     }
     else
     {
-        std::uint32_t width, height;
-        g_WindowManager.windowGetFramebufferSize(width, height);
-        VkExtent2D actualExtent = {width, height};
-
-        actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-        actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
-        return actualExtent;
+        return [&]()
+        {
+            std::uint32_t width, height;
+            g_WindowManager.windowGetFramebufferSize(width, height);
+            width = std::clamp(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+            height = std::clamp(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+            return VkExtent2D{width, height};
+        }();
     }
 }
 

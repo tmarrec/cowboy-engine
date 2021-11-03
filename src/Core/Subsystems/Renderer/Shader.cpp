@@ -16,24 +16,13 @@ void Shader::compile()
 
     file.close();
 
-    shaderc::Compiler compiler;
+    const shaderc::Compiler compiler;
     shaderc::CompileOptions options;
     options.SetOptimizationLevel(shaderc_optimization_level_performance);
-    const auto shaderType = [&]()
-    {
-        switch (_type)
-        {
-            case SHADER_TYPE_VERTEX:
-                return shaderc_glsl_vertex_shader;
-            case SHADER_TYPE_FRAGMENT:
-                return shaderc_glsl_fragment_shader;
-            default:
-                ERROR_EXIT("Wrong shader type.");
-        }
-    }();
+    const auto shaderType = toShadercType(_type);
 
     // Preprocess
-    shaderc::PreprocessedSourceCompilationResult preprocessed = compiler.PreprocessGlsl(code, shaderType, _filename.c_str(), options);
+    const shaderc::PreprocessedSourceCompilationResult preprocessed = compiler.PreprocessGlsl(code, shaderType, _filename.c_str(), options);
     if (preprocessed.GetCompilationStatus() != shaderc_compilation_status_success)
     {
         ERROR(preprocessed.GetErrorMessage());
@@ -49,7 +38,7 @@ void Shader::compile()
     }
 
     // Compile
-    shaderc::CompilationResult assembly = compiler.CompileGlslToSpv(code, shaderType, _filename.c_str(), options);
+    const shaderc::CompilationResult assembly = compiler.CompileGlslToSpv(code, shaderType, _filename.c_str(), options);
     if (assembly.GetCompilationStatus() != shaderc_compilation_status_success)
     {
         if (_lastCompilationOk)

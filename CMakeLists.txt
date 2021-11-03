@@ -12,7 +12,7 @@ SET (CMAKE_CXX_STANDARD_REQUIRED ON)
 SET (CMAKE_CXX_STANDARD 20)
 SET (CMAKE_CXX_FLAGS "-std=c++20 -Wall -pedantic -fno-exceptions -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi")
 SET (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -O0 -g -DDEBUG")
-SET (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -lgomp -fopenmp -DNDEBUG")
+SET (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -fopenmp -DNDEBUG")
 
 # ╔═════════════╗
 # ║ Vim options ║
@@ -63,4 +63,9 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Systems/Physics.cpp
 )
 
+# Shaderc
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} libshaderc_combined.a)
+
+# STB
+TARGET_INCLUDE_DIRECTORIES (${PROJECT_NAME} SYSTEM PRIVATE "extern/stb")
+

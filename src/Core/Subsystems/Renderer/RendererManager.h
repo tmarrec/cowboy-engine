@@ -9,6 +9,7 @@
 #include <set>
 #include <glm/glm.hpp>
 #include <cstring>
+#include <vulkan/vulkan_core.h>
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -23,34 +24,42 @@ struct Vertex
 {
     glm::vec2 pos;
     glm::vec3 color;
+    glm::vec2 texCoord;
 
     static VkVertexInputBindingDescription getBindingDescription()
     {
-        VkVertexInputBindingDescription bindindDescription{};
-        bindindDescription.binding = 0;
-        bindindDescription.stride = sizeof(Vertex);
-        bindindDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindindDescription;
+        return 
+        {
+            .binding = 0,
+            .stride = sizeof(Vertex),
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+        };
     }
 
-    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions()
+    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions()
     {
-        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
-
-        // Position
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-        // Color
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-        return attributeDescriptions;
+        return
+        {
+            VkVertexInputAttributeDescription
+            {   // Position
+                .location = 0,
+                .binding = 0,
+                .format = VK_FORMAT_R32G32_SFLOAT,
+                .offset = offsetof(Vertex, pos),
+            },
+            {   // Color
+                .location = 1,
+                .binding = 0,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
+                .offset = offsetof(Vertex, color),
+            },
+            {   // Texture Coordinates
+                .location = 2,
+                .binding = 0,
+                .format = VK_FORMAT_R32G32_SFLOAT,
+                .offset = offsetof(Vertex, texCoord),
+            }
+        };
     }
 };
 
@@ -81,12 +90,27 @@ class RendererManager
 
     // Swapchain
     void createSwapchain();
-    void cleanupSwapchain();
     
     Swapchain _swapchain = {};
 
     // Image Views
     void createImageViews();
+    void createImages();
+
+    void createTextureImage();
+
+    VkImage _textureImage;
+    VkDeviceMemory _textureImageMemory;
+    void createImage(const std::uint32_t width, const std::uint32_t height, const VkFormat format, const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+    VkCommandBuffer beginSingleTimeCommands();
+    void endSingleTimeCommands(const VkCommandBuffer& commandBuffer);
+    void transitionImageLayout(const VkImage image, const VkFormat format, const VkImageLayout oldLayout, const VkImageLayout newLayout);
+    void copyBufferToImage(const VkBuffer buffer, const VkImage image, const std::uint32_t width, const std::uint32_t height);
+    VkImageView _textureImageView;
+    void createTextureImageView();
+    VkImageView createImageView(const VkImage image, const VkFormat format);
+    void createTextureSampler();
+    VkSampler _textureSampler;
 
     // Graphics Pipeline
     void createRenderPass();
@@ -115,7 +139,7 @@ class RendererManager
     // Shaders (temp, should use shader class in future)
     VkShaderModule createShaderModule(const std::vector<std::uint32_t>& code);
 
-    const std::vector<const char*> _deviceExtensions =
+    const std::array<const char*, 1> _deviceExtensions =
     {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
@@ -156,10 +180,10 @@ class RendererManager
     
     const std::vector<Vertex>       _vertices =
     {
-        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
     };
 
     const std::vector<std::uint16_t> _indices =
