@@ -53,14 +53,16 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Core/Subsystems/Renderer/Swapchain.h
     src/Core/Subsystems/Renderer/Swapchain.cpp
 
+    # Input Subsystem
+    src/Core/Subsystems/Input/InputManager.h
+    src/Core/Subsystems/Input/InputManager.cpp
+
     # Components
-    src/Components/Gravity.h
-    src/Components/RigidBody.h
     src/Components/Transform.h
 
     # Systems
-    src/Systems/Physics.h
-    src/Systems/Physics.cpp
+    src/Systems/Input.h
+    src/Systems/Input.cpp
 )
 
 # Shaderc
@@ -68,4 +70,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} libshaderc_combined.a)
 
 # STB
 TARGET_INCLUDE_DIRECTORIES (${PROJECT_NAME} SYSTEM PRIVATE "extern/stb")
+
+# tinyobjloader
+TARGET_INCLUDE_DIRECTORIES (${PROJECT_NAME} SYSTEM PRIVATE "extern/tinyobjloader")
 

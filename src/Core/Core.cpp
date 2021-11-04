@@ -1,10 +1,8 @@
 #include "Core.h"
 
-#include "../Components/Gravity.h"
-#include "../Components/RigidBody.h"
 #include "../Components/Transform.h"
 
-#include "../Systems/Physics.h"
+#include "../Systems/Input.h"
 
 #include "Subsystems/ECS/ECSManager.h"
 #include "Subsystems/Window/WindowManager.h"
@@ -24,22 +22,18 @@ int Core::Run()
     RegisterAllComponents();
 
     // Physics initialization
-    const auto physicsSystem = g_ECSManager.registerSystem<Physics>();
+    const auto physicsSystem = g_ECSManager.registerSystem<Input>();
     const Signature signature = [&](){
         Signature s;
-        s.set(g_ECSManager.getComponentType<Gravity>());
-        s.set(g_ECSManager.getComponentType<RigidBody>());
         s.set(g_ECSManager.getComponentType<Transform>());
         return s;
     }();
-    g_ECSManager.setSystemSignature<Physics>(signature);
+    g_ECSManager.setSystemSignature<Input>(signature);
 
     std::vector<Entity> entities(64);
 
     std::default_random_engine generator;
     std::uniform_real_distribution<float> randPosition(-100.0f, 100.0f);
-    std::uniform_real_distribution<float> randRotation(0.0f, 3.0f);
-	std::uniform_real_distribution<float> randGravity(-10.0f, -1.0f);
 
     for (auto& entity : entities)
     {
@@ -47,20 +41,10 @@ int Core::Run()
 
         g_ECSManager.addComponent(
             entity,
-            Gravity{glm::vec3(0.0f, randGravity(generator), 0.0f)});
-
-        g_ECSManager.addComponent(
-            entity,
-            RigidBody{
-                .velocity = glm::vec3(0.0f),
-                .acceleration = glm::vec3(0.0f)
-            });
-
-        g_ECSManager.addComponent(
-            entity,
-            Transform{
-                .position = glm::vec3(randPosition(generator)),
-                .rotation = glm::vec3(randRotation(generator)),
+            Transform
+            {
+                .position = glm::vec3(10, 10, 10),
+                .rotation = glm::vec3(0, 0, 0),
                 .scale = glm::vec3(1.0f, 1.0f, 1.0f)
             });
     }
@@ -89,8 +73,6 @@ int Core::Run()
 
 void Core::RegisterAllComponents() const
 {
-    g_ECSManager.registerComponent<Gravity>();
-    g_ECSManager.registerComponent<RigidBody>();
     g_ECSManager.registerComponent<Transform>();
 }
 

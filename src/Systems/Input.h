@@ -2,7 +2,7 @@
 
 #include "../Core/Subsystems/ECS/System.h"
 
-class Physics : public System
+class Input : public System
 {
  public:
     void Update(float dt);

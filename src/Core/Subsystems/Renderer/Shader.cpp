@@ -1,5 +1,18 @@
 #include "Shader.h"
 
+static inline shaderc_shader_kind toShadercType(const ShaderType type)
+{
+    switch (type)
+    {
+        case SHADER_TYPE_VERTEX:
+            return shaderc_glsl_vertex_shader;
+        case SHADER_TYPE_FRAGMENT:
+            return shaderc_glsl_fragment_shader;
+        default:
+            ERROR_EXIT("Wrong shader type.");
+    }
+}
+
 // Read the shader code from filename and compile it to spir-v bytecode
 void Shader::compile()
 {

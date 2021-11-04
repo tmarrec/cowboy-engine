@@ -2,8 +2,10 @@
 #include <GLFW/glfw3.h>
 
 #include "../Renderer/RendererManager.h"
+#include "../Input/InputManager.h"
 
 extern RendererManager g_RendererManager;
+extern InputManager g_InputManager;
 
 // Init GLFW
 WindowManager::WindowManager()
@@ -19,7 +21,7 @@ WindowManager::WindowManager()
 
     windowInit();
 
-    glfwSetKeyCallback(_glfwWindow.get(), &WindowManager::keyCallback);
+    glfwSetKeyCallback(_glfwWindow.get(), g_InputManager.keyCallback);
 }
 
 // Destroy the window and terminate GLFW instance
