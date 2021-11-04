@@ -23,8 +23,9 @@ RendererManager::RendererManager()
     createRenderPass();
     createDescriptorSetLayout();
     updateGraphicsPipeline();
-    createFramebuffers();
     createCommandPool();
+    createDepthResources();
+    createFramebuffers();
     createTextureImage();
     createTextureImageView();
     createTextureSampler();
@@ -299,7 +300,7 @@ void RendererManager::createImageViews()
     _vkSwapchainImageViews.resize(_vkSwapchainImages.size());
     for (size_t i = 0; i < _vkSwapchainImages.size(); ++i)
     {
-        _vkSwapchainImageViews[i] = createImageView(_vkSwapchainImages[i], _swapchain.format());
+        _vkSwapchainImageViews[i] = createImageView(_vkSwapchainImages[i], _swapchain.format(), VK_IMAGE_ASPECT_COLOR_BIT);
     }
 }
 
@@ -479,6 +480,22 @@ void RendererManager::createGraphicsPipeline()
         ERROR("Failed to create pipeline layout.");
     }
 
+    const VkPipelineDepthStencilStateCreateInfo depthStencil =
+    {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+        .pNext = VK_NULL_HANDLE,
+        .flags = 0,
+        .depthTestEnable = VK_TRUE,
+        .depthWriteEnable = VK_TRUE,
+        .depthCompareOp = VK_COMPARE_OP_LESS,
+        .depthBoundsTestEnable = VK_FALSE,
+        .stencilTestEnable= VK_FALSE,
+        .front = {},
+        .back = {},
+        .minDepthBounds = 0.0f,
+        .maxDepthBounds = 1.0f,
+    };
+
     const VkGraphicsPipelineCreateInfo pipelineInfo =
     {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -492,7 +509,7 @@ void RendererManager::createGraphicsPipeline()
         .pViewportState = &viewportStateInfo,
         .pRasterizationState = &rasterizerInfo,
         .pMultisampleState = &multisamplingInfo,
-        .pDepthStencilState = VK_NULL_HANDLE,
+        .pDepthStencilState = &depthStencil,
         .pColorBlendState = &colorBlendingInfo,
         .pDynamicState = &dynamicStateInfo,
         .layout = _vkPipelineLayout,
@@ -553,13 +570,28 @@ void RendererManager::createRenderPass()
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
         .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
     };
-
     const VkAttachmentReference colorAttachmentRef =
     {
         .attachment = 0,
         .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     };
-
+    const VkAttachmentDescription depthAttachment =
+    {
+        .flags = 0,
+        .format = findDepthFormat(),
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .finalLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+    };
+    const VkAttachmentReference depthAttachmentRef =
+    {
+        .attachment = 1,
+        .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+    };
     const VkSubpassDescription subpass =
     {
         .flags = 0,
@@ -569,28 +601,27 @@ void RendererManager::createRenderPass()
         .colorAttachmentCount = 1,
         .pColorAttachments = &colorAttachmentRef,
         .pResolveAttachments = VK_NULL_HANDLE,
-        .pDepthStencilAttachment = VK_NULL_HANDLE,
+        .pDepthStencilAttachment = &depthAttachmentRef,
         .preserveAttachmentCount = 0,
         .pPreserveAttachments = VK_NULL_HANDLE,
     };
-
     const VkSubpassDependency dependency =
     {
         .srcSubpass = VK_SUBPASS_EXTERNAL,
         .dstSubpass = 0,
-        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
         .srcAccessMask = 0,
-        .dstAccessMask= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        .dstAccessMask= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
     };
-
+    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
     const VkRenderPassCreateInfo renderPassInfo =
     {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
         .pNext = VK_NULL_HANDLE,
         .flags = 0,
-        .attachmentCount = 1,
-        .pAttachments = &colorAttachment,
+        .attachmentCount = static_cast<std::uint32_t>(attachments.size()),
+        .pAttachments = attachments.data(),
         .subpassCount = 1,
         .pSubpasses = &subpass,
         .dependencyCount = 1,
@@ -609,9 +640,10 @@ void RendererManager::createFramebuffers()
     _vkSwapchainFramebuffers.resize(_vkSwapchainImageViews.size());
     for (size_t i = 0; i < _vkSwapchainImageViews.size(); ++i)
     {
-        const std::array<VkImageView, 1> attachments =
+        const std::array<VkImageView, 2> attachments =
         {
-            _vkSwapchainImageViews[i]
+            _vkSwapchainImageViews[i],
+            _depthImageView
         };
 
         const VkExtent2D swapchainExtent = _swapchain.extent();
@@ -621,7 +653,7 @@ void RendererManager::createFramebuffers()
             .pNext = VK_NULL_HANDLE,
             .flags = 0,
             .renderPass = _vkRenderPass,
-            .attachmentCount = 1,
+            .attachmentCount = static_cast<std::uint32_t>(attachments.size()),
             .pAttachments = attachments.data(),
             .width = swapchainExtent.width,
             .height = swapchainExtent.height,
@@ -725,7 +757,7 @@ void RendererManager::createCommandBuffer(const std::uint32_t commandBufferIndex
         ERROR_EXIT("Failed to begin recording command buffer.");
     }
 
-    const VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+    const std::array<VkClearValue, 2> clearValues {{ {0.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0} }};
     const VkRenderPassBeginInfo renderPassInfo =
     {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -737,8 +769,8 @@ void RendererManager::createCommandBuffer(const std::uint32_t commandBufferIndex
             .offset = {0, 0},
             .extent = _swapchain.extent(),
         },
-        .clearValueCount = 1,
-        .pClearValues = &clearColor,
+        .clearValueCount = static_cast<std::uint32_t>(clearValues.size()),
+        .pClearValues = clearValues.data(),
     };
 
     vkCmdBeginRenderPass(_vkCommandBuffers[commandBufferIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -795,7 +827,12 @@ void RendererManager::drawFrame()
     {
         // Out of date image, the window has probably been resized
         // Need to update the swapchain, imageviews and framebuffers
+        INFO("Detected out-of-date image type, will rebuild the swapchain.");
         vkDeviceWaitIdle(_vkDevice);
+
+        vkDestroyImageView(_vkDevice, _depthImageView, VK_NULL_HANDLE);
+        vkDestroyImage(_vkDevice, _depthImage, VK_NULL_HANDLE);
+        vkFreeMemory(_vkDevice, _depthImageMemory, VK_NULL_HANDLE);
 
         for (auto& framebuffer : _vkSwapchainFramebuffers)
         {
@@ -809,6 +846,7 @@ void RendererManager::drawFrame()
         createSwapchain();
         createImages();
         createImageViews();
+        createDepthResources();
         createFramebuffers();
         return;
     }
@@ -1364,10 +1402,10 @@ void RendererManager::copyBufferToImage(const VkBuffer buffer, const VkImage ima
 
 void RendererManager::createTextureImageView()
 {
-    _textureImageView = createImageView(_textureImage, VK_FORMAT_R8G8B8A8_SRGB);
+    _textureImageView = createImageView(_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-VkImageView RendererManager::createImageView(const VkImage image, const VkFormat format)
+VkImageView RendererManager::createImageView(const VkImage image, const VkFormat format, const VkImageAspectFlags aspectFlags)
 {
     const VkImageViewCreateInfo createInfo =
     {
@@ -1386,7 +1424,7 @@ VkImageView RendererManager::createImageView(const VkImage image, const VkFormat
         },
         .subresourceRange =
         {
-            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .aspectMask = aspectFlags,
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,
@@ -1434,3 +1472,45 @@ void RendererManager::createTextureSampler()
         ERROR_EXIT("Failed to create texture sampler.");
     }
 }
+
+void RendererManager::createDepthResources()
+{
+    const VkFormat depthFormat = findDepthFormat();
+    const auto extent = _swapchain.extent();
+    createImage(extent.width, extent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, _depthImage, _depthImageMemory);
+    _depthImageView = createImageView(_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+}
+
+VkFormat RendererManager::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+{
+    for (const auto& format : candidates)
+    {
+        VkFormatProperties properties;
+        vkGetPhysicalDeviceFormatProperties(_vkPhysicalDevice, format, &properties);
+        if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features)
+        {
+            return format;
+        }
+        else if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features)
+        {
+            return format;
+        }
+    }
+    ERROR_EXIT("Failed to find support format.");
+}
+
+VkFormat RendererManager::findDepthFormat()
+{
+    return findSupportedFormat
+    (
+        {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+    );
+}
+
+bool RendererManager::hasStencilComponent(VkFormat format)
+{
+    return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+}
+
