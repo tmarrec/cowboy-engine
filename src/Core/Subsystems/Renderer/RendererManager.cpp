@@ -1080,21 +1080,16 @@ void RendererManager::createUniformBuffers()
     }
 }
 
-void RendererManager::updateUniformBuffer(std::uint32_t currentImage)
+void RendererManager::updateUniformBuffer(const std::uint32_t currentImage)
 {
-    static auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
     const VkExtent2D swapchainExtent = _swapchain.extent();
     const UniformBufferObject ubo =
     {
-        .model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-        .view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+        .model = glm::mat4{1.0f},
+        .view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up),
         .proj = [&]()
         {
-            glm::mat4 proj = glm::perspective(glm::radians(60.0f), swapchainExtent.width / static_cast<float>(swapchainExtent.height), 0.1f, 10.0f);
+            glm::mat4 proj = glm::perspective(glm::radians(_cameraParameters.FOV), swapchainExtent.width / static_cast<float>(swapchainExtent.height), 0.1f, 64.0f);
             proj[1][1] *= -1;
             return proj;
         }(),
@@ -1559,4 +1554,12 @@ void RendererManager::loadModels()
             _indices.push_back(_indices.size());
         }
     }
+}
+
+void RendererManager::setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up)
+{
+    _cameraParameters.position = position;
+    _cameraParameters.FOV = FOV;
+    _cameraParameters.front = front;
+    _cameraParameters.up = up;
 }

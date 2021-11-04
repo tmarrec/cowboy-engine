@@ -70,6 +70,14 @@ struct UniformBufferObject
     alignas(16) glm::mat4 proj;
 };
 
+struct CameraParameters
+{
+    glm::vec3 position;
+    glm::vec3 front;
+    glm::vec3 up;
+    float FOV;
+};
+
 class RendererManager
 {
  public:
@@ -78,6 +86,7 @@ class RendererManager
     void drawFrame();
     void waitIdle();
     void updateGraphicsPipeline();
+    void setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up);
 
  private:
     void createInstance();
@@ -138,7 +147,7 @@ class RendererManager
 
     void createDescriptorSetLayout();
     void createUniformBuffers();
-    void updateUniformBuffer(std::uint32_t currentImage);
+    void updateUniformBuffer(const std::uint32_t currentImage);
     void createDescriptorPool();
     void createDescriptorSets();
 
@@ -190,4 +199,6 @@ class RendererManager
     std::vector<uint32_t> _indices;
 
     void loadModels();
+    
+    CameraParameters _cameraParameters;
 };

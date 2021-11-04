@@ -22,6 +22,11 @@ WindowManager::WindowManager()
     windowInit();
 
     glfwSetKeyCallback(_glfwWindow.get(), g_InputManager.keyCallback);
+    glfwSetCursorPosCallback(_glfwWindow.get(), g_InputManager.cursorPositionCallback);
+    if (glfwRawMouseMotionSupported())
+    {
+        glfwSetInputMode(_glfwWindow.get(), GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    }
 }
 
 // Destroy the window and terminate GLFW instance

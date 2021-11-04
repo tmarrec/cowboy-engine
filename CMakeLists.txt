@@ -59,10 +59,11 @@ ADD_EXECUTABLE (${PROJECT_NAME}
 
     # Components
     src/Components/Transform.h
+    src/Components/Camera.h
 
     # Systems
-    src/Systems/Input.h
-    src/Systems/Input.cpp
+    src/Systems/CameraHandler.h
+    src/Systems/CameraHandler.cpp
 )
 
 # Shaderc

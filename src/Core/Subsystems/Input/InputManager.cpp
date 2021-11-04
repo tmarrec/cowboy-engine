@@ -2,6 +2,8 @@
 
 std::map<InputKey, bool> InputManager::_keysStatus;
 bool InputManager::_focused = false;
+glm::vec2 InputManager::_lastMousePos;
+glm::vec2 InputManager::mouseOffset;
 
 static inline InputKey toGLFWType(const int key)
 {
@@ -15,6 +17,10 @@ static inline InputKey toGLFWType(const int key)
             return KEY_S;
         case GLFW_KEY_D:
             return KEY_D;
+        case GLFW_KEY_LEFT_SHIFT:
+            return KEY_LEFT_SHIFT;
+        case GLFW_KEY_LEFT_CONTROL:
+            return KEY_LEFT_CONTROL;
         default:
             return UNDEFINED;
     }
@@ -23,10 +29,6 @@ static inline InputKey toGLFWType(const int key)
 void InputManager::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mobs)
 {
     InputKey realKey = toGLFWType(key);
-    if (realKey == UNDEFINED)
-    {
-        return;
-    }
     switch(action)
     {
         case GLFW_PRESS:
@@ -64,4 +66,21 @@ bool InputManager::keyIsDown(const InputKey key)
         return _keysStatus[key];
     }
     return false;
+}
+
+void InputManager::cursorPositionCallback(GLFWwindow* window, double xpos, double ypos)
+{
+    if (_focused)
+    {
+        mouseOffset.x = xpos-_lastMousePos.x;
+        mouseOffset.y = ypos-_lastMousePos.y;
+    }
+    _lastMousePos.x = xpos;
+    _lastMousePos.y = ypos;
+}
+
+void InputManager::updateMouseMovements()
+{
+    mouseOffset.x = 0.0f;
+    mouseOffset.y = 0.0f;
 }

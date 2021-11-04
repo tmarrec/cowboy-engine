@@ -1,8 +1,9 @@
 #include "Core.h"
 
 #include "../Components/Transform.h"
+#include "../Components/Camera.h"
 
-#include "../Systems/Input.h"
+#include "../Systems/CameraHandler.h"
 
 #include "Subsystems/ECS/ECSManager.h"
 #include "Subsystems/Window/WindowManager.h"
@@ -10,44 +11,46 @@
 
 #include <random>
 
-// Entity Component System Manager
 ECSManager g_ECSManager;
-// Window Manager
 WindowManager g_WindowManager;
-// Renderer Manager
 RendererManager g_RendererManager;
 
 int Core::Run()
 {
     RegisterAllComponents();
 
-    // Physics initialization
-    const auto physicsSystem = g_ECSManager.registerSystem<Input>();
-    const Signature signature = [&](){
+
+    // Camera system initialization
+    const auto cameraSystem = g_ECSManager.registerSystem<CameraHandler>();
+    const Signature cameraSignature = [&](){
         Signature s;
         s.set(g_ECSManager.getComponentType<Transform>());
+        s.set(g_ECSManager.getComponentType<Camera>());
         return s;
     }();
-    g_ECSManager.setSystemSignature<Input>(signature);
+    g_ECSManager.setSystemSignature<CameraHandler>(cameraSignature);
 
-    std::vector<Entity> entities(64);
+    Entity mainEntity = g_ECSManager.createEntity();
+    g_ECSManager.addComponent
+    (
+        mainEntity,
+        Transform
+        {
+            .position = glm::vec3(0, 0, 0),
+            .rotation = glm::vec3(0, 0, 0),
+            .scale = glm::vec3(1.0f, 1.0f, 1.0f)
+        }
+    );
 
-    std::default_random_engine generator;
-    std::uniform_real_distribution<float> randPosition(-100.0f, 100.0f);
-
-    for (auto& entity : entities)
-    {
-        entity = g_ECSManager.createEntity();
-
-        g_ECSManager.addComponent(
-            entity,
-            Transform
-            {
-                .position = glm::vec3(10, 10, 10),
-                .rotation = glm::vec3(0, 0, 0),
-                .scale = glm::vec3(1.0f, 1.0f, 1.0f)
-            });
-    }
+    g_ECSManager.addComponent
+    (
+        mainEntity,
+        Camera
+        {
+            .FOV = 60.0f,
+            .speed = 2.0f,
+        }
+    );
 
     float dt = 0.0f;
 
@@ -57,9 +60,9 @@ int Core::Run()
 
         g_WindowManager.pollEvents();
 
-        g_RendererManager.drawFrame();
+        cameraSystem->Update(dt);
 
-        physicsSystem->Update(dt);
+        g_RendererManager.drawFrame();
 
         const auto stopTime = std::chrono::high_resolution_clock::now();
 		dt = std::chrono::duration<float, std::chrono::seconds::period>(stopTime - startTime).count();
@@ -74,5 +77,6 @@ int Core::Run()
 void Core::RegisterAllComponents() const
 {
     g_ECSManager.registerComponent<Transform>();
+    g_ECSManager.registerComponent<Camera>();
 }
 
