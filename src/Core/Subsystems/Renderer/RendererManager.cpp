@@ -376,7 +376,7 @@ void RendererManager::createGraphicsPipeline()
         .width = static_cast<float>(swapchainExtent.width),
         .height = static_cast<float>(swapchainExtent.height),
         .minDepth = 0.0f,
-        .maxDepth = 0.0f,
+        .maxDepth = 1.0f,
     };
 
     const VkRect2D scissor =
@@ -792,7 +792,7 @@ void RendererManager::createCommandBuffer(const std::uint32_t commandBufferIndex
         .width = static_cast<float>(width),
         .height = static_cast<float>(height),
         .minDepth = 0.0f,
-        .maxDepth = 0.0f,
+        .maxDepth = 1.0f,
     };
     vkCmdSetViewport(_vkCommandBuffers[commandBufferIndex], 0, 1, &viewport);
 
@@ -1089,7 +1089,7 @@ void RendererManager::updateUniformBuffer(const std::uint32_t currentImage)
         .view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up),
         .proj = [&]()
         {
-            glm::mat4 proj = glm::perspective(glm::radians(_cameraParameters.FOV), swapchainExtent.width / static_cast<float>(swapchainExtent.height), 0.1f, 64.0f);
+            glm::mat4 proj = glm::perspective(glm::radians(_cameraParameters.FOV), swapchainExtent.width / static_cast<float>(swapchainExtent.height), 0.01f, 64.0f);
             proj[1][1] *= -1;
             return proj;
         }(),

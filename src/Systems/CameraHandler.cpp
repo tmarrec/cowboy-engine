@@ -52,7 +52,7 @@ void CameraHandler::positionMovements(Transform& transform, const Camera& camera
 
 void CameraHandler::lookAtMovements(Camera& camera)
 {
-    const float sensitivity = 1.0f;
+    const float sensitivity = 0.5f;
     camera.yaw += g_InputManager.mouseOffset.x * sensitivity;
     camera.pitch = glm::clamp(camera.pitch - g_InputManager.mouseOffset.y * sensitivity, -89.9f, 89.9f);
 
