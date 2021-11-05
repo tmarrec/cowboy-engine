@@ -925,6 +925,7 @@ void RendererManager::waitIdle()
 
 void RendererManager::createVertexBuffer()
 {
+
     VkDeviceSize bufferSize = sizeof(_vertices[0]) * _vertices.size(); 
 
     VkBuffer stagingBuffer;
@@ -1009,7 +1010,7 @@ void RendererManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, 
 
     if (vkCreateBuffer(_vkDevice, &bufferInfo, VK_NULL_HANDLE, &buffer) != VK_SUCCESS)
     {
-        ERROR_EXIT("Failed to create vertex buffer.");
+        ERROR_EXIT("Failed to create buffer.");
     }
 
     VkMemoryRequirements memRequirements;
@@ -1024,7 +1025,7 @@ void RendererManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, 
 
     if (vkAllocateMemory(_vkDevice, &allocateInfo, VK_NULL_HANDLE, &bufferMemory) != VK_SUCCESS)
     {
-        ERROR_EXIT("Failed to allocate vertex buffer memory.");
+        ERROR_EXIT("Failed to allocate buffer memory.");
     }
 
     vkBindBufferMemory(_vkDevice, buffer, bufferMemory, 0);
@@ -1519,6 +1520,26 @@ bool RendererManager::hasStencilComponent(VkFormat format)
 
 void RendererManager::loadModels()
 {
+    const auto& badVertices = _world.getVertexBuffer();
+
+    for (size_t i = 0; i < badVertices.size(); i += 3)
+    {
+        Vertex v = 
+        {
+            .pos = {badVertices[i], badVertices[i+1], badVertices[i+2]},
+            .color = {1.0, 0.0, 0.0},
+            .texCoord = {0.0, 0.0},
+        };
+        _vertices.emplace_back(v);
+    }
+
+    const auto& badIndices = _world.getIndicesBuffer();
+    for (size_t i = 0; i < badIndices.size(); ++i)
+    {
+        _indices.emplace_back(badIndices[i]);
+    }
+
+    /*
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
@@ -1554,6 +1575,7 @@ void RendererManager::loadModels()
             _indices.push_back(_indices.size());
         }
     }
+    */
 }
 
 void RendererManager::setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up)

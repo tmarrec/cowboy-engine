@@ -17,6 +17,7 @@
 
 #include "Shader.h"
 #include "Swapchain.h"
+#include "World.h"
 
 const std::uint8_t MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -201,4 +202,6 @@ class RendererManager
     void loadModels();
     
     CameraParameters _cameraParameters;
+
+    World _world {};
 };

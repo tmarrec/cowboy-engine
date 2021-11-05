@@ -52,6 +52,14 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Core/Subsystems/Renderer/Shader.cpp
     src/Core/Subsystems/Renderer/Swapchain.h
     src/Core/Subsystems/Renderer/Swapchain.cpp
+    src/Core/Subsystems/Renderer/World.h
+    src/Core/Subsystems/Renderer/World.cpp
+    src/Core/Subsystems/Renderer/Scene.h
+    src/Core/Subsystems/Renderer/Scene.cpp
+    src/Core/Subsystems/Renderer/Node.h
+    src/Core/Subsystems/Renderer/Node.cpp
+    src/Core/Subsystems/Renderer/Mesh.h
+    src/Core/Subsystems/Renderer/Mesh.cpp
 
     # Input Subsystem
     src/Core/Subsystems/Input/InputManager.h
@@ -69,9 +77,10 @@ ADD_EXECUTABLE (${PROJECT_NAME}
 # Shaderc
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} libshaderc_combined.a)
 
-# STB
+# tinygltf
+TARGET_INCLUDE_DIRECTORIES (${PROJECT_NAME} SYSTEM PRIVATE "extern/tinygltf")
+
+# stb
 TARGET_INCLUDE_DIRECTORIES (${PROJECT_NAME} SYSTEM PRIVATE "extern/stb")
 
-# tinyobjloader
 TARGET_INCLUDE_DIRECTORIES (${PROJECT_NAME} SYSTEM PRIVATE "extern/tinyobjloader")
-
