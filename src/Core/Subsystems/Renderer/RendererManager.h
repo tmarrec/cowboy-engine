@@ -19,7 +19,7 @@
 #include "Swapchain.h"
 #include "World.h"
 
-const std::uint8_t MAX_FRAMES_IN_FLIGHT = 2;
+const std::uint8_t MAX_FRAMES_IN_FLIGHT = 3;
 
 struct Vertex
 {
@@ -128,7 +128,6 @@ class RendererManager
     void createDepthResources();
     VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
     VkFormat findDepthFormat();
-    bool hasStencilComponent(VkFormat format);
 
     // Graphics Pipeline
     void createRenderPass();
@@ -196,8 +195,8 @@ class RendererManager
 
     std::uint8_t                    _currentFrame = 0;
     
-    std::vector<Vertex> _vertices;
-    std::vector<uint32_t> _indices;
+    std::vector<Vertex>             _vertices = {};
+    std::vector<uint16_t>           _indices = {};
 
     void loadModels();
     

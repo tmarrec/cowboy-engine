@@ -8,12 +8,12 @@
 #include <glm/gtx/quaternion.hpp>
 #include <memory>
 
-Node::Node(const int idx, const tinygltf::Model& model)
+Node::Node(const int idx, const tinygltf::Model& model, std::vector<std::uint16_t>& indicesBuffer, std::vector<float>& vertexBuffer, std::vector<Primitive>& primitives)
 {
     const auto& node = model.nodes[idx];
     for (const auto childrenIdx : node.children)
     {
-        const Node node {childrenIdx, model};
+        const Node node {childrenIdx, model, indicesBuffer, vertexBuffer, primitives};
         _nodes.emplace_back(node);
     }
 
@@ -51,10 +51,8 @@ Node::Node(const int idx, const tinygltf::Model& model)
         _transform = translation * rotation * scale;
     }
 
-    _mesh = std::make_shared<Mesh>(node.mesh, model);
+    std::cout << glm::to_string(_transform) << std::endl;
+
+    _mesh = std::make_shared<Mesh>(node.mesh, model, indicesBuffer, vertexBuffer, primitives);
 }
 
-const GeometryBuffers& Node::getGeometryBuffers() const
-{
-    return _mesh->getGeometryBuffers();
-}

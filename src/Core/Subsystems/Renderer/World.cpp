@@ -39,6 +39,17 @@ World::World()
         _indicesBuffer = scene.getIndicesBuffer();
         _vertexBuffer = scene.getPositionBuffer();
     }
+    for (const auto& v : _vertexBuffer)
+    {
+        std::cout << v << ' ';
+    }
+    std::cout << '\n';
+    for (const auto& i : _indicesBuffer)
+    {
+        std::cout << i << ' ';
+    }
+    std::cout << '\n';
+
 }
 
 const std::vector<std::uint16_t>& World::getIndicesBuffer() const
@@ -51,7 +62,12 @@ const std::vector<float>& World::getVertexBuffer() const
     return _vertexBuffer;
 }
 
-const std::vector<std::uint32_t>& World::getIndicesSizes() const
+const Scene& World::getScene() const
 {
+    return _scenes[0];
+}
 
+const std::vector<Primitive>& World::getPrimitives() const
+{
+    return _scenes[0].getPrimitives();
 }

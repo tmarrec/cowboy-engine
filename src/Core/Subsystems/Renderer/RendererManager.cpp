@@ -8,9 +8,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
-
 #include <glm/gtx/string_cast.hpp>
 
 extern WindowManager g_WindowManager;
@@ -126,6 +123,10 @@ void RendererManager::pickPhysicalDevice()
     VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(_vkPhysicalDevice, &deviceProperties);
 	INFO("GPU: " << deviceProperties.deviceName);
+    if (deviceProperties.limits.maxPushConstantsSize < 256)
+    {
+        ERROR_EXIT("maxPushConstantsSize should be > 256.");
+    }
 }
 
 // Create a Vulkan surface
@@ -809,11 +810,14 @@ void RendererManager::createCommandBuffer(const std::uint32_t commandBufferIndex
     const std::array<VkDeviceSize, 1> offsets = {0};
     vkCmdBindVertexBuffers(_vkCommandBuffers[commandBufferIndex], 0, 1, vertexBuffers.data(), offsets.data());
 
-    vkCmdBindIndexBuffer(_vkCommandBuffers[commandBufferIndex], _vkIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(_vkCommandBuffers[commandBufferIndex], _vkIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
     vkCmdBindDescriptorSets(_vkCommandBuffers[commandBufferIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, _vkPipelineLayout, 0, 1, &_vkDescriptorSets[commandBufferIndex], 0, VK_NULL_HANDLE);
 
-    vkCmdDrawIndexed(_vkCommandBuffers[commandBufferIndex], static_cast<std::uint32_t>(_indices.size()), 1, 0, 0, 0);
+    for (const auto& p : _world.getPrimitives())
+    {
+        vkCmdDrawIndexed(_vkCommandBuffers[commandBufferIndex], p.indexCount, 1, p.firstIndex, p.vertexOffset, 0);
+    }
 
     vkCmdEndRenderPass(_vkCommandBuffers[commandBufferIndex]);
 
@@ -925,7 +929,6 @@ void RendererManager::waitIdle()
 
 void RendererManager::createVertexBuffer()
 {
-
     VkDeviceSize bufferSize = sizeof(_vertices[0]) * _vertices.size(); 
 
     VkBuffer stagingBuffer;
@@ -1512,12 +1515,6 @@ VkFormat RendererManager::findDepthFormat()
     );
 }
 
-bool RendererManager::hasStencilComponent(VkFormat format)
-{
-    return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
-}
-
-
 void RendererManager::loadModels()
 {
     const auto& badVertices = _world.getVertexBuffer();
@@ -1527,8 +1524,8 @@ void RendererManager::loadModels()
         Vertex v = 
         {
             .pos = {badVertices[i], badVertices[i+1], badVertices[i+2]},
-            .color = {1.0, 0.0, 0.0},
-            .texCoord = {0.0, 0.0},
+            .color = {1.0f, 0.0f, 0.0f},
+            .texCoord = {0.0f, 0.0f},
         };
         _vertices.emplace_back(v);
     }
@@ -1538,44 +1535,6 @@ void RendererManager::loadModels()
     {
         _indices.emplace_back(badIndices[i]);
     }
-
-    /*
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string warn, err;
-    
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "models/viking_room.obj"))
-    {
-        ERROR_EXIT("Failed to load model.");
-    }
-
-    for (const auto& shape : shapes)
-    {
-        for (const auto& index : shape.mesh.indices)
-        {
-            Vertex vertex{};
-
-            vertex.pos =
-            {
-                attrib.vertices[3 * index.vertex_index + 0],
-                attrib.vertices[3 * index.vertex_index + 1],
-                attrib.vertices[3 * index.vertex_index + 2]
-            };
-
-            vertex.texCoord =
-            {
-                attrib.texcoords[2 * index.texcoord_index + 0],
-                1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-            };
-
-            vertex.color = {1.0f, 1.0f, 1.0f};
-
-            _vertices.push_back(vertex);
-            _indices.push_back(_indices.size());
-        }
-    }
-    */
 }
 
 void RendererManager::setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up)

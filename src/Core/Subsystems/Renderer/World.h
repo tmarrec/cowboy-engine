@@ -8,8 +8,9 @@ class World
  public:
     World();
     const std::vector<std::uint16_t>& getIndicesBuffer() const;
-    const std::vector<std::uint32_t>& getIndicesSizes() const;
     const std::vector<float>& getVertexBuffer() const;
+    const std::vector<Primitive>& getPrimitives() const;
+    const Scene& getScene() const;
 
  private:
     std::vector<Scene>          _scenes;
