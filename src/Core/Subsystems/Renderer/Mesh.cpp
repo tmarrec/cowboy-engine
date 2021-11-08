@@ -28,7 +28,11 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<std::uint16_
             .vertexOffset   = oldSizeVertex,
         };
 
-        primitives.emplace_back(primitive);
+        _primitives.emplace_back(primitive);
     }
 }
 
+const std::vector<Primitive>& Mesh::getPrimitives() const
+{
+    return _primitives;
+}

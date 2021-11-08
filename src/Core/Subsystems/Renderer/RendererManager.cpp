@@ -34,7 +34,6 @@ RendererManager::RendererManager()
     loadModels();
     createVertexBuffer();
     createIndexBuffer();
-    createUniformBuffers();
     createDescriptorPool();
     createDescriptorSets();
     allocateCommandBuffers();
@@ -67,12 +66,6 @@ RendererManager::~RendererManager()
 
     vkDestroyDescriptorSetLayout(_vkDevice, _vkDescriptorSetLayout, VK_NULL_HANDLE);
     vkDestroyDescriptorPool(_vkDevice, _vkDescriptorPool, VK_NULL_HANDLE);
-
-    for (size_t i = 0; i < _vkSwapchainImages.size(); ++i)
-    {
-        vkDestroyBuffer(_vkDevice, _uniformBuffers[i], VK_NULL_HANDLE);
-        vkFreeMemory(_vkDevice, _uniformBuffersMemory[i], VK_NULL_HANDLE);
-    }
 
     vkDestroyBuffer(_vkDevice, _vkVertexBuffer, VK_NULL_HANDLE);
     vkFreeMemory(_vkDevice, _vkVertexBufferMemory, VK_NULL_HANDLE);
@@ -487,6 +480,14 @@ void RendererManager::createGraphicsPipeline()
         .pDynamicStates = dynamicStates.data(),
     };
 
+    // Push Constant
+    const VkPushConstantRange pushConstantRange =
+    {
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+        .offset = 0,
+        .size = sizeof(UniformBufferObjectPushConstant),
+    };
+
     // Pipeline layout
     const VkPipelineLayoutCreateInfo pipelineLayoutInfo =
     {
@@ -495,8 +496,8 @@ void RendererManager::createGraphicsPipeline()
         .flags = 0,
         .setLayoutCount = 1,
         .pSetLayouts = &_vkDescriptorSetLayout,
-        .pushConstantRangeCount = 0,
-        .pPushConstantRanges = VK_NULL_HANDLE,
+        .pushConstantRangeCount = 1,
+        .pPushConstantRanges = &pushConstantRange,
     };
 
     if (vkCreatePipelineLayout(_vkDevice, &pipelineLayoutInfo, VK_NULL_HANDLE, &_vkPipelineLayout) != VK_SUCCESS)
@@ -814,9 +815,18 @@ void RendererManager::createCommandBuffer(const std::uint32_t commandBufferIndex
 
     vkCmdBindDescriptorSets(_vkCommandBuffers[commandBufferIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, _vkPipelineLayout, 0, 1, &_vkDescriptorSets[commandBufferIndex], 0, VK_NULL_HANDLE);
 
-    for (const auto& p : _world.getPrimitives())
+    for (const auto& n : _world.getNodes())
     {
-        vkCmdDrawIndexed(_vkCommandBuffers[commandBufferIndex], p.indexCount, 1, p.firstIndex, p.vertexOffset, 0);
+        const glm::mat4& transform = n.getTransform();
+        for (const auto& p : n.getPrimitives())
+        {
+            UniformBufferObjectPushConstant ubo =
+            {
+                .transform = _projView * transform, 
+            };
+            vkCmdPushConstants(_vkCommandBuffers[commandBufferIndex], _vkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(UniformBufferObjectPushConstant), &ubo); 
+            vkCmdDrawIndexed(_vkCommandBuffers[commandBufferIndex], p.indexCount, 1, p.firstIndex, p.vertexOffset / 3, 0);
+        }
     }
 
     vkCmdEndRenderPass(_vkCommandBuffers[commandBufferIndex]);
@@ -1036,25 +1046,16 @@ void RendererManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, 
 
 void RendererManager::createDescriptorSetLayout()
 {
-    const VkDescriptorSetLayoutBinding uboLayoutBinding =
-    {
-        .binding = 0,
-        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .descriptorCount = 1,
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-        .pImmutableSamplers = VK_NULL_HANDLE,
-    };
-
     const VkDescriptorSetLayoutBinding samplerLayoutBinding =
     {
-        .binding = 1,
+        .binding = 0,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = 1,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         .pImmutableSamplers = VK_NULL_HANDLE,
     };
 
-    const std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+    const std::array<VkDescriptorSetLayoutBinding, 1> bindings = {samplerLayoutBinding};
 
     const VkDescriptorSetLayoutCreateInfo layoutInfo =
     {
@@ -1071,49 +1072,28 @@ void RendererManager::createDescriptorSetLayout()
     }
 }
 
-void RendererManager::createUniformBuffers()
-{
-    VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
-    _uniformBuffers.resize(_vkSwapchainImages.size());
-    _uniformBuffersMemory.resize(_vkSwapchainImages.size());
-
-    for (size_t i = 0; i < _vkSwapchainImages.size(); ++i)
-    {
-        createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, _uniformBuffers[i], _uniformBuffersMemory[i]); 
-    }
-}
-
 void RendererManager::updateUniformBuffer(const std::uint32_t currentImage)
 {
-    const VkExtent2D swapchainExtent = _swapchain.extent();
     const UniformBufferObject ubo =
     {
-        .model = glm::mat4{1.0f},
         .view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up),
         .proj = [&]()
         {
-            glm::mat4 proj = glm::perspective(glm::radians(_cameraParameters.FOV), swapchainExtent.width / static_cast<float>(swapchainExtent.height), 0.01f, 64.0f);
+            const VkExtent2D swapchainExtent = _swapchain.extent();
+            glm::mat4 proj = glm::perspective(glm::radians(_cameraParameters.FOV), swapchainExtent.width / static_cast<float>(swapchainExtent.height), 0.01f, 128.0f);
             proj[1][1] *= -1;
             return proj;
         }(),
     };
 
-    void* data;
-    vkMapMemory(_vkDevice, _uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
-    memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(_vkDevice, _uniformBuffersMemory[currentImage]);
+    _projView = ubo.proj * ubo.view;
 }
 
 void RendererManager::createDescriptorPool()
 {
-    const std::array<VkDescriptorPoolSize, 2> poolSizes =
+    const std::array<VkDescriptorPoolSize, 1> poolSizes =
     {
         VkDescriptorPoolSize
-        {
-            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = static_cast<std::uint32_t>(_vkSwapchainImages.size()),
-        },
         {
             .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             .descriptorCount = static_cast<std::uint32_t>(_vkSwapchainImages.size()),
@@ -1156,13 +1136,6 @@ void RendererManager::createDescriptorSets()
 
     for (size_t i = 0; i < _vkSwapchainImages.size(); ++i)
     {
-        const VkDescriptorBufferInfo bufferInfo =
-        {
-            .buffer = _uniformBuffers[i],
-            .offset = 0,
-            .range = sizeof(UniformBufferObject),
-        };
-
         const VkDescriptorImageInfo imageInfo =
         {
             .sampler = _textureSampler,
@@ -1170,7 +1143,7 @@ void RendererManager::createDescriptorSets()
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         };
 
-        const std::array<VkWriteDescriptorSet, 2> descriptorWrites =
+        const std::array<VkWriteDescriptorSet, 1> descriptorWrites =
         {
             VkWriteDescriptorSet
             {
@@ -1178,18 +1151,6 @@ void RendererManager::createDescriptorSets()
                 .pNext = VK_NULL_HANDLE,
                 .dstSet = _vkDescriptorSets[i],
                 .dstBinding = 0,
-                .dstArrayElement = 0,
-                .descriptorCount = 1,
-                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .pImageInfo = VK_NULL_HANDLE,
-                .pBufferInfo = &bufferInfo,
-                .pTexelBufferView = VK_NULL_HANDLE,
-            },
-            {
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .pNext = VK_NULL_HANDLE,
-                .dstSet = _vkDescriptorSets[i],
-                .dstBinding = 1,
                 .dstArrayElement = 0,
                 .descriptorCount = 1,
                 .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,

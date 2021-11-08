@@ -9,6 +9,7 @@ class Scene
     const std::vector<std::uint16_t>& getIndicesBuffer() const;
     const std::vector<float>& getPositionBuffer() const;
     const std::vector<Primitive>& getPrimitives() const;
+    const std::vector<Node>& getNodes() const;
 
  private:
     std::vector<Node>           _nodes;

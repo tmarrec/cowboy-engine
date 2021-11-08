@@ -6,7 +6,7 @@ Scene::Scene(const std::vector<int>& nodesIdx, const tinygltf::Model& model)
 {
     for (const auto idx : nodesIdx)
     {
-        const Node node {idx, model, _indicesBuffer, _vertexBuffer, _primitives};
+        const Node node {idx, model, _indicesBuffer, _vertexBuffer, _primitives, _nodes, glm::mat4{1}};
         _nodes.emplace_back(node);
     }
 }
@@ -26,3 +26,7 @@ const std::vector<Primitive>& Scene::getPrimitives() const
     return _primitives;
 }
 
+const std::vector<Node>& Scene::getNodes() const
+{
+    return _nodes;
+}

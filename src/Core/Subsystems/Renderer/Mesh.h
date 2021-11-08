@@ -26,6 +26,7 @@ class Mesh
 {
  public:
     Mesh(const int idx, const tinygltf::Model& model, std::vector<std::uint16_t>& indicesBuffer, std::vector<float>& vertexBuffer, std::vector<Primitive>& primitives);
+    const std::vector<Primitive>& getPrimitives() const;
 
  private:
     template<typename T>
@@ -54,4 +55,6 @@ class Mesh
             .size = bufferSize,
         };
     }
+
+    std::vector<Primitive> _primitives;
 };

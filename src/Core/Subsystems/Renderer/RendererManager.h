@@ -66,9 +66,13 @@ struct Vertex
 
 struct UniformBufferObject
 {
-    alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 proj;
+    glm::mat4 view;
+    glm::mat4 proj;
+};
+
+struct UniformBufferObjectPushConstant
+{
+    alignas(16) glm::mat4 transform;
 };
 
 struct CameraParameters
@@ -146,7 +150,6 @@ class RendererManager
     void copyBuffer(VkBuffer& srcBuffer, VkBuffer& dstBuffer, VkDeviceSize& size);
 
     void createDescriptorSetLayout();
-    void createUniformBuffers();
     void updateUniformBuffer(const std::uint32_t currentImage);
     void createDescriptorPool();
     void createDescriptorSets();
@@ -186,8 +189,6 @@ class RendererManager
     std::vector<VkSemaphore>        _vkRenderFinishedSemaphores = {};
     std::vector<VkFence>            _vkInFlightFences           = {};
     std::vector<VkFence>            _vkImagesInFlight           = {};
-    std::vector<VkBuffer>           _uniformBuffers             = {};
-    std::vector<VkDeviceMemory>     _uniformBuffersMemory       = {};
     std::vector<VkDescriptorSet>    _vkDescriptorSets           = {};
     
     Shader                          _vertShader = {"vert.vert", SHADER_TYPE_VERTEX};
@@ -201,6 +202,7 @@ class RendererManager
     void loadModels();
     
     CameraParameters _cameraParameters;
+    glm::mat4 _projView = {};
 
     World _world {};
 };

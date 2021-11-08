@@ -11,6 +11,7 @@ class World
     const std::vector<float>& getVertexBuffer() const;
     const std::vector<Primitive>& getPrimitives() const;
     const Scene& getScene() const;
+    const std::vector<Node>& getNodes() const;
 
  private:
     std::vector<Scene>          _scenes;
