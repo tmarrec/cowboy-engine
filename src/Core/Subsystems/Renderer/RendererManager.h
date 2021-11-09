@@ -70,11 +70,6 @@ struct UniformBufferObject
     glm::mat4 proj;
 };
 
-struct UniformBufferObjectPushConstant
-{
-    alignas(16) glm::mat4 transform;
-};
-
 struct CameraParameters
 {
     glm::vec3 position;

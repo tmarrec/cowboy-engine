@@ -1,6 +1,5 @@
 #pragma once
 
-#define TINYGLTF_NO_STB_IMAGE
 #include <tiny_gltf.h>
 #include <cstdint>
 #include <vector>

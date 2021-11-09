@@ -1,14 +1,6 @@
 #include "RendererManager.h"
 
 #include "../Window/WindowManager.h"
-#include <chrono>
-#include <cstdint>
-#include <vulkan/vulkan_core.h>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
-#include <glm/gtx/string_cast.hpp>
 
 extern WindowManager g_WindowManager;
 
@@ -28,9 +20,11 @@ RendererManager::RendererManager()
     createCommandPool();
     createDepthResources();
     createFramebuffers();
+    /*
     createTextureImage();
     createTextureImageView();
     createTextureSampler();
+    */
     loadModels();
     createVertexBuffer();
     createIndexBuffer();
@@ -72,11 +66,12 @@ RendererManager::~RendererManager()
     vkDestroyBuffer(_vkDevice, _vkIndexBuffer, VK_NULL_HANDLE);
     vkFreeMemory(_vkDevice, _vkIndexBufferMemory, VK_NULL_HANDLE);
 
+    /*
     vkDestroySampler(_vkDevice, _textureSampler, VK_NULL_HANDLE);
-
     vkDestroyImageView(_vkDevice, _textureImageView, VK_NULL_HANDLE);
     vkDestroyImage(_vkDevice, _textureImage, VK_NULL_HANDLE);
     vkFreeMemory(_vkDevice, _textureImageMemory, VK_NULL_HANDLE);
+    */
 
     vkDestroyCommandPool(_vkDevice, _vkCommandPool, VK_NULL_HANDLE);
     vkDestroyDevice(_vkDevice, VK_NULL_HANDLE);
@@ -485,7 +480,7 @@ void RendererManager::createGraphicsPipeline()
     {
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
         .offset = 0,
-        .size = sizeof(UniformBufferObjectPushConstant),
+        .size = sizeof(glm::mat4),
     };
 
     // Pipeline layout
@@ -766,7 +761,25 @@ void RendererManager::createCommandBuffer(const std::uint32_t commandBufferIndex
         ERROR_EXIT("Failed to begin recording command buffer.");
     }
 
-    const std::array<VkClearValue, 2> clearValues {{ {0.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0} }};
+    const std::array<VkClearValue, 2> clearValues =
+    {
+        VkClearValue
+        {
+            .color = 
+            VkClearColorValue
+            {
+                .float32 = {0.0f, 0.0f, 0.0f, 1.0f},
+            }
+        },
+        {
+            .depthStencil = 
+            VkClearDepthStencilValue
+            {
+                .depth = 1.0f,
+                .stencil = 0,
+            }
+        }
+    };
     const VkRenderPassBeginInfo renderPassInfo =
     {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -818,14 +831,14 @@ void RendererManager::createCommandBuffer(const std::uint32_t commandBufferIndex
     for (const auto& n : _world.getNodes())
     {
         const glm::mat4& transform = n.getTransform();
-        for (const auto& p : n.getPrimitives())
+        if (n.gotMesh())
         {
-            UniformBufferObjectPushConstant ubo =
+            for (const auto& p : n.getPrimitives())
             {
-                .transform = _projView * transform, 
-            };
-            vkCmdPushConstants(_vkCommandBuffers[commandBufferIndex], _vkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(UniformBufferObjectPushConstant), &ubo); 
-            vkCmdDrawIndexed(_vkCommandBuffers[commandBufferIndex], p.indexCount, 1, p.firstIndex, p.vertexOffset / 3, 0);
+                const glm::mat4 t = _projView * transform;
+                vkCmdPushConstants(_vkCommandBuffers[commandBufferIndex], _vkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &t); 
+                vkCmdDrawIndexed(_vkCommandBuffers[commandBufferIndex], p.indexCount, 1, p.firstIndex, p.vertexOffset / 3, 0);
+            }
         }
     }
 
@@ -1134,6 +1147,7 @@ void RendererManager::createDescriptorSets()
         ERROR_EXIT("Failed to allocate descriptor sets.");
     }
 
+    /*
     for (size_t i = 0; i < _vkSwapchainImages.size(); ++i)
     {
         const VkDescriptorImageInfo imageInfo =
@@ -1162,10 +1176,12 @@ void RendererManager::createDescriptorSets()
 
         vkUpdateDescriptorSets(_vkDevice, static_cast<std::uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, VK_NULL_HANDLE);
     }
+    */
 }
 
 void RendererManager::createTextureImage()
 {
+    /*
     int texWidth, texHeight, texChannels;
     void* pixels = stbi_load("textures/viking_room.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     const VkDeviceSize imageSize = texWidth * texHeight * 4;
@@ -1195,6 +1211,7 @@ void RendererManager::createTextureImage()
 
     vkDestroyBuffer(_vkDevice, stagingBuffer, VK_NULL_HANDLE);
     vkFreeMemory(_vkDevice, stagingBufferMemory, VK_NULL_HANDLE);
+    */
 }
 
 void RendererManager::createImage(const std::uint32_t width, const std::uint32_t height, const VkFormat format, const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)

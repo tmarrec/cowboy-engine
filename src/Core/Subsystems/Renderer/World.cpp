@@ -13,7 +13,8 @@ World::World()
     std::string err;
     std::string warn;
 
-    bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, "models/scene.gltf");
+    //bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, "models/BoxTextured.glb");
+    bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, "models/BoxTextured.glb");
 
     if (!warn.empty())
     {
@@ -27,18 +28,19 @@ World::World()
 
     if (!ret)
     {
-        ERROR_EXIT("Failed to load glTF.");
+        ERROR_EXIT("Failed to load glTF file.");
     }
 
     for (const auto& gltfScene : model.scenes)
     {
-        Scene scene {gltfScene.nodes, model};
+        const Scene scene {gltfScene.nodes, model};
         _scenes.emplace_back(scene);
-
-        // TODO : Select between multiples scenes
-        _indicesBuffer = scene.getIndicesBuffer();
-        _vertexBuffer = scene.getPositionBuffer();
     }
+
+    _currentScene = model.defaultScene;
+
+    _indicesBuffer = _scenes[_currentScene].getIndicesBuffer();
+    _vertexBuffer = _scenes[_currentScene].getPositionBuffer();
 }
 
 const std::vector<std::uint16_t>& World::getIndicesBuffer() const
@@ -51,17 +53,7 @@ const std::vector<float>& World::getVertexBuffer() const
     return _vertexBuffer;
 }
 
-const Scene& World::getScene() const
-{
-    return _scenes[0];
-}
-
-const std::vector<Primitive>& World::getPrimitives() const
-{
-    return _scenes[0].getPrimitives();
-}
-
 const std::vector<Node>& World::getNodes() const
 {
-    return _scenes[0].getNodes();
+    return _scenes[_currentScene].getNodes();
 }

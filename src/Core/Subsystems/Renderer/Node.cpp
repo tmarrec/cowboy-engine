@@ -53,7 +53,12 @@ Node::Node(const int idx, const tinygltf::Model& model, std::vector<std::uint16_
         nodes.emplace_back(node);
     }
 
-    _mesh = std::make_shared<Mesh>(node.mesh, model, indicesBuffer, vertexBuffer, primitives);
+    std::cout << node.mesh << std::endl;
+
+    if (node.mesh >= 0)
+    {
+        _mesh = std::make_shared<Mesh>(node.mesh, model, indicesBuffer, vertexBuffer, primitives);
+    }
 }
 
 const std::vector<Primitive>& Node::getPrimitives() const
@@ -64,4 +69,9 @@ const std::vector<Primitive>& Node::getPrimitives() const
 const glm::mat4& Node::getTransform() const
 {
     return _transform;
+}
+
+const bool Node::gotMesh() const
+{
+    return _mesh != nullptr;
 }
