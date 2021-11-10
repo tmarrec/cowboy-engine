@@ -1,4 +1,4 @@
-#include "InputManager.h"
+#include "./InputManager.h"
 
 std::map<InputKey, bool> InputManager::_keysStatus;
 bool InputManager::_focused = false;

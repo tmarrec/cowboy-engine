@@ -1,7 +1,7 @@
 #pragma once
 
-#include "System.h"
-#include "../../types.h"
+#include "./System.h"
+#include "./../../types.h"
 
 #include <memory>
 #include <unordered_map>

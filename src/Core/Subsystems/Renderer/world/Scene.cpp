@@ -11,7 +11,7 @@ Scene::Scene(const std::vector<int>& nodesIdx, const tinygltf::Model& model)
     }
 }
 
-const std::vector<std::uint16_t>& Scene::getIndicesBuffer() const
+const std::vector<uint16_t>& Scene::getIndicesBuffer() const
 {
     return _indicesBuffer;
 }

@@ -41,9 +41,15 @@ World::World()
 
     _indicesBuffer = _scenes[_currentScene].getIndicesBuffer();
     _vertexBuffer = _scenes[_currentScene].getPositionBuffer();
+
+    for (const auto& gltfTexture : model.textures)
+    {
+        const Texture texture {gltfTexture, model};
+        _textures.emplace_back(texture);
+    }
 }
 
-const std::vector<std::uint16_t>& World::getIndicesBuffer() const
+const std::vector<uint16_t>& World::getIndicesBuffer() const
 {
     return _indicesBuffer;
 }
@@ -56,4 +62,9 @@ const std::vector<float>& World::getVertexBuffer() const
 const std::vector<Node>& World::getNodes() const
 {
     return _scenes[_currentScene].getNodes();
+}
+
+const std::vector<Texture>& World::getTextures() const
+{
+    return _textures;
 }

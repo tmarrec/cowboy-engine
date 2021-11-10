@@ -5,13 +5,13 @@
 #include <optional>
 #include <array>
 
-#include "../../utils.h"
-#include "../Window/WindowManager.h"
+#include "./../../../utils.h"
+#include "./../../Window/Window.h"
 
 struct QueueFamilyIndices
 {
-	std::optional<std::uint32_t> graphics;
-	std::optional<std::uint32_t> present;
+	std::optional<uint32_t> graphics;
+	std::optional<uint32_t> present;
 
 	bool isComplete()
 	{
@@ -21,9 +21,9 @@ struct QueueFamilyIndices
 
 struct SwapchainSupportDetails
 {
-    VkSurfaceCapabilitiesKHR capabilities;
+    VkSurfaceCapabilitiesKHR        capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
+    std::vector<VkPresentModeKHR>   presentModes;
 };
 
 class Swapchain
@@ -31,7 +31,7 @@ class Swapchain
  public:
     void create(const VkPhysicalDevice physicalDevice, const VkDevice device, const VkSurfaceKHR surface, const QueueFamilyIndices& indices);
     SwapchainSupportDetails querySupport(const VkPhysicalDevice physicalDevice, const VkSurfaceKHR surface);
-    const std::uint32_t imageCount() const;
+    const uint32_t imageCount() const;
     const VkFormat format() const;
     const VkExtent2D extent() const;
     VkSwapchainKHR& operator()();
@@ -44,5 +44,5 @@ class Swapchain
     VkSwapchainKHR  _swapchain      = VK_NULL_HANDLE;
     VkFormat        _surfaceFormat  = {};
     VkExtent2D      _extent         = {};
-    std::uint32_t   _imageCount     = 0;
+    uint32_t   _imageCount     = 0;
 };

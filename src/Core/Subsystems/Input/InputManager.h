@@ -1,11 +1,11 @@
 #pragma once
 
+#include "./../../utils.h"
+
 #include <GLFW/glfw3.h>
 #include <map>
 #include <iostream>
 #include <glm/glm.hpp>
-
-#include "../../utils.h"
 
 enum InputKey
 {

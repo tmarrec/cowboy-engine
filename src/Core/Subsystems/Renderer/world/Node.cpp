@@ -1,5 +1,5 @@
-#include "Node.h"
-#include "Mesh.h"
+#include "./Node.h"
+#include "./Mesh.h"
 
 #include <cstdint>
 #include <iostream>
@@ -8,7 +8,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <memory>
 
-Node::Node(const int idx, const tinygltf::Model& model, std::vector<std::uint16_t>& indicesBuffer, std::vector<float>& vertexBuffer, std::vector<Primitive>& primitives, std::vector<Node>& nodes, const glm::mat4& parentTransform)
+Node::Node(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& indicesBuffer, std::vector<float>& vertexBuffer, std::vector<Primitive>& primitives, std::vector<Node>& nodes, const glm::mat4& parentTransform)
 {
     const auto& node = model.nodes[idx];
     std::cout << node.name << std::endl; 
@@ -16,9 +16,9 @@ Node::Node(const int idx, const tinygltf::Model& model, std::vector<std::uint16_
     // If local transform matrix specified
     if (!node.matrix.empty())
     {
-        for (std::uint8_t j = 0; j < 4; ++j)
+        for (uint8_t j = 0; j < 4; ++j)
         {
-            for (std::uint8_t i = 0; i < 4; ++i)
+            for (uint8_t i = 0; i < 4; ++i)
             {
                 _transform[j][i] = node.matrix[i+j*4];
             }
@@ -52,8 +52,6 @@ Node::Node(const int idx, const tinygltf::Model& model, std::vector<std::uint16_
         const Node node {childrenIdx, model, indicesBuffer, vertexBuffer, primitives, nodes, _transform};
         nodes.emplace_back(node);
     }
-
-    std::cout << node.mesh << std::endl;
 
     if (node.mesh >= 0)
     {

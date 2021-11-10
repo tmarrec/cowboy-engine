@@ -1,21 +1,21 @@
-#include "WindowManager.h"
+#include "Window.h"
 #include <GLFW/glfw3.h>
 
-#include "../Renderer/RendererManager.h"
+#include "../Renderer/Renderer.h"
 #include "../Input/InputManager.h"
 
-extern RendererManager g_RendererManager;
+extern Renderer g_Renderer;
 extern InputManager g_InputManager;
 
 // Init GLFW
-WindowManager::WindowManager()
+Window::Window()
 {
     if (glfwInit() != GLFW_TRUE)
     {
         ERROR_EXIT("Failed to initialize GLFW.");
     }
 
-    glfwSetErrorCallback(&WindowManager::glfwError);
+    glfwSetErrorCallback(&Window::glfwError);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
@@ -38,31 +38,31 @@ void glfwDeleter::operator()(GLFWwindow* window)
 }
 
 // Window closed event
-bool WindowManager::windowShouldClose() const
+bool Window::windowShouldClose() const
 {
 	return glfwWindowShouldClose(_glfwWindow.get());
 }
 
 // Poll window events
-void WindowManager::pollEvents()
+void Window::pollEvents()
 {
 	glfwPollEvents();
 }
 
 // Returns the Vulkan instance extensions required by GLFW
-std::pair<const char**, std::uint32_t> WindowManager::windowGetRequiredInstanceExtensions()
+std::pair<const char**, uint32_t> Window::windowGetRequiredInstanceExtensions()
 {
-	std::uint32_t glfwExtensionCount = 0;
+	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
     if (!glfwExtensions)
     {
         ERROR_EXIT("Failed to get required Vulkan instance extensions.");
     }
-	return std::pair<const char**, std::uint32_t>(glfwExtensions, glfwExtensionCount);
+	return std::pair<const char**, uint32_t>(glfwExtensions, glfwExtensionCount);
 }
 
 // Create a Vulkan surface for the window
-void WindowManager::windowCreateSurface(VkInstance instance, VkSurfaceKHR* surface)
+void Window::windowCreateSurface(VkInstance instance, VkSurfaceKHR* surface)
 {
 	if (glfwCreateWindowSurface(instance, _glfwWindow.get(), nullptr, surface) != VK_SUCCESS)
 	{
@@ -71,29 +71,29 @@ void WindowManager::windowCreateSurface(VkInstance instance, VkSurfaceKHR* surfa
 }
 
 // Create the window
-void WindowManager::windowInit()
+void Window::windowInit()
 {
 	_glfwWindow.reset(glfwCreateWindow(800, 800, "vulkan-testings", nullptr, nullptr));
 }
 
 // GLFW error callback
-void WindowManager::glfwError(int error, const char* description)
+void Window::glfwError(int error, const char* description)
 {
     WARNING(description);
 }
 
-void WindowManager::windowGetFramebufferSize(std::uint32_t& width, std::uint32_t& height)
+void Window::windowGetFramebufferSize(uint32_t& width, uint32_t& height)
 {
     int intWidth, intHeight;
     glfwGetFramebufferSize(_glfwWindow.get(), &intWidth, &intHeight);
-    width = static_cast<std::uint32_t>(intWidth);
-    height = static_cast<std::uint32_t>(intHeight);
+    width = static_cast<uint32_t>(intWidth);
+    height = static_cast<uint32_t>(intHeight);
 }
 
-void WindowManager::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_R && action == GLFW_PRESS)
     {
-        g_RendererManager.updateGraphicsPipeline();
+        g_Renderer.updateGraphicsPipeline();
     }
 }

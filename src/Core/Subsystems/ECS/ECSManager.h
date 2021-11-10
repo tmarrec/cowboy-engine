@@ -4,8 +4,6 @@
 #include "./EntityManager.h"
 #include "./SystemManager.h"
 
-#include <memory>
-
 class ECSManager
 {
  public:

@@ -21,11 +21,11 @@ class Shader
         _type{type}
     {};
     void compile();
-    const std::vector<std::uint32_t>& code() const;
+    const std::vector<uint32_t>& code() const;
 
  private:
     std::string _filename;
     ShaderType _type;
     bool _lastCompilationOk = false;
-    std::vector<std::uint32_t> _shaderCode = {};
+    std::vector<uint32_t> _shaderCode = {};
 };

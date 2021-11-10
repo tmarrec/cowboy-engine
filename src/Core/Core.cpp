@@ -6,14 +6,14 @@
 #include "../Systems/CameraHandler.h"
 
 #include "Subsystems/ECS/ECSManager.h"
-#include "Subsystems/Window/WindowManager.h"
-#include "Subsystems/Renderer/RendererManager.h"
+#include "Subsystems/Window/Window.h"
+#include "Subsystems/Renderer/Renderer.h"
 
 #include <random>
 
 ECSManager g_ECSManager;
-WindowManager g_WindowManager;
-RendererManager g_RendererManager;
+Window g_Window;
+Renderer g_Renderer;
 
 int Core::Run()
 {
@@ -56,22 +56,22 @@ int Core::Run()
 
     float dt = 0.0f;
 
-    while (!g_WindowManager.windowShouldClose())
+    while (!g_Window.windowShouldClose())
     {
         const auto startTime = std::chrono::high_resolution_clock::now();
 
-        g_WindowManager.pollEvents();
+        g_Window.pollEvents();
 
         cameraSystem->Update(dt);
 
-        g_RendererManager.drawFrame();
+        g_Renderer.drawFrame();
 
         const auto stopTime = std::chrono::high_resolution_clock::now();
 		dt = std::chrono::duration<float, std::chrono::seconds::period>(stopTime - startTime).count();
         //INFO("FPS: " << 1.0/dt);
     }
 
-    g_RendererManager.waitIdle();
+    g_Renderer.waitIdle();
 
     return 0;  
 }

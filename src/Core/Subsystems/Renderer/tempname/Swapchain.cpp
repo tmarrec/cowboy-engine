@@ -1,7 +1,8 @@
-#include "Swapchain.h"
+#include "./Swapchain.h"
+
 #include <vulkan/vulkan_core.h>
 
-extern WindowManager g_WindowManager;
+extern Window g_Window;
 
 // Create the Vulkan swapchain
 void Swapchain::create(const VkPhysicalDevice physicalDevice, const VkDevice device, const VkSurfaceKHR surface, const QueueFamilyIndices& indices)
@@ -12,7 +13,7 @@ void Swapchain::create(const VkPhysicalDevice physicalDevice, const VkDevice dev
     const VkPresentModeKHR presentMode = choosePresentMode(swapchainSupport.presentModes);
     _imageCount = [&]()
     {
-        std::uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
+        uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
         if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount)
         {
             imageCount = swapchainSupport.capabilities.maxImageCount;
@@ -45,7 +46,7 @@ void Swapchain::create(const VkPhysicalDevice physicalDevice, const VkDevice dev
         };
         if (indices.graphics != indices.present)
         {
-            const std::array<std::uint32_t, 2> queueFamilyIndices = {indices.graphics.value(), indices.present.value()};
+            const std::array<uint32_t, 2> queueFamilyIndices = {indices.graphics.value(), indices.present.value()};
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
             createInfo.queueFamilyIndexCount = 2;
             createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
@@ -108,8 +109,8 @@ VkExtent2D Swapchain::chooseExtent(const VkSurfaceCapabilitiesKHR capabilities)
     {
         return [&]()
         {
-            std::uint32_t width, height;
-            g_WindowManager.windowGetFramebufferSize(width, height);
+            uint32_t width, height;
+            g_Window.windowGetFramebufferSize(width, height);
             width = std::clamp(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
             height = std::clamp(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
             return VkExtent2D{width, height};
@@ -123,7 +124,7 @@ SwapchainSupportDetails Swapchain::querySupport(const VkPhysicalDevice device, c
     SwapchainSupportDetails details;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
-    std::uint32_t formatCount;
+    uint32_t formatCount;
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, VK_NULL_HANDLE);
 
     if (formatCount != 0)
@@ -132,7 +133,7 @@ SwapchainSupportDetails Swapchain::querySupport(const VkPhysicalDevice device, c
         vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
     }
 
-    std::uint32_t presentModeCount;
+    uint32_t presentModeCount;
     vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, VK_NULL_HANDLE);
     if (presentModeCount != 0)
     {
@@ -142,7 +143,7 @@ SwapchainSupportDetails Swapchain::querySupport(const VkPhysicalDevice device, c
     return details;
 }
 
-const std::uint32_t Swapchain::imageCount() const
+const uint32_t Swapchain::imageCount() const
 {
     return _imageCount;
 }

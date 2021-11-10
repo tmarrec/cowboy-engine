@@ -1,12 +1,10 @@
 #pragma once
 
-#include "../../types.h"
+#include "./../../types.h"
 
 #include <cassert>
-#include <array>
 #include <limits>
 #include <unordered_map>
-#include <iostream>
 
 class IComponentArray
 {
@@ -24,7 +22,7 @@ class ComponentArray : public IComponentArray
     {
         assert(_entityToIndexMap[entity] == std::numeric_limits<Entity>::max() && "Component added to same entity more than once.");
 
-        std::uint64_t newIndex = _size;
+        uint64_t newIndex = _size;
         _entityToIndexMap[entity] = newIndex;
         _indexToEntityMap[newIndex] = entity;
         _componentArray[newIndex] = component;
@@ -38,8 +36,8 @@ class ComponentArray : public IComponentArray
 
         // Copy element at end into deleted element's index
         // to maintain density
-        std::uint64_t indexRemovedEntity = _entityToIndexMap[entity];
-        std::uint64_t indexLastElement = _size - 1;
+        uint64_t indexRemovedEntity = _entityToIndexMap[entity];
+        uint64_t indexLastElement = _size - 1;
         _componentArray[indexRemovedEntity] = _componentArray[indexLastElement];
 
         // Update map to point to moved spot
@@ -82,5 +80,5 @@ class ComponentArray : public IComponentArray
 
     std::array<Entity, MAX_ENTITIES> _entityToIndexMap = initArrays();
     std::array<Entity, MAX_ENTITIES> _indexToEntityMap = initArrays();
-    std::uint64_t _size = 0;
+    uint64_t _size = 0;
 };

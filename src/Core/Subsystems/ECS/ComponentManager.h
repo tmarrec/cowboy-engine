@@ -1,10 +1,8 @@
 #pragma once
 
-#include "../../types.h"
-#include "ComponentArray.h"
+#include "./../../types.h"
+#include "./ComponentArray.h"
 
-#include <typeinfo>
-#include <unordered_map>
 #include <memory>
 
 class ComponentManager

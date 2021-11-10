@@ -71,7 +71,7 @@ void Shader::compile()
 }
 
 // Getter to the spir-v bytecode
-const std::vector<std::uint32_t>& Shader::code() const
+const std::vector<uint32_t>& Shader::code() const
 {
     return _shaderCode;
 }

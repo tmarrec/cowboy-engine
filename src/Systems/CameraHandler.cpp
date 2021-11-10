@@ -1,11 +1,11 @@
 #include "CameraHandler.h"
 
 #include "../Core/Subsystems/ECS/ECSManager.h"
-#include "../Core/Subsystems/Renderer/RendererManager.h"
+#include "../Core/Subsystems/Renderer/Renderer.h"
 #include "../Core/Subsystems/Input/InputManager.h"
 
 extern ECSManager g_ECSManager;
-extern RendererManager g_RendererManager;
+extern Renderer g_Renderer;
 extern InputManager g_InputManager;
 
 void CameraHandler::Update(const float dt)
@@ -18,7 +18,7 @@ void CameraHandler::Update(const float dt)
         positionMovements(transform, camera, dt);
         lookAtMovements(camera);
 
-        g_RendererManager.setCameraParameters(transform.position, camera.FOV, camera.front, camera.up);
+        g_Renderer.setCameraParameters(transform.position, camera.FOV, camera.front, camera.up);
     }
 }
 

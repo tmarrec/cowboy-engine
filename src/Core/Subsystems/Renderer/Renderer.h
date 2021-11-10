@@ -14,12 +14,14 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <chrono>
+#include <unordered_map>
 
 #include "Shader.h"
-#include "Swapchain.h"
-#include "World.h"
+#include "tempname/Swapchain.h"
+#include "tempname/DescriptorPool.h"
+#include "world/World.h"
 
-const std::uint8_t MAX_FRAMES_IN_FLIGHT = 3;
+const uint8_t MAX_FRAMES_IN_FLIGHT = 3;
 
 struct Vertex
 {
@@ -64,6 +66,11 @@ struct Vertex
     }
 };
 
+struct VkPrimitive
+{
+
+};
+
 struct UniformBufferObject
 {
     glm::mat4 view;
@@ -78,15 +85,16 @@ struct CameraParameters
     float FOV;
 };
 
-class RendererManager
+class Renderer
 {
  public:
-    RendererManager();
-    ~RendererManager();
+    Renderer();
+    ~Renderer();
     void drawFrame();
     void waitIdle();
     void updateGraphicsPipeline();
     void setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up);
+    void createTexture(const Image& image);
 
  private:
     void createInstance();
@@ -108,15 +116,11 @@ class RendererManager
 
     void createTextureImage();
 
-    VkImage _textureImage;
-    VkDeviceMemory _textureImageMemory;
-    void createImage(const std::uint32_t width, const std::uint32_t height, const VkFormat format, const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+    void createImage(const uint32_t width, const uint32_t height, const VkFormat format, const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
     VkCommandBuffer beginSingleTimeCommands();
     void endSingleTimeCommands(const VkCommandBuffer& commandBuffer);
     void transitionImageLayout(const VkImage image, const VkFormat format, const VkImageLayout oldLayout, const VkImageLayout newLayout);
-    void copyBufferToImage(const VkBuffer buffer, const VkImage image, const std::uint32_t width, const std::uint32_t height);
-    VkImageView _textureImageView;
-    void createTextureImageView();
+    void copyBufferToImage(const VkBuffer buffer, const VkImage image, const uint32_t width, const uint32_t height);
     VkImageView createImageView(const VkImage image, const VkFormat format, const VkImageAspectFlags aspectFlags);
     void createTextureSampler();
     VkSampler _textureSampler;
@@ -136,27 +140,27 @@ class RendererManager
     void createCommandPool();
     void allocateCommandBuffers();
     void createSyncObjects();
-    void createCommandBuffer(const std::uint32_t commandBufferIndex);
+    void createCommandBuffer(const uint32_t commandBufferIndex);
 
     void createVertexBuffer();
     void createIndexBuffer();
-    std::uint32_t findMemoryType(std::uint32_t typeFilter, VkMemoryPropertyFlags properties);
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void copyBuffer(VkBuffer& srcBuffer, VkBuffer& dstBuffer, VkDeviceSize& size);
 
     void createDescriptorSetLayout();
-    void updateUniformBuffer(const std::uint32_t currentImage);
+    void updateUniformBuffer(const uint32_t currentImage);
     void createDescriptorPool();
     void createDescriptorSets();
 
 
 
     // Shaders (temp, should use shader class in future)
-    VkShaderModule createShaderModule(const std::vector<std::uint32_t>& code);
+    VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
 
     const std::array<const char*, 1> _deviceExtensions =
     {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     };
 
     VkInstance                      _vkInstance                 = VK_NULL_HANDLE;
@@ -167,14 +171,13 @@ class RendererManager
     VkQueue                         _vkPresentQueue             = VK_NULL_HANDLE;
     VkPipelineLayout                _vkPipelineLayout           = VK_NULL_HANDLE;
     VkRenderPass                    _vkRenderPass               = VK_NULL_HANDLE;
-    VkPipeline                      _vkGraphicsPipeline         = VK_NULL_HANDLE;
     VkCommandPool                   _vkCommandPool              = VK_NULL_HANDLE;
     VkBuffer                        _vkVertexBuffer             = VK_NULL_HANDLE;
     VkDeviceMemory                  _vkVertexBufferMemory       = VK_NULL_HANDLE;
     VkBuffer                        _vkIndexBuffer              = VK_NULL_HANDLE;
     VkDeviceMemory                  _vkIndexBufferMemory        = VK_NULL_HANDLE;
-    VkDescriptorSetLayout           _vkDescriptorSetLayout      = VK_NULL_HANDLE;
-    VkDescriptorPool                _vkDescriptorPool           = VK_NULL_HANDLE;
+    std::array<VkDescriptorSetLayout, 2> _vkDescriptorSetLayout = {VK_NULL_HANDLE, VK_NULL_HANDLE};
+
 
     std::vector<VkImage>            _vkSwapchainImages          = {};
     std::vector<VkImageView>        _vkSwapchainImageViews      = {};
@@ -189,7 +192,7 @@ class RendererManager
     Shader                          _vertShader = {"vert.vert", SHADER_TYPE_VERTEX};
     Shader                          _fragShader = {"frag.frag", SHADER_TYPE_FRAGMENT};
 
-    std::uint8_t                    _currentFrame = 0;
+    uint8_t                    _currentFrame = 0;
     
     std::vector<Vertex>             _vertices = {};
     std::vector<uint16_t>           _indices = {};
@@ -198,6 +201,11 @@ class RendererManager
     
     CameraParameters _cameraParameters;
     glm::mat4 _projView = {};
+
+    void loadTextures();
+    
+    //std::unordered_map<Primitive, VkPrimitive> _primitiveVkObjects;
+    std::shared_ptr<DescriptorPool> _descriptorPool = nullptr;
 
     World _world {};
 };

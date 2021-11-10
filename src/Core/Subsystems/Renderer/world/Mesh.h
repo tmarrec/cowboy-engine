@@ -5,7 +5,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-#include "../../utils.h"
+#include "./../../../utils.h"
 
 template<typename T>
 struct Buffer
@@ -24,7 +24,7 @@ struct Primitive
 class Mesh
 {
  public:
-    Mesh(const int idx, const tinygltf::Model& model, std::vector<std::uint16_t>& indicesBuffer, std::vector<float>& vertexBuffer, std::vector<Primitive>& primitives);
+    Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& indicesBuffer, std::vector<float>& vertexBuffer, std::vector<Primitive>& primitives);
     const std::vector<Primitive>& getPrimitives() const;
 
  private:

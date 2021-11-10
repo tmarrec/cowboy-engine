@@ -11,15 +11,15 @@ struct glfwDeleter
     void operator()(GLFWwindow* window);
 };
 
-class WindowManager
+class Window
 {
  public:
-    WindowManager();
+    Window();
     bool windowShouldClose() const;
     void pollEvents();
-    std::pair<const char**, std::uint32_t> windowGetRequiredInstanceExtensions();
+    std::pair<const char**, uint32_t> windowGetRequiredInstanceExtensions();
     void windowCreateSurface(VkInstance instance, VkSurfaceKHR* surface);
-    void windowGetFramebufferSize(std::uint32_t& width, std::uint32_t& height);
+    void windowGetFramebufferSize(uint32_t& width, uint32_t& height);
 
  private:
     void windowInit();
