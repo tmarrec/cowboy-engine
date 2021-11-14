@@ -5,8 +5,8 @@
 #include <optional>
 #include <array>
 
-#include "./../../../utils.h"
-#include "./../../Window/Window.h"
+#include "./../../utils.h"
+#include "./../Window/Window.h"
 
 struct QueueFamilyIndices
 {

@@ -4,13 +4,11 @@
 #include <array>
 #include <glm/glm.hpp>
 
-GraphicsPipeline::GraphicsPipeline(const VkDevice& device)
-: _device {device}
+GraphicsPipeline::GraphicsPipeline(const VkDevice& vkDevice, const VkExtent2D& vkExtent)
+: _vkDevice {vkDevice}
 {
-    _vertShader.compile();
-    _fragShader.compile();
-    const VkShaderModule vertShaderModule = createShaderModule(_vertShader.code());
-    const VkShaderModule fragShaderModule = createShaderModule(_fragShader.code());
+    _vertShader = std::make_shared<Shader>("vert.vert", SHADER_TYPE_VERTEX, vkDevice);
+    _fragShader = std::make_shared<Shader>("frag.frag", SHADER_TYPE_FRAGMENT, vkDevice);
 
     const VkPipelineShaderStageCreateInfo vertShaderStageInfo =
     {
@@ -18,7 +16,7 @@ GraphicsPipeline::GraphicsPipeline(const VkDevice& device)
         .pNext = VK_NULL_HANDLE,
         .flags = 0,
         .stage = VK_SHADER_STAGE_VERTEX_BIT,
-        .module = vertShaderModule,
+        .module = _vertShader->shaderModule(),
         .pName = "main",
         .pSpecializationInfo = VK_NULL_HANDLE,
     };
@@ -29,7 +27,7 @@ GraphicsPipeline::GraphicsPipeline(const VkDevice& device)
         .pNext = VK_NULL_HANDLE,
         .flags = 0,
         .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-        .module = fragShaderModule,
+        .module = _fragShader->shaderModule(),
         .pName = "main",
         .pSpecializationInfo = VK_NULL_HANDLE,
     };
@@ -62,13 +60,12 @@ GraphicsPipeline::GraphicsPipeline(const VkDevice& device)
     };
 
     // Viewport and Scissor
-    const VkExtent2D swapchainExtent = _swapchain.extent();
     const VkViewport viewport =
     {
         .x = 0.0f,
         .y = 0.0f,
-        .width = static_cast<float>(swapchainExtent.width),
-        .height = static_cast<float>(swapchainExtent.height),
+        .width = static_cast<float>(vkExtent.width),
+        .height = static_cast<float>(vkExtent.height),
         .minDepth = 0.0f,
         .maxDepth = 1.0f,
     };
@@ -76,7 +73,7 @@ GraphicsPipeline::GraphicsPipeline(const VkDevice& device)
     const VkRect2D scissor =
     {
         .offset = {0, 0},
-        .extent = swapchainExtent,
+        .extent = vkExtent,
     };
 
     const VkPipelineViewportStateCreateInfo viewportStateInfo =
@@ -200,7 +197,7 @@ GraphicsPipeline::GraphicsPipeline(const VkDevice& device)
         .pPushConstantRanges = &pushConstantRange,
     };
 
-    if (vkCreatePipelineLayout(_device, &pipelineLayoutInfo, VK_NULL_HANDLE, &_vkPipelineLayout) != VK_SUCCESS)
+    if (vkCreatePipelineLayout(_vkDevice, &pipelineLayoutInfo, VK_NULL_HANDLE, &_vkPipelineLayout) != VK_SUCCESS)
     {
         ERROR("Failed to create pipeline layout.");
     }
@@ -228,16 +225,21 @@ GraphicsPipeline::GraphicsPipeline(const VkDevice& device)
         .basePipelineIndex = -1,
     };
 
-    if (vkCreateGraphicsPipelines(_device, VK_NULL_HANDLE, 1, &pipelineInfo, VK_NULL_HANDLE, &_graphicsPipeline) != VK_SUCCESS)
+    if (vkCreateGraphicsPipelines(_vkDevice, VK_NULL_HANDLE, 1, &pipelineInfo, VK_NULL_HANDLE, &_graphicsPipeline) != VK_SUCCESS)
     {
         ERROR("Failed to create graphics pipeline.");
     }
 
-    vkDestroyShaderModule(_device, vertShaderModule, VK_NULL_HANDLE);
-    vkDestroyShaderModule(_device, fragShaderModule, VK_NULL_HANDLE);
+    _vertShader->destroyShaderModule();
+    _fragShader->destroyShaderModule();
 }
 
 GraphicsPipeline::~GraphicsPipeline()
 {
-    vkDestroyPipeline(_device, _graphicsPipeline, VK_NULL_HANDLE);
+    vkDestroyPipeline(_vkDevice, _vkGraphicsPipeline, VK_NULL_HANDLE);
+}
+
+void GraphicsPipeline::bind(const VkCommandBuffer& vkCommandBuffer) const
+{
+    vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _vkGraphicsPipeline);
 }

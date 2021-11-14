@@ -50,6 +50,14 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Core/Subsystems/Renderer/Renderer.cpp
     src/Core/Subsystems/Renderer/Shader.h
     src/Core/Subsystems/Renderer/Shader.cpp
+    src/Core/Subsystems/Renderer/Swapchain.h
+    src/Core/Subsystems/Renderer/Swapchain.cpp
+    src/Core/Subsystems/Renderer/DescriptorPool.h
+    src/Core/Subsystems/Renderer/DescriptorPool.cpp
+    src/Core/Subsystems/Renderer/DescriptorSet.h
+    src/Core/Subsystems/Renderer/DescriptorSet.cpp
+    src/Core/Subsystems/Renderer/GraphicsPipeline.h
+    src/Core/Subsystems/Renderer/GraphicsPipeline.cpp
 
     # Renderer World
     src/Core/Subsystems/Renderer/world/World.h
@@ -62,16 +70,6 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Core/Subsystems/Renderer/world/Mesh.cpp
     src/Core/Subsystems/Renderer/world/Texture.h
     src/Core/Subsystems/Renderer/world/Texture.cpp
-
-    # Renderer tempname
-    src/Core/Subsystems/Renderer/tempname/Swapchain.h
-    src/Core/Subsystems/Renderer/tempname/Swapchain.cpp
-    src/Core/Subsystems/Renderer/tempname/DescriptorPool.h
-    src/Core/Subsystems/Renderer/tempname/DescriptorPool.cpp
-    src/Core/Subsystems/Renderer/tempname/DescriptorSet.h
-    src/Core/Subsystems/Renderer/tempname/DescriptorSet.cpp
-    src/Core/Subsystems/Renderer/tempname/GraphicsPipeline.h
-    src/Core/Subsystems/Renderer/tempname/GraphicsPipeline.cpp
 
     # Input Subsystem
     src/Core/Subsystems/Input/InputManager.h

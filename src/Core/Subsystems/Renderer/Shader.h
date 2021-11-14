@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <shaderc/shaderc.hpp>
+#include <vulkan/vulkan.h>
 
 #include "../../utils.h"
 
@@ -16,16 +17,19 @@ enum ShaderType
 class Shader
 {
  public:
-    Shader(const std::string& filename, ShaderType type) :
-        _filename{filename},
-        _type{type}
-    {};
+    Shader(const std::string& filename, const ShaderType type, const VkDevice& device);
     void compile();
     const std::vector<uint32_t>& code() const;
+    const VkShaderModule& shaderModule() const;
+    void destroyShaderModule();
 
  private:
-    std::string _filename;
-    ShaderType _type;
-    bool _lastCompilationOk = false;
-    std::vector<uint32_t> _shaderCode = {};
+    void createShaderModule();
+
+    const std::string       _filename;
+    const ShaderType        _type;
+    const VkDevice&         _device;
+    std::vector<uint32_t>   _shaderCode = {};
+    bool                    _lastCompilationOk = false;
+    VkShaderModule          _shaderModule;
 };

@@ -41,7 +41,6 @@ Renderer::~Renderer()
     }
     vkFreeCommandBuffers(_vkDevice, _vkCommandPool, static_cast<uint32_t>(_vkCommandBuffers.size()), _vkCommandBuffers.data());
     vkDestroyPipelineLayout(_vkDevice, _vkPipelineLayout, VK_NULL_HANDLE);
-    vkDestroyRenderPass(_vkDevice, _vkRenderPass, VK_NULL_HANDLE);
     for (auto& imageView : _vkSwapchainImageViews)
     {
         vkDestroyImageView(_vkDevice, imageView, VK_NULL_HANDLE);
@@ -305,115 +304,16 @@ void Renderer::createImageViews()
     }
 }
 
-// Create the graphics pipeline
-void Renderer::createGraphicsPipeline()
-{
-}
-
 // Update the Vulkan graphics pipeline
 void Renderer::updateGraphicsPipeline()
 {
-    createGraphicsPipeline();
-}
-
-// Create Vulkan shader module from shader bytecode
-VkShaderModule Renderer::createShaderModule(const std::vector<uint32_t>& code)
-{
-    const VkShaderModuleCreateInfo createInfo =
-    {
-        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        .pNext = VK_NULL_HANDLE,
-        .flags = 0,
-        .codeSize = code.size() * sizeof(uint32_t),
-        .pCode = code.data(),
-    };
-
-    VkShaderModule shaderModule;
-    if (vkCreateShaderModule(_vkDevice, &createInfo, VK_NULL_HANDLE, &shaderModule) != VK_SUCCESS)
-    {
-        ERROR_EXIT("Failed to create shader module.");
-    }
-
-    return shaderModule;
+    _graphicsPipeline = std::make_shared<GraphicsPipeline>(_vkDevice, _swapchain.extent());
 }
 
 // Create the Vulkan render pass
 void Renderer::createRenderPass()
 {
-    const VkAttachmentDescription colorAttachment =
-    {
-        .flags = 0,
-        .format = _swapchain.format(),
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-    };
-    const VkAttachmentReference colorAttachmentRef =
-    {
-        .attachment = 0,
-        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-    };
-    const VkAttachmentDescription depthAttachment =
-    {
-        .flags = 0,
-        .format = findDepthFormat(),
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-    };
-    const VkAttachmentReference depthAttachmentRef =
-    {
-        .attachment = 1,
-        .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-    };
-    const VkSubpassDescription subpass =
-    {
-        .flags = 0,
-        .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-        .inputAttachmentCount = 0,
-        .pInputAttachments = VK_NULL_HANDLE,
-        .colorAttachmentCount = 1,
-        .pColorAttachments = &colorAttachmentRef,
-        .pResolveAttachments = VK_NULL_HANDLE,
-        .pDepthStencilAttachment = &depthAttachmentRef,
-        .preserveAttachmentCount = 0,
-        .pPreserveAttachments = VK_NULL_HANDLE,
-    };
-    const VkSubpassDependency dependency =
-    {
-        .srcSubpass = VK_SUBPASS_EXTERNAL,
-        .dstSubpass = 0,
-        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-        .srcAccessMask = 0,
-        .dstAccessMask= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-    };
-    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
-    const VkRenderPassCreateInfo renderPassInfo =
-    {
-        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-        .pNext = VK_NULL_HANDLE,
-        .flags = 0,
-        .attachmentCount = static_cast<uint32_t>(attachments.size()),
-        .pAttachments = attachments.data(),
-        .subpassCount = 1,
-        .pSubpasses = &subpass,
-        .dependencyCount = 1,
-        .pDependencies = &dependency,
-    };
-
-    if (vkCreateRenderPass(_vkDevice, &renderPassInfo, VK_NULL_HANDLE, &_vkRenderPass) != VK_SUCCESS)
-    {
-        ERROR_EXIT("Failed to create render pass.");
-    }
+    _renderPass = std::make_shared<RenderPass>(_vkDevice, _swapchain.format());
 }
 
 // Create all the framebuffers needed
@@ -434,7 +334,7 @@ void Renderer::createFramebuffers()
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
             .pNext = VK_NULL_HANDLE,
             .flags = 0,
-            .renderPass = _vkRenderPass,
+            .renderPass = _renderPass->operator()(),
             .attachmentCount = static_cast<uint32_t>(attachments.size()),
             .pAttachments = attachments.data(),
             .width = swapchainExtent.width,
@@ -562,7 +462,7 @@ void Renderer::createCommandBuffer(const uint32_t commandBufferIndex)
     {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
         .pNext = VK_NULL_HANDLE,
-        .renderPass = _vkRenderPass,
+        .renderPass = _renderPass->operator()(),
         .framebuffer = _vkSwapchainFramebuffers[commandBufferIndex],
         .renderArea = 
         {
@@ -596,7 +496,7 @@ void Renderer::createCommandBuffer(const uint32_t commandBufferIndex)
     };
     vkCmdSetScissor(_vkCommandBuffers[commandBufferIndex], 0, 1, &scissor);
 
-    vkCmdBindPipeline(_vkCommandBuffers[commandBufferIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, _vkGraphicsPipeline);
+    _graphicsPipeline->bind(_vkCommandBuffers[commandBufferIndex]);
 
     const std::array<VkBuffer, 1> vertexBuffers = {_vkVertexBuffer};
     const std::array<VkDeviceSize, 1> offsets = {0};
@@ -1188,38 +1088,10 @@ void Renderer::createTextureSampler()
 
 void Renderer::createDepthResources()
 {
-    const VkFormat depthFormat = findDepthFormat();
+    const VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
     const auto extent = _swapchain.extent();
     createImage(extent.width, extent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, _depthImage, _depthImageMemory);
     _depthImageView = createImageView(_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-}
-
-VkFormat Renderer::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
-{
-    for (const auto& format : candidates)
-    {
-        VkFormatProperties properties;
-        vkGetPhysicalDeviceFormatProperties(_vkPhysicalDevice, format, &properties);
-        if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features)
-        {
-            return format;
-        }
-        else if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features)
-        {
-            return format;
-        }
-    }
-    ERROR_EXIT("Failed to find support format.");
-}
-
-VkFormat Renderer::findDepthFormat()
-{
-    return findSupportedFormat
-    (
-        {VK_FORMAT_D32_SFLOAT},
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-    );
 }
 
 void Renderer::loadModels()

@@ -13,6 +13,15 @@ static inline shaderc_shader_kind toShadercType(const ShaderType type)
     }
 }
 
+Shader::Shader(const std::string& filename, const ShaderType type, const VkDevice& device)
+: _filename{filename}
+, _type{type}
+, _device{device}
+{
+    compile();
+    createShaderModule();
+}
+
 // Read the shader code from filename and compile it to spir-v bytecode
 void Shader::compile()
 {
@@ -70,8 +79,38 @@ void Shader::compile()
     INFO("Shader \"" + _filename + "\" successfully compiled.");
 }
 
+// Create Vulkan shader module from shader bytecode
+void Shader::createShaderModule()
+{
+    const VkShaderModuleCreateInfo createInfo =
+    {
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .pNext = VK_NULL_HANDLE,
+        .flags = 0,
+        .codeSize = _shaderCode.size() * sizeof(uint32_t),
+        .pCode = _shaderCode.data(),
+    };
+
+    if (vkCreateShaderModule(_device, &createInfo, VK_NULL_HANDLE, &_shaderModule) != VK_SUCCESS)
+    {
+        ERROR_EXIT("Failed to create shader module.");
+    }
+}
+
+// Destroy the Vulkan shader module
+void Shader::destroyShaderModule()
+{
+    vkDestroyShaderModule(_device, _shaderModule, VK_NULL_HANDLE);
+}
+
 // Getter to the spir-v bytecode
 const std::vector<uint32_t>& Shader::code() const
 {
     return _shaderCode;
+}
+
+// Getter to the Vulkan shader module
+const VkShaderModule& Shader::shaderModule() const
+{
+    return _shaderModule;
 }

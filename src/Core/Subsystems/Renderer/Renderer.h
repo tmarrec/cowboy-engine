@@ -17,54 +17,14 @@
 #include <unordered_map>
 
 #include "Shader.h"
-#include "tempname/Swapchain.h"
-#include "tempname/DescriptorPool.h"
+#include "Swapchain.h"
+#include "DescriptorPool.h"
 #include "world/World.h"
+#include "GraphicsPipeline.h"
+#include "RenderPass.h"
 
 const uint8_t MAX_FRAMES_IN_FLIGHT = 3;
 
-struct Vertex
-{
-    glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
-
-    static VkVertexInputBindingDescription getBindingDescription()
-    {
-        return 
-        {
-            .binding = 0,
-            .stride = sizeof(Vertex),
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-        };
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions()
-    {
-        return
-        {
-            VkVertexInputAttributeDescription
-            {   // Position
-                .location = 0,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(Vertex, pos),
-            },
-            {   // Color
-                .location = 1,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(Vertex, color),
-            },
-            {   // Texture Coordinates
-                .location = 2,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32_SFLOAT,
-                .offset = offsetof(Vertex, texCoord),
-            }
-        };
-    }
-};
 
 struct VkPrimitive
 {
@@ -134,7 +94,6 @@ class Renderer
 
     // Graphics Pipeline
     void createRenderPass();
-    void createGraphicsPipeline();
 
     void createFramebuffers();
     void createCommandPool();
@@ -153,8 +112,6 @@ class Renderer
     void createDescriptorPool();
     void createDescriptorSets();
 
-
-
     // Shaders (temp, should use shader class in future)
     VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
 
@@ -170,7 +127,6 @@ class Renderer
     VkQueue                         _vkGraphicsQueue            = VK_NULL_HANDLE;
     VkQueue                         _vkPresentQueue             = VK_NULL_HANDLE;
     VkPipelineLayout                _vkPipelineLayout           = VK_NULL_HANDLE;
-    VkRenderPass                    _vkRenderPass               = VK_NULL_HANDLE;
     VkCommandPool                   _vkCommandPool              = VK_NULL_HANDLE;
     VkBuffer                        _vkVertexBuffer             = VK_NULL_HANDLE;
     VkDeviceMemory                  _vkVertexBufferMemory       = VK_NULL_HANDLE;
@@ -189,9 +145,6 @@ class Renderer
     std::vector<VkFence>            _vkImagesInFlight           = {};
     std::vector<VkDescriptorSet>    _vkDescriptorSets           = {};
     
-    Shader                          _vertShader = {"vert.vert", SHADER_TYPE_VERTEX};
-    Shader                          _fragShader = {"frag.frag", SHADER_TYPE_FRAGMENT};
-
     uint8_t                    _currentFrame = 0;
     
     std::vector<Vertex>             _vertices = {};
@@ -205,7 +158,9 @@ class Renderer
     void loadTextures();
     
     //std::unordered_map<Primitive, VkPrimitive> _primitiveVkObjects;
-    std::shared_ptr<DescriptorPool> _descriptorPool = nullptr;
+    std::shared_ptr<DescriptorPool>     _descriptorPool     = nullptr;
+    std::shared_ptr<GraphicsPipeline>   _graphicsPipeline   = nullptr;
+    std::shared_ptr<RenderPass>         _renderPass         = nullptr;
 
     World _world {};
 };
