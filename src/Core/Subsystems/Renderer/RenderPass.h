@@ -7,11 +7,10 @@
 class RenderPass
 {
  public:
-    RenderPass(const VkDevice& vkDevice, const VkFormat& colorFormat);
-    VkRenderPass& operator()();
+    RenderPass();
+    const VkRenderPass& vkRenderPass() const;
     ~RenderPass();
 
  private:
-    const VkDevice& _vkDevice;
     VkRenderPass _vkRenderPass = VK_NULL_HANDLE;
 };

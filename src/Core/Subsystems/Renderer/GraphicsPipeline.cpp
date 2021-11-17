@@ -1,14 +1,19 @@
 #include "./GraphicsPipeline.h"
-#include "./../../../utils.h"
+#include "./../../utils.h"
 
 #include <array>
 #include <glm/glm.hpp>
 
-GraphicsPipeline::GraphicsPipeline(const VkDevice& vkDevice, const VkExtent2D& vkExtent)
-: _vkDevice {vkDevice}
+inline std::shared_ptr<LogicalDevice> g_logicalDevice;
+inline std::shared_ptr<RenderPass> g_renderPass;
+inline std::shared_ptr<Swapchain> g_swapchain;
+
+GraphicsPipeline::GraphicsPipeline()
 {
-    _vertShader = std::make_shared<Shader>("vert.vert", SHADER_TYPE_VERTEX, vkDevice);
-    _fragShader = std::make_shared<Shader>("frag.frag", SHADER_TYPE_FRAGMENT, vkDevice);
+    createDescriptorSetLayout();
+
+    _vertShader = std::make_shared<Shader>("vert.vert", SHADER_TYPE_VERTEX);
+    _fragShader = std::make_shared<Shader>("frag.frag", SHADER_TYPE_FRAGMENT);
 
     const VkPipelineShaderStageCreateInfo vertShaderStageInfo =
     {
@@ -59,6 +64,7 @@ GraphicsPipeline::GraphicsPipeline(const VkDevice& vkDevice, const VkExtent2D& v
         .primitiveRestartEnable = VK_FALSE,
     };
 
+    const VkExtent2D vkExtent = g_swapchain->extent();
     // Viewport and Scissor
     const VkViewport viewport =
     {
@@ -197,7 +203,7 @@ GraphicsPipeline::GraphicsPipeline(const VkDevice& vkDevice, const VkExtent2D& v
         .pPushConstantRanges = &pushConstantRange,
     };
 
-    if (vkCreatePipelineLayout(_vkDevice, &pipelineLayoutInfo, VK_NULL_HANDLE, &_vkPipelineLayout) != VK_SUCCESS)
+    if (vkCreatePipelineLayout(g_logicalDevice->vkDevice(), &pipelineLayoutInfo, VK_NULL_HANDLE, &_vkPipelineLayout) != VK_SUCCESS)
     {
         ERROR("Failed to create pipeline layout.");
     }
@@ -219,13 +225,13 @@ GraphicsPipeline::GraphicsPipeline(const VkDevice& vkDevice, const VkExtent2D& v
         .pColorBlendState = &colorBlendingInfo,
         .pDynamicState = &dynamicStateInfo,
         .layout = _vkPipelineLayout,
-        .renderPass = _vkRenderPass,
+        .renderPass = g_renderPass->vkRenderPass(),
         .subpass = 0,
         .basePipelineHandle = VK_NULL_HANDLE,
         .basePipelineIndex = -1,
     };
 
-    if (vkCreateGraphicsPipelines(_vkDevice, VK_NULL_HANDLE, 1, &pipelineInfo, VK_NULL_HANDLE, &_graphicsPipeline) != VK_SUCCESS)
+    if (vkCreateGraphicsPipelines(g_logicalDevice->vkDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, VK_NULL_HANDLE, &_vkGraphicsPipeline) != VK_SUCCESS)
     {
         ERROR("Failed to create graphics pipeline.");
     }
@@ -236,10 +242,75 @@ GraphicsPipeline::GraphicsPipeline(const VkDevice& vkDevice, const VkExtent2D& v
 
 GraphicsPipeline::~GraphicsPipeline()
 {
-    vkDestroyPipeline(_vkDevice, _vkGraphicsPipeline, VK_NULL_HANDLE);
+    const VkDevice vkDevice = g_logicalDevice->vkDevice();
+    vkDestroyPipelineLayout(vkDevice, _vkPipelineLayout, VK_NULL_HANDLE);
+    vkDestroyPipeline(vkDevice, _vkGraphicsPipeline, VK_NULL_HANDLE);
+
+    vkDestroyDescriptorSetLayout(vkDevice, _vkDescriptorSetLayout[0], VK_NULL_HANDLE);
+    vkDestroyDescriptorSetLayout(vkDevice, _vkDescriptorSetLayout[1], VK_NULL_HANDLE);
 }
 
 void GraphicsPipeline::bind(const VkCommandBuffer& vkCommandBuffer) const
 {
     vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _vkGraphicsPipeline);
+}
+
+void GraphicsPipeline::createDescriptorSetLayout()
+{
+    const std::array<VkDescriptorSetLayoutBinding, 2> bindlessLayout =
+    {
+        VkDescriptorSetLayoutBinding
+        {
+            .binding = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 32 * 1024,
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+            .pImmutableSamplers = VK_NULL_HANDLE,
+        },
+        {
+            .binding = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount = 32 * 1024,
+            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .pImmutableSamplers = VK_NULL_HANDLE,
+        },
+    };
+
+    const std::array<VkDescriptorBindingFlags, 2> descriptorBindingFlags =
+    {
+        0,
+        VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT,
+    };
+    
+    for (uint8_t i = 0; i < 2; ++i)
+    {
+        const VkDescriptorSetLayoutBindingFlagsCreateInfo setLayoutBindingFlags =
+        {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+            .pNext = VK_NULL_HANDLE,
+            .bindingCount = 1,
+            .pBindingFlags = &descriptorBindingFlags[i],
+        };
+
+        const VkDescriptorSetLayoutCreateInfo layoutInfo =
+        {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext = &setLayoutBindingFlags,
+            .flags = 0,
+            .bindingCount = 1,
+            .pBindings = &bindlessLayout[i],
+        };
+
+        if (vkCreateDescriptorSetLayout(g_logicalDevice->vkDevice(), &layoutInfo, VK_NULL_HANDLE, &_vkDescriptorSetLayout[i]) != VK_SUCCESS)
+        {
+            ERROR_EXIT("Failed to create descriptor set layout.");
+        }
+    }
+
+    INFO("Descriptor sets layout successfully created.");
+}
+
+const VkPipelineLayout& GraphicsPipeline::vkPipelineLayout() const
+{
+    return _vkPipelineLayout;
 }

@@ -46,6 +46,7 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Core/Subsystems/Window/Window.cpp
 
     # Renderer Subsystem
+    src/Core/Subsystems/Renderer/RendererObjects.h
     src/Core/Subsystems/Renderer/Renderer.h
     src/Core/Subsystems/Renderer/Renderer.cpp
     src/Core/Subsystems/Renderer/Shader.h
@@ -58,6 +59,12 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Core/Subsystems/Renderer/DescriptorSet.cpp
     src/Core/Subsystems/Renderer/GraphicsPipeline.h
     src/Core/Subsystems/Renderer/GraphicsPipeline.cpp
+    src/Core/Subsystems/Renderer/RenderPass.h
+    src/Core/Subsystems/Renderer/RenderPass.cpp
+    src/Core/Subsystems/Renderer/PhysicalDevice.h
+    src/Core/Subsystems/Renderer/PhysicalDevice.cpp
+    src/Core/Subsystems/Renderer/LogicalDevice.h
+    src/Core/Subsystems/Renderer/LogicalDevice.cpp
 
     # Renderer World
     src/Core/Subsystems/Renderer/world/World.h

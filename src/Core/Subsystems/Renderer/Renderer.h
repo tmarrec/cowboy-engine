@@ -17,19 +17,11 @@
 #include <unordered_map>
 
 #include "Shader.h"
-#include "Swapchain.h"
-#include "DescriptorPool.h"
 #include "world/World.h"
-#include "GraphicsPipeline.h"
-#include "RenderPass.h"
+
+#include "RendererObjects.h"
 
 const uint8_t MAX_FRAMES_IN_FLIGHT = 3;
-
-
-struct VkPrimitive
-{
-
-};
 
 struct UniformBufferObject
 {
@@ -61,14 +53,11 @@ class Renderer
     void createSurface();
     void pickPhysicalDevice();
     bool isPhysicalDeviceSuitable(VkPhysicalDevice device);
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     void createLogicalDevice();
-    bool checkDeviceExtensionSupport(const VkPhysicalDevice device);
 
     // Swapchain
     void createSwapchain();
     
-    Swapchain _swapchain = {};
 
     // Image Views
     void createImageViews();
@@ -107,7 +96,6 @@ class Renderer
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void copyBuffer(VkBuffer& srcBuffer, VkBuffer& dstBuffer, VkDeviceSize& size);
 
-    void createDescriptorSetLayout();
     void updateUniformBuffer(const uint32_t currentImage);
     void createDescriptorPool();
     void createDescriptorSets();
@@ -115,25 +103,15 @@ class Renderer
     // Shaders (temp, should use shader class in future)
     VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
 
-    const std::array<const char*, 1> _deviceExtensions =
-    {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-    };
-
     VkInstance                      _vkInstance                 = VK_NULL_HANDLE;
-    VkPhysicalDevice                _vkPhysicalDevice           = VK_NULL_HANDLE;
     VkSurfaceKHR                    _vkSurface                  = VK_NULL_HANDLE;
-    VkDevice                        _vkDevice                   = VK_NULL_HANDLE;
     VkQueue                         _vkGraphicsQueue            = VK_NULL_HANDLE;
     VkQueue                         _vkPresentQueue             = VK_NULL_HANDLE;
-    VkPipelineLayout                _vkPipelineLayout           = VK_NULL_HANDLE;
     VkCommandPool                   _vkCommandPool              = VK_NULL_HANDLE;
     VkBuffer                        _vkVertexBuffer             = VK_NULL_HANDLE;
     VkDeviceMemory                  _vkVertexBufferMemory       = VK_NULL_HANDLE;
     VkBuffer                        _vkIndexBuffer              = VK_NULL_HANDLE;
     VkDeviceMemory                  _vkIndexBufferMemory        = VK_NULL_HANDLE;
-    std::array<VkDescriptorSetLayout, 2> _vkDescriptorSetLayout = {VK_NULL_HANDLE, VK_NULL_HANDLE};
-
 
     std::vector<VkImage>            _vkSwapchainImages          = {};
     std::vector<VkImageView>        _vkSwapchainImageViews      = {};
@@ -157,10 +135,7 @@ class Renderer
 
     void loadTextures();
     
-    //std::unordered_map<Primitive, VkPrimitive> _primitiveVkObjects;
-    std::shared_ptr<DescriptorPool>     _descriptorPool     = nullptr;
-    std::shared_ptr<GraphicsPipeline>   _graphicsPipeline   = nullptr;
-    std::shared_ptr<RenderPass>         _renderPass         = nullptr;
+    // New
 
     World _world {};
 };

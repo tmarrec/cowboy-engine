@@ -1,10 +1,12 @@
 #include "./DescriptorPool.h"
-#include "./../../../utils.h"
+#include "./../../utils.h"
+#include "LogicalDevice.h"
 
 #include <array>
 
-DescriptorPool::DescriptorPool(VkDevice& device, const uint32_t maxFramesInFlight)
-: _device {device}
+inline std::shared_ptr<LogicalDevice> g_logicalDevice;
+
+DescriptorPool::DescriptorPool(const uint32_t maxFramesInFlight)
 {
     const std::array<VkDescriptorPoolSize, 2> poolSizes =
     {
@@ -29,7 +31,7 @@ DescriptorPool::DescriptorPool(VkDevice& device, const uint32_t maxFramesInFligh
         .pPoolSizes = poolSizes.data(),
     };
 
-    if (vkCreateDescriptorPool(_device, &poolInfo, VK_NULL_HANDLE, &_descriptorPool) != VK_SUCCESS)
+    if (vkCreateDescriptorPool(g_logicalDevice->vkDevice(), &poolInfo, VK_NULL_HANDLE, &_descriptorPool) != VK_SUCCESS)
     {
         ERROR_EXIT("Failed to create descriptor pool.");
     }
@@ -38,5 +40,5 @@ DescriptorPool::DescriptorPool(VkDevice& device, const uint32_t maxFramesInFligh
 
 DescriptorPool::~DescriptorPool()
 {
-    vkDestroyDescriptorPool(_device, _descriptorPool, VK_NULL_HANDLE);
+    vkDestroyDescriptorPool(g_logicalDevice->vkDevice(), _descriptorPool, VK_NULL_HANDLE);
 }

@@ -1,14 +1,18 @@
 #include "./Swapchain.h"
 
 #include <vulkan/vulkan_core.h>
+#include "PhysicalDevice.h"
+#include "LogicalDevice.h"
 
 extern Window g_Window;
+inline std::shared_ptr<PhysicalDevice> g_physicalDevice;
+inline std::shared_ptr<LogicalDevice> g_logicalDevice;
 
 // Create the Vulkan swapchain
-void Swapchain::create(const VkPhysicalDevice physicalDevice, const VkDevice device, const VkSurfaceKHR surface, const QueueFamilyIndices& indices)
+Swapchain::Swapchain(const VkSurfaceKHR surface)
 {
     // Get the informations needed for the swapchain
-    const SwapchainSupportDetails swapchainSupport = querySupport(physicalDevice, surface);
+    const SwapchainSupportDetails swapchainSupport = querySupport(g_physicalDevice->vkPhysicalDevice(), surface);
     const VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(swapchainSupport.formats);
     const VkPresentModeKHR presentMode = choosePresentMode(swapchainSupport.presentModes);
     _imageCount = [&]()
@@ -20,8 +24,8 @@ void Swapchain::create(const VkPhysicalDevice physicalDevice, const VkDevice dev
         }
         return imageCount;
     }();
-    _surfaceFormat = surfaceFormat.format;
-    _extent = chooseExtent(swapchainSupport.capabilities);
+    _vkSurfaceFormat = surfaceFormat.format;
+    _vkExtent = chooseExtent(swapchainSupport.capabilities);
 
     // Fill the swapchain informations
     const VkSwapchainCreateInfoKHR createInfo = [&]()
@@ -33,17 +37,18 @@ void Swapchain::create(const VkPhysicalDevice physicalDevice, const VkDevice dev
             .flags = 0,
             .surface = surface,
             .minImageCount = _imageCount,
-            .imageFormat = _surfaceFormat,
+            .imageFormat = _vkSurfaceFormat,
             .imageColorSpace = surfaceFormat.colorSpace,
-            .imageExtent = _extent,
+            .imageExtent = _vkExtent,
             .imageArrayLayers = 1,
             .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             .preTransform = swapchainSupport.capabilities.currentTransform,
             .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             .presentMode = presentMode,
             .clipped = VK_TRUE,
-            .oldSwapchain = _swapchain,
+            .oldSwapchain = _vkSwapchain,
         };
+        auto indices = g_physicalDevice->findQueueFamilies(g_physicalDevice->vkPhysicalDevice());
         if (indices.graphics != indices.present)
         {
             const std::array<uint32_t, 2> queueFamilyIndices = {indices.graphics.value(), indices.present.value()};
@@ -62,7 +67,7 @@ void Swapchain::create(const VkPhysicalDevice physicalDevice, const VkDevice dev
 
 
     // Create the swapchain
-    if (vkCreateSwapchainKHR(device, &createInfo, VK_NULL_HANDLE, &_swapchain) != VK_SUCCESS)
+    if (vkCreateSwapchainKHR(g_logicalDevice->vkDevice(), &createInfo, VK_NULL_HANDLE, &_vkSwapchain) != VK_SUCCESS)
     {
         ERROR_EXIT("Failed to create swapchain.");
     }
@@ -119,7 +124,7 @@ VkExtent2D Swapchain::chooseExtent(const VkSurfaceCapabilitiesKHR capabilities)
 }
 
 // Get the details of the device swapchain support
-SwapchainSupportDetails Swapchain::querySupport(const VkPhysicalDevice device, const VkSurfaceKHR surface)
+const SwapchainSupportDetails Swapchain::querySupport(const VkPhysicalDevice device, const VkSurfaceKHR surface) const
 {
     SwapchainSupportDetails details;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
@@ -150,16 +155,16 @@ const uint32_t Swapchain::imageCount() const
 
 const VkFormat Swapchain::format() const
 {
-    return _surfaceFormat;
+    return _vkSurfaceFormat;
 }
 
 const VkExtent2D Swapchain::extent() const
 {
-    return _extent;
+    return _vkExtent;
 }
 
 // Getter to the vulkan swapchain object
-VkSwapchainKHR& Swapchain::operator()()
+VkSwapchainKHR& Swapchain::vkSwapchain()
 {
-    return _swapchain;
+    return _vkSwapchain;
 }

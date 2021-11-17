@@ -4,6 +4,9 @@
 #include "glm/glm.hpp"
 
 #include "Shader.h"
+#include "LogicalDevice.h"
+#include "Swapchain.h"
+#include "RenderPass.h"
 
 struct Vertex
 {
@@ -51,14 +54,17 @@ struct Vertex
 class GraphicsPipeline
 {
  public:
-    GraphicsPipeline(const VkDevice& vkDevice, const VkExtent2D& vkExtent);
+    GraphicsPipeline();
     ~GraphicsPipeline();
     void bind(const VkCommandBuffer& vkCommandBuffer) const;
+    const VkPipelineLayout& vkPipelineLayout() const;
 
  private:
-    const VkDevice&         _vkDevice;
-    VkPipeline              _vkGraphicsPipeline     = VK_NULL_HANDLE;
-    VkPipelineLayout        _vkPipelineLayout       = VK_NULL_HANDLE;
-    std::shared_ptr<Shader> _vertShader             = nullptr;
-    std::shared_ptr<Shader> _fragShader             = nullptr;
+    void createDescriptorSetLayout();
+
+    VkPipeline                              _vkGraphicsPipeline     = VK_NULL_HANDLE;
+    VkPipelineLayout                        _vkPipelineLayout       = VK_NULL_HANDLE;
+    std::array<VkDescriptorSetLayout, 2>    _vkDescriptorSetLayout  = {VK_NULL_HANDLE, VK_NULL_HANDLE};
+    std::shared_ptr<Shader>                 _vertShader             = nullptr;
+    std::shared_ptr<Shader>                 _fragShader             = nullptr;
 };

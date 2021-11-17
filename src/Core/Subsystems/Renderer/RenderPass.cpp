@@ -1,14 +1,18 @@
 #include "RenderPass.h"
+#include "Swapchain.h"
+#include "LogicalDevice.h"
 
 #include <array>
 
-RenderPass::RenderPass(const VkDevice& vkDevice, const VkFormat& colorFormat)
-: _vkDevice(vkDevice)
+inline std::shared_ptr<Swapchain> g_swapchain;
+inline std::shared_ptr<LogicalDevice> g_logicalDevice;
+
+RenderPass::RenderPass()
 {
     const VkAttachmentDescription colorAttachment =
     {
         .flags = 0,
-        .format = colorFormat,
+        .format = g_swapchain->format(),
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -75,7 +79,7 @@ RenderPass::RenderPass(const VkDevice& vkDevice, const VkFormat& colorFormat)
         .pDependencies = &dependency,
     };
 
-    if (vkCreateRenderPass(vkDevice, &renderPassInfo, VK_NULL_HANDLE, &_vkRenderPass) != VK_SUCCESS)
+    if (vkCreateRenderPass(g_logicalDevice->vkDevice(), &renderPassInfo, VK_NULL_HANDLE, &_vkRenderPass) != VK_SUCCESS)
     {
         ERROR_EXIT("Failed to create render pass.");
     }
@@ -83,10 +87,10 @@ RenderPass::RenderPass(const VkDevice& vkDevice, const VkFormat& colorFormat)
 
 RenderPass::~RenderPass()
 {
-    vkDestroyRenderPass(_vkDevice, _vkRenderPass, VK_NULL_HANDLE);
+    vkDestroyRenderPass(g_logicalDevice->vkDevice(), _vkRenderPass, VK_NULL_HANDLE);
 }
 
-VkRenderPass& RenderPass::operator()()
+const VkRenderPass& RenderPass::vkRenderPass() const
 {
     return _vkRenderPass;
 }

@@ -1,5 +1,7 @@
 #include "Shader.h"
 
+inline std::shared_ptr<LogicalDevice> g_logicalDevice;
+
 static inline shaderc_shader_kind toShadercType(const ShaderType type)
 {
     switch (type)
@@ -13,10 +15,9 @@ static inline shaderc_shader_kind toShadercType(const ShaderType type)
     }
 }
 
-Shader::Shader(const std::string& filename, const ShaderType type, const VkDevice& device)
+Shader::Shader(const std::string& filename, const ShaderType type)
 : _filename{filename}
 , _type{type}
-, _device{device}
 {
     compile();
     createShaderModule();
@@ -91,7 +92,7 @@ void Shader::createShaderModule()
         .pCode = _shaderCode.data(),
     };
 
-    if (vkCreateShaderModule(_device, &createInfo, VK_NULL_HANDLE, &_shaderModule) != VK_SUCCESS)
+    if (vkCreateShaderModule(g_logicalDevice->vkDevice(), &createInfo, VK_NULL_HANDLE, &_shaderModule) != VK_SUCCESS)
     {
         ERROR_EXIT("Failed to create shader module.");
     }
@@ -100,7 +101,7 @@ void Shader::createShaderModule()
 // Destroy the Vulkan shader module
 void Shader::destroyShaderModule()
 {
-    vkDestroyShaderModule(_device, _shaderModule, VK_NULL_HANDLE);
+    vkDestroyShaderModule(g_logicalDevice->vkDevice(), _shaderModule, VK_NULL_HANDLE);
 }
 
 // Getter to the spir-v bytecode

@@ -5,6 +5,7 @@
 #include <vulkan/vulkan.h>
 
 #include "../../utils.h"
+#include "LogicalDevice.h"
 
 enum ShaderType
 {
@@ -17,7 +18,7 @@ enum ShaderType
 class Shader
 {
  public:
-    Shader(const std::string& filename, const ShaderType type, const VkDevice& device);
+    Shader(const std::string& filename, const ShaderType type);
     void compile();
     const std::vector<uint32_t>& code() const;
     const VkShaderModule& shaderModule() const;
@@ -28,7 +29,6 @@ class Shader
 
     const std::string       _filename;
     const ShaderType        _type;
-    const VkDevice&         _device;
     std::vector<uint32_t>   _shaderCode = {};
     bool                    _lastCompilationOk = false;
     VkShaderModule          _shaderModule;
