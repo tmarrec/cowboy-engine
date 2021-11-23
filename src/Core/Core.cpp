@@ -11,9 +11,9 @@
 
 #include <random>
 
-ECSManager g_ECSManager;
-Window g_Window;
-Renderer g_Renderer;
+ECSManager  g_ECSManager;
+Window      g_Window;
+Renderer    g_Renderer;
 
 int Core::Run()
 {

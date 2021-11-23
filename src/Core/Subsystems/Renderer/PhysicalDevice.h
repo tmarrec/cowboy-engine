@@ -24,5 +24,5 @@ class PhysicalDevice
     {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     };
-    const VkSurfaceKHR _vkSurface;
+    VkSurfaceKHR _vkSurface = VK_NULL_HANDLE;
 };

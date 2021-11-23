@@ -4,8 +4,8 @@
 
 #include <array>
 
-inline std::shared_ptr<Swapchain> g_swapchain;
-inline std::shared_ptr<LogicalDevice> g_logicalDevice;
+extern std::unique_ptr<Swapchain>       g_swapchain;
+extern std::unique_ptr<LogicalDevice>   g_logicalDevice;
 
 RenderPass::RenderPass()
 {
@@ -83,6 +83,7 @@ RenderPass::RenderPass()
     {
         ERROR_EXIT("Failed to create render pass.");
     }
+    OK("Render pass.");
 }
 
 RenderPass::~RenderPass()

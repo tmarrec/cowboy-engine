@@ -1,6 +1,6 @@
 #include "LogicalDevice.h"
 
-inline std::shared_ptr<PhysicalDevice> g_physicalDevice;
+extern std::unique_ptr<PhysicalDevice> g_physicalDevice;
 
 LogicalDevice::LogicalDevice()
 {
@@ -53,13 +53,23 @@ LogicalDevice::LogicalDevice()
 		ERROR_EXIT("Failed to create logical Vulkan device.")
 	}
 
-    /* TODO FIX THIS
 	vkGetDeviceQueue(_vkDevice, indices.graphics.value(), 0, &_vkGraphicsQueue);
 	vkGetDeviceQueue(_vkDevice, indices.present.value(), 0, &_vkPresentQueue);
-    */
+
+    OK("Logical device.");
 }
 
 const VkDevice LogicalDevice::vkDevice() const
 {
     return _vkDevice;
+}
+
+const VkQueue LogicalDevice::vkGraphicsQueue() const
+{
+    return _vkGraphicsQueue;
+}
+
+const VkQueue LogicalDevice::vkPresentQueue() const
+{
+    return _vkPresentQueue;
 }

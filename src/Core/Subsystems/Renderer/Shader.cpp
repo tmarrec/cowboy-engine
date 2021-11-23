@@ -1,6 +1,6 @@
 #include "Shader.h"
 
-inline std::shared_ptr<LogicalDevice> g_logicalDevice;
+extern std::unique_ptr<LogicalDevice> g_logicalDevice;
 
 static inline shaderc_shader_kind toShadercType(const ShaderType type)
 {
@@ -77,7 +77,7 @@ void Shader::compile()
     
     _shaderCode = {assembly.cbegin(), assembly.cend()};
     _lastCompilationOk = true;
-    INFO("Shader \"" + _filename + "\" successfully compiled.");
+    OK("Shader \"" + _filename + "\" successfully compiled.");
 }
 
 // Create Vulkan shader module from shader bytecode

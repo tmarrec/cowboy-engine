@@ -2,7 +2,16 @@
 
 #include "../Window/Window.h"
 
+#include <memory>
+
 extern Window g_Window;
+
+std::unique_ptr<PhysicalDevice>     g_physicalDevice    = nullptr;
+std::unique_ptr<LogicalDevice>      g_logicalDevice     = nullptr;
+std::unique_ptr<Swapchain>          g_swapchain         = nullptr;
+std::unique_ptr<DescriptorPool>     g_descriptorPool    = nullptr;
+std::unique_ptr<GraphicsPipeline>   g_graphicsPipeline  = nullptr;
+std::unique_ptr<RenderPass>         g_renderPass        = nullptr;
 
 // Initialize the Renderer manager
 Renderer::Renderer()
@@ -28,7 +37,6 @@ Renderer::Renderer()
     createDescriptorSets();
     allocateCommandBuffers();
     createSyncObjects();
-    exit(0);
 }
 
 // Clean all the objects related to Vulkan
@@ -74,7 +82,7 @@ Renderer::~Renderer()
 // Choose the GPU to use
 void Renderer::pickPhysicalDevice()
 {
-    g_physicalDevice = std::make_shared<PhysicalDevice>(_vkInstance, _vkSurface);
+    g_physicalDevice = std::make_unique<PhysicalDevice>(_vkInstance, _vkSurface);
 }
 
 // Create a Vulkan surface
@@ -122,28 +130,24 @@ void Renderer::createInstance()
 	{
 		ERROR_EXIT("Cannot create Vulkan instance.");
 	}
+    OK("Vulkan instance");
 }
 
 // Create the logical Vulkan device
 void Renderer::createLogicalDevice()
 {
-    ASSERT(g_physicalDevice, "_physicalDevice should not be nullptr.");
-    g_logicalDevice = std::make_shared<LogicalDevice>();
+    g_logicalDevice = std::make_unique<LogicalDevice>();
 }
 
 // Create the Vulkan swapchain
 void Renderer::createSwapchain()
 {
-    ASSERT(g_physicalDevice, "_physicalDevice should not be nullptr.");
-    ASSERT(g_logicalDevice, "_logicalDevice should not be nullptr.");
-    g_swapchain = std::make_shared<Swapchain>(_vkSurface);
+    g_swapchain = std::make_unique<Swapchain>(_vkSurface);
 }
 
 // Create the images for the swapchain
 void Renderer::createImages()
 {
-    ASSERT(g_logicalDevice, "_logicalDevice should not be nullptr.");
-    ASSERT(g_swapchain, "_swapchain should not be nullptr.");
     // Link the swapchain to the vector of images
     uint32_t swapchainImageCount;
     const VkSwapchainKHR vkSwapchain = g_swapchain->vkSwapchain();
@@ -165,24 +169,18 @@ void Renderer::createImageViews()
 // Update the Vulkan graphics pipeline
 void Renderer::updateGraphicsPipeline()
 {
-    ASSERT(g_logicalDevice, "_logicalDevice should not be nullptr.");
-    ASSERT(g_swapchain, "_swapchain should not be nullptr.");
-    ASSERT(g_renderPass, "_renderPass should not be nullptr.");
-    g_graphicsPipeline = std::make_shared<GraphicsPipeline>();
+    g_graphicsPipeline = std::make_unique<GraphicsPipeline>();
 }
 
 // Create the Vulkan render pass
 void Renderer::createRenderPass()
 {
-    ASSERT(g_logicalDevice, "_logicalDevice should not be nullptr.");
-    ASSERT(g_swapchain, "_swapchain should not be nullptr.");
-    g_renderPass = std::make_shared<RenderPass>();
+    g_renderPass = std::make_unique<RenderPass>();
 }
 
 // Create all the framebuffers needed
 void Renderer::createFramebuffers()
 {
-    ASSERT(g_logicalDevice, "_logicalDevice should not be nullptr.");
     _vkSwapchainFramebuffers.resize(_vkSwapchainImageViews.size());
     for (size_t i = 0; i < _vkSwapchainImageViews.size(); ++i)
     {
@@ -216,8 +214,6 @@ void Renderer::createFramebuffers()
 // Create the Vulkan command pool
 void Renderer::createCommandPool()
 {
-    ASSERT(g_physicalDevice, "_physicalDevice should not be nullptr.");
-    ASSERT(g_logicalDevice, "_logicalDevice should not be nullptr.");
     const QueueFamilyIndices queueFamilyIndices = g_physicalDevice->findQueueFamilies(g_physicalDevice->vkPhysicalDevice());
 
     const VkCommandPoolCreateInfo poolInfo =
@@ -237,7 +233,6 @@ void Renderer::createCommandPool()
 // Create all the Vulkan command buffers and initialize them
 void Renderer::allocateCommandBuffers()
 {
-    ASSERT(g_logicalDevice, "_logicalDevice should not be nullptr.");
     _vkCommandBuffers.resize(_vkSwapchainFramebuffers.size());
 
     const VkCommandBufferAllocateInfo commandBufferAllocateInfo =
@@ -258,7 +253,6 @@ void Renderer::allocateCommandBuffers()
 // Create all the synchronisation objects for the drawFrame
 void Renderer::createSyncObjects()
 {
-    ASSERT(g_logicalDevice, "_logicalDevice should not be nullptr.");
     _vkImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     _vkRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     _vkInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
@@ -372,7 +366,6 @@ void Renderer::createCommandBuffer(const uint32_t commandBufferIndex)
     vkCmdBindVertexBuffers(_vkCommandBuffers[commandBufferIndex], 0, 1, vertexBuffers.data(), offsets.data());
     vkCmdBindIndexBuffer(_vkCommandBuffers[commandBufferIndex], _vkIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-    ASSERT(g_graphicsPipeline, "_graphicsPipeline should not be nullptr.");
 
     for (const auto& n : _world.getNodes())
     {
@@ -405,8 +398,6 @@ void Renderer::createCommandBuffer(const uint32_t commandBufferIndex)
 // Draw the frame by executing the queues while staying synchronised
 void Renderer::drawFrame()
 {
-    ASSERT(g_logicalDevice, "_logicalDevice should not be nullptr.");
-    ASSERT(g_swapchain, "_swapchain should not be nullptr.");
     VkDevice vkDevice = g_logicalDevice->vkDevice();
     vkWaitForFences(vkDevice, 1, &_vkInFlightFences[_currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -474,7 +465,7 @@ void Renderer::drawFrame()
 
     vkResetFences(vkDevice, 1, &_vkInFlightFences[_currentFrame]);
 
-    if (vkQueueSubmit(_vkGraphicsQueue, 1, &submitInfo, _vkInFlightFences[_currentFrame]) != VK_SUCCESS)
+    if (vkQueueSubmit(g_logicalDevice->vkGraphicsQueue(), 1, &submitInfo, _vkInFlightFences[_currentFrame]) != VK_SUCCESS)
     {
         ERROR_EXIT("Failed to submit draw command buffer.");
     }
@@ -492,9 +483,9 @@ void Renderer::drawFrame()
         .pResults = VK_NULL_HANDLE,
     };
 
-    vkQueuePresentKHR(_vkPresentQueue, &presentInfo);
+    vkQueuePresentKHR(g_logicalDevice->vkPresentQueue(), &presentInfo);
 
-    vkQueueWaitIdle(_vkPresentQueue);
+    vkQueueWaitIdle(g_logicalDevice->vkPresentQueue());
 
     _currentFrame = (_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
@@ -502,13 +493,11 @@ void Renderer::drawFrame()
 // Wait that the Vulkan device is idle
 void Renderer::waitIdle()
 {
-    ASSERT(g_logicalDevice, "_logicalDevice should not be nullptr.");
     vkDeviceWaitIdle(g_logicalDevice->vkDevice());
 }
 
 void Renderer::createVertexBuffer()
 {
-    ASSERT(g_logicalDevice, "_logicalDevice should not be nullptr.");
     VkDevice vkDevice = g_logicalDevice->vkDevice();
     VkDeviceSize bufferSize = sizeof(_vertices[0]) * _vertices.size(); 
 
@@ -530,7 +519,6 @@ void Renderer::createVertexBuffer()
 
 void Renderer::createIndexBuffer()
 {
-    ASSERT(g_logicalDevice, "_logicalDevice should not be nullptr.");
     VkDevice vkDevice = g_logicalDevice->vkDevice();
     VkDeviceSize bufferSize = sizeof(_indices[0]) * _indices.size(); 
 
@@ -565,7 +553,6 @@ void Renderer::copyBuffer(VkBuffer& srcBuffer, VkBuffer& dstBuffer, VkDeviceSize
 
 uint32_t Renderer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
-    ASSERT(g_physicalDevice, "_physicalDevice should not be nullptr");
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(g_physicalDevice->vkPhysicalDevice(), &memProperties);
 
@@ -583,7 +570,6 @@ uint32_t Renderer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags pro
 
 void Renderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
 {
-    ASSERT(g_logicalDevice, "_logicalDevice should not be nullptr.");
     VkDevice vkDevice = g_logicalDevice->vkDevice();
     const VkBufferCreateInfo bufferInfo =
     {
@@ -622,7 +608,6 @@ void Renderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemor
 
 void Renderer::updateUniformBuffer(const uint32_t currentImage)
 {
-    ASSERT(g_swapchain, "g_swapchain should not be nullptr.");
     const UniformBufferObject ubo =
     {
         .view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up),
@@ -640,12 +625,12 @@ void Renderer::updateUniformBuffer(const uint32_t currentImage)
 
 void Renderer::createDescriptorPool()
 {
-    ASSERT(g_logicalDevice, "_logicalDevice should not be nullptr.");
-    g_descriptorPool = std::make_shared<DescriptorPool>(MAX_FRAMES_IN_FLIGHT);
+    g_descriptorPool = std::make_unique<DescriptorPool>(MAX_FRAMES_IN_FLIGHT);
 }
 
 void Renderer::createDescriptorSets()
 {
+    INFO("TODO CREATEDESCRIPTORSETS");
     /*
     const std::array<uint32_t, 1> variableDescCounts = { 256 };
     const VkDescriptorSetVariableDescriptorCountAllocateInfo setCounts = 
@@ -678,7 +663,6 @@ void Renderer::createDescriptorSets()
 
 void Renderer::createImage(const uint32_t width, const uint32_t height, const VkFormat format, const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 {
-    ASSERT(g_logicalDevice, "_logicalDevice should not be nullptr.");
     VkDevice vkDevice = g_logicalDevice->vkDevice();
     const VkImageCreateInfo imageInfo =
     {
@@ -771,8 +755,8 @@ void Renderer::endSingleTimeCommands(const VkCommandBuffer& commandBuffer)
         .pSignalSemaphores = VK_NULL_HANDLE,
     };
 
-    vkQueueSubmit(_vkGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(_vkGraphicsQueue);
+    vkQueueSubmit(g_logicalDevice->vkGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(g_logicalDevice->vkGraphicsQueue());
 
     vkFreeCommandBuffers(g_logicalDevice->vkDevice(), _vkCommandPool, 1, &commandBuffer);
 }
@@ -885,7 +869,6 @@ VkImageView Renderer::createImageView(const VkImage image, const VkFormat format
 
 void Renderer::createTextureSampler()
 {
-    ASSERT(g_physicalDevice, "_physicalDevice should not be nullptr.");
     VkPhysicalDeviceProperties properties {};
     vkGetPhysicalDeviceProperties(g_physicalDevice->vkPhysicalDevice(), &properties);
 

@@ -18,10 +18,8 @@
 
 #include "Shader.h"
 #include "world/World.h"
-
-#include "RendererObjects.h"
-
-const uint8_t MAX_FRAMES_IN_FLIGHT = 3;
+#include "GraphicsPipeline.h"
+#include "DescriptorPool.h"
 
 struct UniformBufferObject
 {
@@ -49,6 +47,8 @@ class Renderer
     void createTexture(const Image& image);
 
  private:
+    friend class PhysicalDevice;
+
     void createInstance();
     void createSurface();
     void pickPhysicalDevice();
@@ -57,7 +57,6 @@ class Renderer
 
     // Swapchain
     void createSwapchain();
-    
 
     // Image Views
     void createImageViews();
@@ -105,8 +104,6 @@ class Renderer
 
     VkInstance                      _vkInstance                 = VK_NULL_HANDLE;
     VkSurfaceKHR                    _vkSurface                  = VK_NULL_HANDLE;
-    VkQueue                         _vkGraphicsQueue            = VK_NULL_HANDLE;
-    VkQueue                         _vkPresentQueue             = VK_NULL_HANDLE;
     VkCommandPool                   _vkCommandPool              = VK_NULL_HANDLE;
     VkBuffer                        _vkVertexBuffer             = VK_NULL_HANDLE;
     VkDeviceMemory                  _vkVertexBufferMemory       = VK_NULL_HANDLE;
@@ -123,7 +120,7 @@ class Renderer
     std::vector<VkFence>            _vkImagesInFlight           = {};
     std::vector<VkDescriptorSet>    _vkDescriptorSets           = {};
     
-    uint8_t                    _currentFrame = 0;
+    uint8_t                         _currentFrame = 0;
     
     std::vector<Vertex>             _vertices = {};
     std::vector<uint16_t>           _indices = {};
@@ -135,7 +132,5 @@ class Renderer
 
     void loadTextures();
     
-    // New
-
     World _world {};
 };

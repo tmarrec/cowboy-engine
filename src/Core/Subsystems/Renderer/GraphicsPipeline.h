@@ -8,6 +8,8 @@
 #include "Swapchain.h"
 #include "RenderPass.h"
 
+const uint8_t MAX_FRAMES_IN_FLIGHT = 3;
+
 struct Vertex
 {
     glm::vec3 pos;

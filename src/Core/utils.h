@@ -8,6 +8,12 @@
     std::cerr << m << '\n'; \
     }
 
+#define OK(m) \
+    {\
+    std::cerr << "   \033[42m\033[1m[ OK ]\033[49m\033[0m "; \
+    std::cerr << m << '\n'; \
+    }
+
 #define WARNING(m) \
     {\
     std::cerr << "\033[43m\033[1m[WARNING]\033[49m\033[0m "; \

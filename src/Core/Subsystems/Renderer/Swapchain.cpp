@@ -4,9 +4,9 @@
 #include "PhysicalDevice.h"
 #include "LogicalDevice.h"
 
-extern Window g_Window;
-inline std::shared_ptr<PhysicalDevice> g_physicalDevice;
-inline std::shared_ptr<LogicalDevice> g_logicalDevice;
+extern Window                           g_Window;
+extern std::unique_ptr<PhysicalDevice>  g_physicalDevice;
+extern std::unique_ptr<LogicalDevice>   g_logicalDevice;
 
 // Create the Vulkan swapchain
 Swapchain::Swapchain(const VkSurfaceKHR surface)
@@ -71,7 +71,7 @@ Swapchain::Swapchain(const VkSurfaceKHR surface)
     {
         ERROR_EXIT("Failed to create swapchain.");
     }
-    INFO("Swapchain successfully created.");
+    OK("Swapchain.");
 }
 
 // Get the swapchain surface format, aiming for RGBA 32bits sRGB 

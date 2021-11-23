@@ -46,7 +46,6 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Core/Subsystems/Window/Window.cpp
 
     # Renderer Subsystem
-    src/Core/Subsystems/Renderer/RendererObjects.h
     src/Core/Subsystems/Renderer/Renderer.h
     src/Core/Subsystems/Renderer/Renderer.cpp
     src/Core/Subsystems/Renderer/Shader.h

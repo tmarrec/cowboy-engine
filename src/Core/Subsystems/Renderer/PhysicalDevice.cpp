@@ -3,13 +3,14 @@
 #include <vector>
 #include <set>
 
-inline std::shared_ptr<Swapchain> g_swapchain;
+extern std::unique_ptr<Swapchain>   g_swapchain;
 
 PhysicalDevice::PhysicalDevice(const VkInstance vkInstance, const VkSurfaceKHR vkSurface)
-: _vkSurface(vkSurface)
+: _vkSurface (vkSurface)
 {
     // Get all the availables GPUs
     uint32_t deviceCount = 0;
+    
 	vkEnumeratePhysicalDevices(vkInstance, &deviceCount, VK_NULL_HANDLE);
 	if (deviceCount == 0)
 	{
@@ -42,6 +43,7 @@ PhysicalDevice::PhysicalDevice(const VkInstance vkInstance, const VkSurfaceKHR v
     {
         ERROR_EXIT("maxPushConstantsSize should be > 256.");
     }
+    OK("Physical device.");
 }
 
 // Check if the device is suitable for renderings

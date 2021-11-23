@@ -4,7 +4,7 @@
 
 #include <array>
 
-inline std::shared_ptr<LogicalDevice> g_logicalDevice;
+extern std::unique_ptr<LogicalDevice> g_logicalDevice;
 
 DescriptorPool::DescriptorPool(const uint32_t maxFramesInFlight)
 {
@@ -35,7 +35,7 @@ DescriptorPool::DescriptorPool(const uint32_t maxFramesInFlight)
     {
         ERROR_EXIT("Failed to create descriptor pool.");
     }
-    INFO("Descriptor pool successfully created.");
+    OK("Descriptor pool.");
 }
 
 DescriptorPool::~DescriptorPool()

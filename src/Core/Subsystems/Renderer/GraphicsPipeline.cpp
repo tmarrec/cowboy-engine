@@ -4,9 +4,9 @@
 #include <array>
 #include <glm/glm.hpp>
 
-inline std::shared_ptr<LogicalDevice> g_logicalDevice;
-inline std::shared_ptr<RenderPass> g_renderPass;
-inline std::shared_ptr<Swapchain> g_swapchain;
+extern std::unique_ptr<LogicalDevice>   g_logicalDevice;
+extern std::unique_ptr<RenderPass>      g_renderPass;
+extern std::unique_ptr<Swapchain>       g_swapchain;
 
 GraphicsPipeline::GraphicsPipeline()
 {
@@ -37,7 +37,7 @@ GraphicsPipeline::GraphicsPipeline()
         .pSpecializationInfo = VK_NULL_HANDLE,
     };
 
-    const VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+    const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {vertShaderStageInfo, fragShaderStageInfo};
 
     // Vertex input
     const auto bindingDescription = Vertex::getBindingDescription();
@@ -64,8 +64,8 @@ GraphicsPipeline::GraphicsPipeline()
         .primitiveRestartEnable = VK_FALSE,
     };
 
-    const VkExtent2D vkExtent = g_swapchain->extent();
     // Viewport and Scissor
+    const VkExtent2D vkExtent = g_swapchain->extent();
     const VkViewport viewport =
     {
         .x = 0.0f,
@@ -197,7 +197,7 @@ GraphicsPipeline::GraphicsPipeline()
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .pNext = VK_NULL_HANDLE,
         .flags = 0,
-        .setLayoutCount = 1,
+        .setLayoutCount = 2,
         .pSetLayouts = &_vkDescriptorSetLayout[0],
         .pushConstantRangeCount = 1,
         .pPushConstantRanges = &pushConstantRange,
@@ -214,7 +214,7 @@ GraphicsPipeline::GraphicsPipeline()
         .pNext = VK_NULL_HANDLE,
         .flags = 0,
         .stageCount = 2,
-        .pStages = shaderStages,
+        .pStages = shaderStages.data(),
         .pVertexInputState = &vertexInputInfo,
         .pInputAssemblyState = &inputAssemblyInfo,
         .pTessellationState = VK_NULL_HANDLE,
@@ -238,6 +238,8 @@ GraphicsPipeline::GraphicsPipeline()
 
     _vertShader->destroyShaderModule();
     _fragShader->destroyShaderModule();
+
+    OK("Graphics pipeline.");
 }
 
 GraphicsPipeline::~GraphicsPipeline()
@@ -257,39 +259,39 @@ void GraphicsPipeline::bind(const VkCommandBuffer& vkCommandBuffer) const
 
 void GraphicsPipeline::createDescriptorSetLayout()
 {
-    const std::array<VkDescriptorSetLayoutBinding, 2> bindlessLayout =
+    for (uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        VkDescriptorSetLayoutBinding
+        const std::array<VkDescriptorSetLayoutBinding, 2> bindlessLayout =
         {
-            .binding = 0,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = 32 * 1024,
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-            .pImmutableSamplers = VK_NULL_HANDLE,
-        },
-        {
-            .binding = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount = 32 * 1024,
-            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .pImmutableSamplers = VK_NULL_HANDLE,
-        },
-    };
+            VkDescriptorSetLayoutBinding
+            {
+                .binding = 0,
+                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .descriptorCount = 1,
+                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+                .pImmutableSamplers = VK_NULL_HANDLE,
+            },
+            {
+                .binding = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .descriptorCount = 32 * 1024,
+                .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                .pImmutableSamplers = VK_NULL_HANDLE,
+            }
+        };
 
-    const std::array<VkDescriptorBindingFlags, 2> descriptorBindingFlags =
-    {
-        0,
-        VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT,
-    };
+        const std::array<VkDescriptorBindingFlags, 2> descriptorBindingFlags =
+        {
+            0,
+            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT,
+        };
     
-    for (uint8_t i = 0; i < 2; ++i)
-    {
         const VkDescriptorSetLayoutBindingFlagsCreateInfo setLayoutBindingFlags =
         {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
             .pNext = VK_NULL_HANDLE,
-            .bindingCount = 1,
-            .pBindingFlags = &descriptorBindingFlags[i],
+            .bindingCount = 2,
+            .pBindingFlags = &descriptorBindingFlags[0],
         };
 
         const VkDescriptorSetLayoutCreateInfo layoutInfo =
@@ -297,8 +299,8 @@ void GraphicsPipeline::createDescriptorSetLayout()
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
             .pNext = &setLayoutBindingFlags,
             .flags = 0,
-            .bindingCount = 1,
-            .pBindings = &bindlessLayout[i],
+            .bindingCount = 2,
+            .pBindings = &bindlessLayout[0],
         };
 
         if (vkCreateDescriptorSetLayout(g_logicalDevice->vkDevice(), &layoutInfo, VK_NULL_HANDLE, &_vkDescriptorSetLayout[i]) != VK_SUCCESS)
@@ -306,8 +308,7 @@ void GraphicsPipeline::createDescriptorSetLayout()
             ERROR_EXIT("Failed to create descriptor set layout.");
         }
     }
-
-    INFO("Descriptor sets layout successfully created.");
+    OK("Descriptor sets layout.");
 }
 
 const VkPipelineLayout& GraphicsPipeline::vkPipelineLayout() const
