@@ -20,6 +20,8 @@
 #include "world/World.h"
 #include "GraphicsPipeline.h"
 #include "DescriptorPool.h"
+#include "DescriptorSet.h"
+#include "CommandPool.h"
 
 struct UniformBufferObject
 {
@@ -58,10 +60,6 @@ class Renderer
     // Swapchain
     void createSwapchain();
 
-    // Image Views
-    void createImageViews();
-    void createImages();
-
     void createTextureImage();
 
     void createImage(const uint32_t width, const uint32_t height, const VkFormat format, const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
@@ -83,7 +81,6 @@ class Renderer
     // Graphics Pipeline
     void createRenderPass();
 
-    void createFramebuffers();
     void createCommandPool();
     void allocateCommandBuffers();
     void createSyncObjects();
@@ -110,9 +107,6 @@ class Renderer
     VkBuffer                        _vkIndexBuffer              = VK_NULL_HANDLE;
     VkDeviceMemory                  _vkIndexBufferMemory        = VK_NULL_HANDLE;
 
-    std::vector<VkImage>            _vkSwapchainImages          = {};
-    std::vector<VkImageView>        _vkSwapchainImageViews      = {};
-    std::vector<VkFramebuffer>      _vkSwapchainFramebuffers    = {};
     std::vector<VkCommandBuffer>    _vkCommandBuffers           = {};
     std::vector<VkSemaphore>        _vkImageAvailableSemaphores = {};
     std::vector<VkSemaphore>        _vkRenderFinishedSemaphores = {};

@@ -2,6 +2,15 @@
 
 #include <iostream>
 
+#define CHECK(m,f) \
+    {\
+    if (static_cast<int64_t>(f))\
+    {\
+        ERROR_EXIT(m);\
+    }\
+    OK(m);\
+    }\
+
 #define INFO(m) \
     {\
     std::cerr << "   \033[44m\033[1m[INFO]\033[49m\033[0m "; \

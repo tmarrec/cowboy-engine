@@ -231,15 +231,10 @@ GraphicsPipeline::GraphicsPipeline()
         .basePipelineIndex = -1,
     };
 
-    if (vkCreateGraphicsPipelines(g_logicalDevice->vkDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, VK_NULL_HANDLE, &_vkGraphicsPipeline) != VK_SUCCESS)
-    {
-        ERROR("Failed to create graphics pipeline.");
-    }
+    CHECK("Graphics pipeline", vkCreateGraphicsPipelines(g_logicalDevice->vkDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, VK_NULL_HANDLE, &_vkGraphicsPipeline));
 
     _vertShader->destroyShaderModule();
     _fragShader->destroyShaderModule();
-
-    OK("Graphics pipeline.");
 }
 
 GraphicsPipeline::~GraphicsPipeline()
@@ -259,6 +254,7 @@ void GraphicsPipeline::bind(const VkCommandBuffer& vkCommandBuffer) const
 
 void GraphicsPipeline::createDescriptorSetLayout()
 {
+    _vkDescriptorSetLayout.resize(MAX_FRAMES_IN_FLIGHT);
     for (uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         const std::array<VkDescriptorSetLayoutBinding, 2> bindlessLayout =
@@ -303,15 +299,17 @@ void GraphicsPipeline::createDescriptorSetLayout()
             .pBindings = &bindlessLayout[0],
         };
 
-        if (vkCreateDescriptorSetLayout(g_logicalDevice->vkDevice(), &layoutInfo, VK_NULL_HANDLE, &_vkDescriptorSetLayout[i]) != VK_SUCCESS)
-        {
-            ERROR_EXIT("Failed to create descriptor set layout.");
-        }
+        CHECK("Descriptor set layout", vkCreateDescriptorSetLayout(g_logicalDevice->vkDevice(), &layoutInfo, VK_NULL_HANDLE, &_vkDescriptorSetLayout[i]))
     }
-    OK("Descriptor sets layout.");
 }
 
 const VkPipelineLayout& GraphicsPipeline::vkPipelineLayout() const
 {
     return _vkPipelineLayout;
 }
+
+const std::vector<VkDescriptorSetLayout>& GraphicsPipeline::vkDescriptorSetLayouts() const
+{
+    return _vkDescriptorSetLayout;
+}
+

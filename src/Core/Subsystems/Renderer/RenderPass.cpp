@@ -79,11 +79,7 @@ RenderPass::RenderPass()
         .pDependencies = &dependency,
     };
 
-    if (vkCreateRenderPass(g_logicalDevice->vkDevice(), &renderPassInfo, VK_NULL_HANDLE, &_vkRenderPass) != VK_SUCCESS)
-    {
-        ERROR_EXIT("Failed to create render pass.");
-    }
-    OK("Render pass.");
+    CHECK("Render pass", vkCreateRenderPass(g_logicalDevice->vkDevice(), &renderPassInfo, VK_NULL_HANDLE, &_vkRenderPass));
 }
 
 RenderPass::~RenderPass()

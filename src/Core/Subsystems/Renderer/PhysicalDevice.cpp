@@ -14,7 +14,7 @@ PhysicalDevice::PhysicalDevice(const VkInstance vkInstance, const VkSurfaceKHR v
 	vkEnumeratePhysicalDevices(vkInstance, &deviceCount, VK_NULL_HANDLE);
 	if (deviceCount == 0)
 	{
-		ERROR_EXIT("Failed to find GPUs with Vulkan support.");
+		ERROR_EXIT("Failed to find GPUs with Vulkan support");
 	}
 	std::vector<VkPhysicalDevice> devices{deviceCount};
 	vkEnumeratePhysicalDevices(vkInstance, &deviceCount, devices.data());
@@ -31,7 +31,7 @@ PhysicalDevice::PhysicalDevice(const VkInstance vkInstance, const VkSurfaceKHR v
 	
 	if (_vkPhysicalDevice == VK_NULL_HANDLE)
 	{
-		ERROR_EXIT("Failed to find suitable GPU.");
+		ERROR_EXIT("Failed to find suitable GPU");
 	}
 
     // Get selected GPU informations
@@ -41,9 +41,9 @@ PhysicalDevice::PhysicalDevice(const VkInstance vkInstance, const VkSurfaceKHR v
 	INFO("GPU: " << deviceProperties.deviceName);
     if (deviceProperties.limits.maxPushConstantsSize < 256)
     {
-        ERROR_EXIT("maxPushConstantsSize should be > 256.");
+        ERROR_EXIT("maxPushConstantsSize should be > 256");
     }
-    OK("Physical device.");
+    OK("Physical device");
 }
 
 // Check if the device is suitable for renderings

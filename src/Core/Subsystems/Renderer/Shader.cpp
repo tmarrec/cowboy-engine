@@ -11,7 +11,7 @@ static inline shaderc_shader_kind toShadercType(const ShaderType type)
         case SHADER_TYPE_FRAGMENT:
             return shaderc_glsl_fragment_shader;
         default:
-            ERROR_EXIT("Wrong shader type.");
+            ERROR_EXIT("Wrong shader type");
     }
 }
 
@@ -30,7 +30,7 @@ void Shader::compile()
 
     if (!file.is_open())
     {
-        ERROR_EXIT("Failed to read shader file " + _filename + ".");
+        ERROR_EXIT("Failed to read shader file " + _filename);
     }
 
     // Get the shader code into the code string
@@ -51,12 +51,12 @@ void Shader::compile()
         ERROR(preprocessed.GetErrorMessage());
         if (_lastCompilationOk)
         {
-            ERROR("Shader \"" + _filename + "\" preprocess failed. Will keep the last working shader bytecode.");
+            ERROR("Shader \"" + _filename + "\" preprocess failed. Will keep the last working shader bytecode");
             return;
         }
         else
         {
-            ERROR_EXIT("Shader preprocess failed.");
+            ERROR_EXIT("Shader preprocess failed");
         }
     }
 
@@ -66,18 +66,18 @@ void Shader::compile()
     {
         if (_lastCompilationOk)
         {
-            ERROR("Shader \"" + _filename + "\" compilation failed. Will keep the last working shader bytecode.");
+            ERROR("Shader \"" + _filename + "\" compilation failed. Will keep the last working shader bytecode");
             return;
         }
         else
         {
-            ERROR_EXIT("Shader compilation failed.");
+            ERROR_EXIT("Shader compilation failed");
         }
     }
     
     _shaderCode = {assembly.cbegin(), assembly.cend()};
     _lastCompilationOk = true;
-    OK("Shader \"" + _filename + "\" successfully compiled.");
+    OK("Shader \"" + _filename + "\" successfully compiled");
 }
 
 // Create Vulkan shader module from shader bytecode
@@ -94,7 +94,7 @@ void Shader::createShaderModule()
 
     if (vkCreateShaderModule(g_logicalDevice->vkDevice(), &createInfo, VK_NULL_HANDLE, &_shaderModule) != VK_SUCCESS)
     {
-        ERROR_EXIT("Failed to create shader module.");
+        ERROR_EXIT("Failed to create shader module");
     }
 }
 

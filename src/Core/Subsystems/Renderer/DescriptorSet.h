@@ -1,13 +1,14 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <vector>
 
 class DescriptorSet
 {
  public:
-    DescriptorSet(const uint32_t maxFramesInFlight);
+    DescriptorSet();
     ~DescriptorSet();
 
  private:
-    VkDescriptorSet _descriptorSet = VK_NULL_HANDLE;
+    std::vector<VkDescriptorSet> _vkDescriptorSets = {};
 };

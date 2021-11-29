@@ -64,6 +64,12 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Core/Subsystems/Renderer/PhysicalDevice.cpp
     src/Core/Subsystems/Renderer/LogicalDevice.h
     src/Core/Subsystems/Renderer/LogicalDevice.cpp
+    src/Core/Subsystems/Renderer/Framebuffer.h
+    src/Core/Subsystems/Renderer/Framebuffer.cpp
+    src/Core/Subsystems/Renderer/CommandBuffer.h
+    src/Core/Subsystems/Renderer/CommandBuffer.cpp
+    src/Core/Subsystems/Renderer/CommandPool.h
+    src/Core/Subsystems/Renderer/CommandPool.cpp
 
     # Renderer World
     src/Core/Subsystems/Renderer/world/World.h

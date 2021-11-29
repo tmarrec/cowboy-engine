@@ -10,8 +10,10 @@ std::unique_ptr<PhysicalDevice>     g_physicalDevice    = nullptr;
 std::unique_ptr<LogicalDevice>      g_logicalDevice     = nullptr;
 std::unique_ptr<Swapchain>          g_swapchain         = nullptr;
 std::unique_ptr<DescriptorPool>     g_descriptorPool    = nullptr;
+std::unique_ptr<DescriptorSet>      g_descriptorSet     = nullptr;
 std::unique_ptr<GraphicsPipeline>   g_graphicsPipeline  = nullptr;
 std::unique_ptr<RenderPass>         g_renderPass        = nullptr;
+std::unique_ptr<CommandPool>        g_commandPool       = nullptr;
 
 // Initialize the Renderer manager
 Renderer::Renderer()
@@ -21,13 +23,11 @@ Renderer::Renderer()
     pickPhysicalDevice();
     createLogicalDevice();
     createSwapchain();
-    createImages();
-    createImageViews();
     createRenderPass();
     updateGraphicsPipeline();
     createCommandPool();
     createDepthResources();
-    createFramebuffers();
+    //createFramebuffers();
     createTextureSampler();
     loadTextures();
     loadModels();
@@ -145,27 +145,6 @@ void Renderer::createSwapchain()
     g_swapchain = std::make_unique<Swapchain>(_vkSurface);
 }
 
-// Create the images for the swapchain
-void Renderer::createImages()
-{
-    // Link the swapchain to the vector of images
-    uint32_t swapchainImageCount;
-    const VkSwapchainKHR vkSwapchain = g_swapchain->vkSwapchain();
-    vkGetSwapchainImagesKHR(g_logicalDevice->vkDevice(), vkSwapchain, &swapchainImageCount, VK_NULL_HANDLE);
-    _vkSwapchainImages.resize(g_swapchain->imageCount());
-    vkGetSwapchainImagesKHR(g_logicalDevice->vkDevice(), vkSwapchain, &swapchainImageCount, _vkSwapchainImages.data());
-}
-
-// Create the image view for all swapchain images
-void Renderer::createImageViews()
-{
-    _vkSwapchainImageViews.resize(_vkSwapchainImages.size());
-    for (size_t i = 0; i < _vkSwapchainImages.size(); ++i)
-    {
-        _vkSwapchainImageViews[i] = createImageView(_vkSwapchainImages[i], g_swapchain->format(), VK_IMAGE_ASPECT_COLOR_BIT);
-    }
-}
-
 // Update the Vulkan graphics pipeline
 void Renderer::updateGraphicsPipeline()
 {
@@ -178,61 +157,16 @@ void Renderer::createRenderPass()
     g_renderPass = std::make_unique<RenderPass>();
 }
 
-// Create all the framebuffers needed
-void Renderer::createFramebuffers()
-{
-    _vkSwapchainFramebuffers.resize(_vkSwapchainImageViews.size());
-    for (size_t i = 0; i < _vkSwapchainImageViews.size(); ++i)
-    {
-        const std::array<VkImageView, 2> attachments =
-        {
-            _vkSwapchainImageViews[i],
-            _depthImageView
-        };
-
-        const VkExtent2D swapchainExtent = g_swapchain->extent();
-        const VkFramebufferCreateInfo framebufferInfo =
-        {
-            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .pNext = VK_NULL_HANDLE,
-            .flags = 0,
-            .renderPass = g_renderPass->vkRenderPass(),
-            .attachmentCount = static_cast<uint32_t>(attachments.size()),
-            .pAttachments = attachments.data(),
-            .width = swapchainExtent.width,
-            .height = swapchainExtent.height,
-            .layers = 1,
-        };
-
-        if (vkCreateFramebuffer(g_logicalDevice->vkDevice(), &framebufferInfo, VK_NULL_HANDLE, &_vkSwapchainFramebuffers[i]) != VK_SUCCESS)
-        {
-            ERROR_EXIT("Failed to create framebuffer.");
-        }
-    }
-}
-
 // Create the Vulkan command pool
 void Renderer::createCommandPool()
 {
-    const QueueFamilyIndices queueFamilyIndices = g_physicalDevice->findQueueFamilies(g_physicalDevice->vkPhysicalDevice());
-
-    const VkCommandPoolCreateInfo poolInfo =
-    {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-        .pNext = VK_NULL_HANDLE,
-        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-        .queueFamilyIndex = queueFamilyIndices.graphics.value(),
-    };
-
-    if (vkCreateCommandPool(g_logicalDevice->vkDevice(), &poolInfo, VK_NULL_HANDLE, &_vkCommandPool) != VK_SUCCESS)
-    {
-        ERROR_EXIT("Failed to create command pool.");
-    }
+    g_commandPool = std::make_unique<CommandPool>();
 }
 
 // Create all the Vulkan command buffers and initialize them
 void Renderer::allocateCommandBuffers()
 {
+    /*
     _vkCommandBuffers.resize(_vkSwapchainFramebuffers.size());
 
     const VkCommandBufferAllocateInfo commandBufferAllocateInfo =
@@ -248,6 +182,7 @@ void Renderer::allocateCommandBuffers()
     {
         ERROR_EXIT("Failed to create command buffers.");
     }
+    */
 }
 
 // Create all the synchronisation objects for the drawFrame
@@ -256,7 +191,7 @@ void Renderer::createSyncObjects()
     _vkImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     _vkRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     _vkInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-    _vkImagesInFlight.resize(_vkSwapchainImages.size(), VK_NULL_HANDLE);
+    _vkImagesInFlight.resize(MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
 
 
     const VkSemaphoreCreateInfo semaphoreInfo =
@@ -288,6 +223,7 @@ void Renderer::createSyncObjects()
 
 void Renderer::createCommandBuffer(const uint32_t commandBufferIndex)
 {
+    /*
     const VkCommandBufferBeginInfo beginInfo =
     {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -393,6 +329,7 @@ void Renderer::createCommandBuffer(const uint32_t commandBufferIndex)
     {
         ERROR_EXIT("Failed to record command buffer.");
     }
+    */
 }
 
 // Draw the frame by executing the queues while staying synchronised
@@ -414,6 +351,7 @@ void Renderer::drawFrame()
         vkDestroyImage(vkDevice, _depthImage, VK_NULL_HANDLE);
         vkFreeMemory(vkDevice, _depthImageMemory, VK_NULL_HANDLE);
 
+        /*
         for (auto& framebuffer : _vkSwapchainFramebuffers)
         {
             vkDestroyFramebuffer(vkDevice, framebuffer, VK_NULL_HANDLE);
@@ -422,12 +360,15 @@ void Renderer::drawFrame()
         {
             vkDestroyImageView(vkDevice, imageView, VK_NULL_HANDLE);
         }
+        */
 
         createSwapchain();
+        /*
         createImages();
         createImageViews();
+        */
         createDepthResources();
-        createFramebuffers();
+        //createFramebuffers();
         return;
     }
     else if (acquireNextImageResult != VK_SUCCESS && acquireNextImageResult != VK_SUBOPTIMAL_KHR)
@@ -630,35 +571,7 @@ void Renderer::createDescriptorPool()
 
 void Renderer::createDescriptorSets()
 {
-    INFO("TODO CREATEDESCRIPTORSETS");
-    /*
-    const std::array<uint32_t, 1> variableDescCounts = { 256 };
-    const VkDescriptorSetVariableDescriptorCountAllocateInfo setCounts = 
-    {
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
-        .descriptorSetCount = 1,
-        .pDescriptorCounts = variableDescCounts.data(),
-    };
-
-    const std::vector<VkDescriptorSetLayout> layouts(_vkSwapchainImages.size(), _vkDescriptorSetLayout);
-
-    const VkDescriptorSetAllocateInfo allocateInfo =
-    {
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-        .pNext = &setCounts,
-        .descriptorPool = _vkDescriptorPool,
-        .descriptorSetCount = static_cast<uint32_t>(_vkSwapchainImages.size()),
-        .pSetLayouts = layouts.data(),
-    };
-
-    _vkDescriptorSets.resize(_vkSwapchainImages.size());
-    if (vkAllocateDescriptorSets(_vkDevice, &allocateInfo, _vkDescriptorSets.data()) != VK_SUCCESS)
-    {
-        ERROR_EXIT("Failed to allocate descriptor sets.");
-    }
-
-    INFO("Descriptor sets successfully created.");
-    */
+    g_descriptorSet = std::make_unique<DescriptorSet>();
 }
 
 void Renderer::createImage(const uint32_t width, const uint32_t height, const VkFormat format, const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
@@ -832,40 +745,6 @@ void Renderer::copyBufferToImage(const VkBuffer buffer, const VkImage image, con
     endSingleTimeCommands(commandBuffer);
 }
 
-VkImageView Renderer::createImageView(const VkImage image, const VkFormat format, const VkImageAspectFlags aspectFlags)
-{
-    const VkImageViewCreateInfo createInfo =
-    {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        .pNext = VK_NULL_HANDLE,
-        .flags = 0,
-        .image = image,
-        .viewType = VK_IMAGE_VIEW_TYPE_2D,
-        .format = format,
-        .components =
-        {
-            .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .a = VK_COMPONENT_SWIZZLE_IDENTITY,
-        },
-        .subresourceRange =
-        {
-            .aspectMask = aspectFlags,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1,
-        },
-    };
-
-    VkImageView imageView;
-    if (vkCreateImageView(g_logicalDevice->vkDevice(), &createInfo, VK_NULL_HANDLE, &imageView) != VK_SUCCESS)
-    {
-        ERROR_EXIT("Failed to create texture image view.");
-    }
-    return imageView;
-}
 
 void Renderer::createTextureSampler()
 {
@@ -902,10 +781,12 @@ void Renderer::createTextureSampler()
 
 void Renderer::createDepthResources()
 {
+    /*
     const VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
     const auto extent = g_swapchain->extent();
     createImage(extent.width, extent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, _depthImage, _depthImageMemory);
     _depthImageView = createImageView(_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+    */
 }
 
 void Renderer::loadModels()

@@ -35,14 +35,23 @@ class Swapchain
     const VkFormat format() const;
     const VkExtent2D extent() const;
     VkSwapchainKHR& vkSwapchain();
+    const std::vector<VkImage> vkSwapchainImages() const;
 
  private:
     VkSurfaceFormatKHR chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseExtent(const VkSurfaceCapabilitiesKHR capabilities);
+    void createImages();
+    void createImagesViews();
+    void createFramebuffers();
+    VkImageView createImageView(const VkImage image, const VkFormat format, const VkImageAspectFlags aspectFlags);
 
     VkSwapchainKHR  _vkSwapchain        = VK_NULL_HANDLE;
     VkFormat        _vkSurfaceFormat    = {};
     VkExtent2D      _vkExtent           = {};
     uint32_t        _imageCount         = 0;
+
+    std::vector<VkImage>            _vkSwapchainImages          = {};
+    std::vector<VkImageView>        _vkSwapchainImageViews      = {};
+    std::vector<VkFramebuffer>      _vkSwapchainFramebuffers    = {};
 };

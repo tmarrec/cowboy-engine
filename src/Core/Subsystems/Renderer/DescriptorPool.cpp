@@ -17,7 +17,7 @@ DescriptorPool::DescriptorPool(const uint32_t maxFramesInFlight)
         },
         {
             .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount = maxFramesInFlight,
+            .descriptorCount = 32 * 1024,
         },
     };
 
@@ -31,14 +31,15 @@ DescriptorPool::DescriptorPool(const uint32_t maxFramesInFlight)
         .pPoolSizes = poolSizes.data(),
     };
 
-    if (vkCreateDescriptorPool(g_logicalDevice->vkDevice(), &poolInfo, VK_NULL_HANDLE, &_descriptorPool) != VK_SUCCESS)
-    {
-        ERROR_EXIT("Failed to create descriptor pool.");
-    }
-    OK("Descriptor pool.");
+    CHECK("Descriptor pool", vkCreateDescriptorPool(g_logicalDevice->vkDevice(), &poolInfo, VK_NULL_HANDLE, &_descriptorPool));
 }
 
 DescriptorPool::~DescriptorPool()
 {
     vkDestroyDescriptorPool(g_logicalDevice->vkDevice(), _descriptorPool, VK_NULL_HANDLE);
+}
+
+const VkDescriptorPool DescriptorPool::vkDescriptorPool() const
+{
+    return _descriptorPool;
 }

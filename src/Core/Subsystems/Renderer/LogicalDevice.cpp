@@ -48,15 +48,10 @@ LogicalDevice::LogicalDevice()
         .pEnabledFeatures = &deviceFeatures,
     };
 
-	if (vkCreateDevice(g_physicalDevice->vkPhysicalDevice(), &createInfo, VK_NULL_HANDLE, &_vkDevice) != VK_SUCCESS)
-	{
-		ERROR_EXIT("Failed to create logical Vulkan device.")
-	}
+	CHECK("Logical device", vkCreateDevice(g_physicalDevice->vkPhysicalDevice(), &createInfo, VK_NULL_HANDLE, &_vkDevice));
 
 	vkGetDeviceQueue(_vkDevice, indices.graphics.value(), 0, &_vkGraphicsQueue);
 	vkGetDeviceQueue(_vkDevice, indices.present.value(), 0, &_vkPresentQueue);
-
-    OK("Logical device.");
 }
 
 const VkDevice LogicalDevice::vkDevice() const

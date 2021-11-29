@@ -67,11 +67,11 @@ Swapchain::Swapchain(const VkSurfaceKHR surface)
 
 
     // Create the swapchain
-    if (vkCreateSwapchainKHR(g_logicalDevice->vkDevice(), &createInfo, VK_NULL_HANDLE, &_vkSwapchain) != VK_SUCCESS)
-    {
-        ERROR_EXIT("Failed to create swapchain.");
-    }
-    OK("Swapchain.");
+    CHECK("Swapchain", vkCreateSwapchainKHR(g_logicalDevice->vkDevice(), &createInfo, VK_NULL_HANDLE, &_vkSwapchain));
+
+    createImages();
+    createImagesViews();
+    createFramebuffers();
 }
 
 // Get the swapchain surface format, aiming for RGBA 32bits sRGB 
@@ -85,7 +85,7 @@ VkSurfaceFormatKHR Swapchain::chooseSurfaceFormat(const std::vector<VkSurfaceFor
             return availableFormat;
         }
     }
-    WARNING("Unable to find desired swapchain surface formats. Will use the first found.");
+    WARNING("Unable to find desired swapchain surface formats. Will use the first found");
     return availableFormats[0];
 }
 
@@ -167,4 +167,95 @@ const VkExtent2D Swapchain::extent() const
 VkSwapchainKHR& Swapchain::vkSwapchain()
 {
     return _vkSwapchain;
+}
+
+const std::vector<VkImage> Swapchain::vkSwapchainImages() const
+{
+    return _vkSwapchainImages;
+}
+
+void Swapchain::createImages()
+{
+    // Link the swapchain to the vector of images
+    uint32_t swapchainImageCount;
+    vkGetSwapchainImagesKHR(g_logicalDevice->vkDevice(), _vkSwapchain, &swapchainImageCount, VK_NULL_HANDLE);
+    _vkSwapchainImages.resize(_imageCount);
+    vkGetSwapchainImagesKHR(g_logicalDevice->vkDevice(), _vkSwapchain, &swapchainImageCount, _vkSwapchainImages.data());
+    OK("Swapchain images");
+}
+
+void Swapchain::createImagesViews()
+{
+    _vkSwapchainImageViews.resize(_vkSwapchainImages.size());
+    for (size_t i = 0; i < _vkSwapchainImages.size(); ++i)
+    {
+        _vkSwapchainImageViews[i] = createImageView(_vkSwapchainImages[i], _vkSurfaceFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+    OK("Swapchain images views");
+}
+
+VkImageView Swapchain::createImageView(const VkImage image, const VkFormat format, const VkImageAspectFlags aspectFlags)
+{
+    const VkImageViewCreateInfo createInfo =
+    {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .pNext = VK_NULL_HANDLE,
+        .flags = 0,
+        .image = image,
+        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .format = format,
+        .components =
+        {
+            .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .a = VK_COMPONENT_SWIZZLE_IDENTITY,
+        },
+        .subresourceRange =
+        {
+            .aspectMask = aspectFlags,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        },
+    };
+
+    VkImageView imageView;
+    CHECK("Texture image view", vkCreateImageView(g_logicalDevice->vkDevice(), &createInfo, VK_NULL_HANDLE, &imageView));
+    return imageView;
+}
+
+void Swapchain::createFramebuffers()
+{
+    /*
+    _vkSwapchainFramebuffers.resize(_vkSwapchainImageViews.size());
+    for (size_t i = 0; i < _vkSwapchainImageViews.size(); ++i)
+    {
+        const std::array<VkImageView, 2> attachments =
+        {
+            _vkSwapchainImageViews[i],
+            _depthImageView
+        };
+
+        const VkFramebufferCreateInfo framebufferInfo =
+        {
+            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            .pNext = VK_NULL_HANDLE,
+            .flags = 0,
+            .renderPass = g_renderPass->vkRenderPass(),
+            .attachmentCount = static_cast<uint32_t>(attachments.size()),
+            .pAttachments = attachments.data(),
+            .width = _vkExtent.width,
+            .height = _vkExtent.height,
+            .layers = 1,
+        };
+
+        if (vkCreateFramebuffer(g_logicalDevice->vkDevice(), &framebufferInfo, VK_NULL_HANDLE, &_vkSwapchainFramebuffers[i]) != VK_SUCCESS)
+        {
+            ERROR_EXIT("Failed to create framebuffer.");
+        }
+    }
+    OK("Swapchain framebuffers");
+    */
 }

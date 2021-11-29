@@ -1,7 +1,8 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include "glm/glm.hpp"
+#include <vector>
+#include <glm/glm.hpp>
 
 #include "Shader.h"
 #include "LogicalDevice.h"
@@ -60,13 +61,14 @@ class GraphicsPipeline
     ~GraphicsPipeline();
     void bind(const VkCommandBuffer& vkCommandBuffer) const;
     const VkPipelineLayout& vkPipelineLayout() const;
+    const std::vector<VkDescriptorSetLayout>& vkDescriptorSetLayouts() const;
 
  private:
     void createDescriptorSetLayout();
 
     VkPipeline                              _vkGraphicsPipeline     = VK_NULL_HANDLE;
     VkPipelineLayout                        _vkPipelineLayout       = VK_NULL_HANDLE;
-    std::array<VkDescriptorSetLayout, 2>    _vkDescriptorSetLayout  = {VK_NULL_HANDLE, VK_NULL_HANDLE};
+    std::vector<VkDescriptorSetLayout>      _vkDescriptorSetLayout  = {};
     std::shared_ptr<Shader>                 _vertShader             = nullptr;
     std::shared_ptr<Shader>                 _fragShader             = nullptr;
 };
