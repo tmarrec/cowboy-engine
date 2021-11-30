@@ -29,8 +29,8 @@ struct SwapchainSupportDetails
 class Swapchain
 {
  public:
-    Swapchain(const VkSurfaceKHR surface);
-    const SwapchainSupportDetails querySupport(const VkPhysicalDevice device, const VkSurfaceKHR surface) const;
+    Swapchain();
+    const SwapchainSupportDetails querySupport(const VkPhysicalDevice device) const;
     const uint32_t imageCount() const;
     const VkFormat format() const;
     const VkExtent2D extent() const;

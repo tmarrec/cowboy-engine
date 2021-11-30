@@ -10,7 +10,7 @@
 class PhysicalDevice
 {
  public:
-    PhysicalDevice(const VkInstance vkInstance, const VkSurfaceKHR vkSurface);
+    PhysicalDevice();
     const VkPhysicalDevice vkPhysicalDevice() const;
     const QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice device) const;
     const std::array<const char*, 1>& deviceExtensions() const;
@@ -24,5 +24,4 @@ class PhysicalDevice
     {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     };
-    VkSurfaceKHR _vkSurface = VK_NULL_HANDLE;
 };

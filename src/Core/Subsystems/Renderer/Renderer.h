@@ -16,12 +16,13 @@
 #include <chrono>
 #include <unordered_map>
 
-#include "Shader.h"
 #include "world/World.h"
+#include "Shader.h"
 #include "GraphicsPipeline.h"
 #include "DescriptorPool.h"
 #include "DescriptorSet.h"
 #include "CommandPool.h"
+#include "Instance.h"
 
 struct UniformBufferObject
 {
@@ -49,17 +50,6 @@ class Renderer
     void createTexture(const Image& image);
 
  private:
-    friend class PhysicalDevice;
-
-    void createInstance();
-    void createSurface();
-    void pickPhysicalDevice();
-    bool isPhysicalDeviceSuitable(VkPhysicalDevice device);
-    void createLogicalDevice();
-
-    // Swapchain
-    void createSwapchain();
-
     void createTextureImage();
 
     void createImage(const uint32_t width, const uint32_t height, const VkFormat format, const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
@@ -78,10 +68,6 @@ class Renderer
     VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
     VkFormat findDepthFormat();
 
-    // Graphics Pipeline
-    void createRenderPass();
-
-    void createCommandPool();
     void allocateCommandBuffers();
     void createSyncObjects();
     void createCommandBuffer(const uint32_t commandBufferIndex);
@@ -99,9 +85,7 @@ class Renderer
     // Shaders (temp, should use shader class in future)
     VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
 
-    VkInstance                      _vkInstance                 = VK_NULL_HANDLE;
     VkSurfaceKHR                    _vkSurface                  = VK_NULL_HANDLE;
-    VkCommandPool                   _vkCommandPool              = VK_NULL_HANDLE;
     VkBuffer                        _vkVertexBuffer             = VK_NULL_HANDLE;
     VkDeviceMemory                  _vkVertexBufferMemory       = VK_NULL_HANDLE;
     VkBuffer                        _vkIndexBuffer              = VK_NULL_HANDLE;

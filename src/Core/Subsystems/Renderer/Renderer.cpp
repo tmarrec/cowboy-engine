@@ -6,6 +6,7 @@
 
 extern Window g_Window;
 
+std::unique_ptr<Instance>           g_instance          = nullptr;
 std::unique_ptr<PhysicalDevice>     g_physicalDevice    = nullptr;
 std::unique_ptr<LogicalDevice>      g_logicalDevice     = nullptr;
 std::unique_ptr<Swapchain>          g_swapchain         = nullptr;
@@ -18,14 +19,14 @@ std::unique_ptr<CommandPool>        g_commandPool       = nullptr;
 // Initialize the Renderer manager
 Renderer::Renderer()
 {
-    createInstance();
-    createSurface();
-    pickPhysicalDevice();
-    createLogicalDevice();
-    createSwapchain();
-    createRenderPass();
-    updateGraphicsPipeline();
-    createCommandPool();
+    g_instance          = std::make_unique<Instance>();
+    g_Window.windowCreateSurface(g_instance->vkInstance(), g_instance->vkSurfacePtr());
+    g_physicalDevice    = std::make_unique<PhysicalDevice>();
+    g_logicalDevice     = std::make_unique<LogicalDevice>();
+    g_swapchain         = std::make_unique<Swapchain>();
+    g_renderPass        = std::make_unique<RenderPass>();
+    g_graphicsPipeline  = std::make_unique<GraphicsPipeline>();
+    g_commandPool       = std::make_unique<CommandPool>();
     createDepthResources();
     //createFramebuffers();
     createTextureSampler();
@@ -75,92 +76,12 @@ Renderer::~Renderer()
     vkDestroyCommandPool(_vkDevice, _vkCommandPool, VK_NULL_HANDLE);
     vkDestroyDevice(_vkDevice, VK_NULL_HANDLE);
     */
-	vkDestroySurfaceKHR(_vkInstance, _vkSurface, VK_NULL_HANDLE);
-    vkDestroyInstance(_vkInstance, VK_NULL_HANDLE);
-}
-
-// Choose the GPU to use
-void Renderer::pickPhysicalDevice()
-{
-    g_physicalDevice = std::make_unique<PhysicalDevice>(_vkInstance, _vkSurface);
-}
-
-// Create a Vulkan surface
-void Renderer::createSurface()
-{
-    g_Window.windowCreateSurface(_vkInstance, &_vkSurface);
-}
-
-
-// Create the Vulkan instance
-void Renderer::createInstance()
-{
-    // Engine informations
-    const VkApplicationInfo appInfo =
-    {
-        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pNext = VK_NULL_HANDLE,
-        .pApplicationName = "vulkan-testings",
-        .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-        .pEngineName = "vulkan-testings",
-        .engineVersion = VK_MAKE_VERSION(0, 1, 0),
-        .apiVersion = VK_API_VERSION_1_2,
-    };
-
-    // Get required extensions by the Window Manager
-    const std::pair<const char**, uint32_t> windowRequiredInstanceExt = g_Window.windowGetRequiredInstanceExtensions();
-	const std::vector<const char*> vkExtensions(windowRequiredInstanceExt.first, windowRequiredInstanceExt.first + windowRequiredInstanceExt.second);
-
-    // Instance informations
-    const VkInstanceCreateInfo instanceInfo =
-    {
-        .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-        .pNext = VK_NULL_HANDLE,
-        .flags = 0,
-        .pApplicationInfo = &appInfo,
-        // No validation layers as we are using the vkconfig overwrite
-        .enabledLayerCount = 0,
-        .ppEnabledLayerNames = VK_NULL_HANDLE,
-	    .enabledExtensionCount = static_cast<uint32_t>(vkExtensions.size()),
-	    .ppEnabledExtensionNames = vkExtensions.data(),
-    };
-
-    // Specify those required extensions to the Vulkan instance
-	if (vkCreateInstance(&instanceInfo, VK_NULL_HANDLE, &_vkInstance))
-	{
-		ERROR_EXIT("Cannot create Vulkan instance.");
-	}
-    OK("Vulkan instance");
-}
-
-// Create the logical Vulkan device
-void Renderer::createLogicalDevice()
-{
-    g_logicalDevice = std::make_unique<LogicalDevice>();
-}
-
-// Create the Vulkan swapchain
-void Renderer::createSwapchain()
-{
-    g_swapchain = std::make_unique<Swapchain>(_vkSurface);
 }
 
 // Update the Vulkan graphics pipeline
 void Renderer::updateGraphicsPipeline()
 {
     g_graphicsPipeline = std::make_unique<GraphicsPipeline>();
-}
-
-// Create the Vulkan render pass
-void Renderer::createRenderPass()
-{
-    g_renderPass = std::make_unique<RenderPass>();
-}
-
-// Create the Vulkan command pool
-void Renderer::createCommandPool()
-{
-    g_commandPool = std::make_unique<CommandPool>();
 }
 
 // Create all the Vulkan command buffers and initialize them
@@ -362,7 +283,7 @@ void Renderer::drawFrame()
         }
         */
 
-        createSwapchain();
+         g_swapchain = std::make_unique<Swapchain>( );
         /*
         createImages();
         createImageViews();
@@ -627,6 +548,7 @@ void Renderer::createImage(const uint32_t width, const uint32_t height, const Vk
 
 VkCommandBuffer Renderer::beginSingleTimeCommands()
 {
+    /*
     const VkCommandBufferAllocateInfo allocateInfo =
     {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -649,10 +571,12 @@ VkCommandBuffer Renderer::beginSingleTimeCommands()
 
     vkBeginCommandBuffer(commandBuffer, &beginInfo);
     return commandBuffer;
+    */
 }
 
 void Renderer::endSingleTimeCommands(const VkCommandBuffer& commandBuffer)
 {
+    /*
     vkEndCommandBuffer(commandBuffer);
 
     const VkSubmitInfo submitInfo =
@@ -672,6 +596,7 @@ void Renderer::endSingleTimeCommands(const VkCommandBuffer& commandBuffer)
     vkQueueWaitIdle(g_logicalDevice->vkGraphicsQueue());
 
     vkFreeCommandBuffers(g_logicalDevice->vkDevice(), _vkCommandPool, 1, &commandBuffer);
+    */
 }
 
 void Renderer::transitionImageLayout(const VkImage image, const VkFormat format, const VkImageLayout oldLayout, const VkImageLayout newLayout)

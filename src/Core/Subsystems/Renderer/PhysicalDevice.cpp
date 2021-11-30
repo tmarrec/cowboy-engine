@@ -3,21 +3,23 @@
 #include <vector>
 #include <set>
 
-extern std::unique_ptr<Swapchain>   g_swapchain;
+#include "Instance.h"
 
-PhysicalDevice::PhysicalDevice(const VkInstance vkInstance, const VkSurfaceKHR vkSurface)
-: _vkSurface (vkSurface)
+extern std::unique_ptr<Swapchain>   g_swapchain;
+extern std::unique_ptr<Instance>    g_instance;
+
+PhysicalDevice::PhysicalDevice()
 {
     // Get all the availables GPUs
     uint32_t deviceCount = 0;
     
-	vkEnumeratePhysicalDevices(vkInstance, &deviceCount, VK_NULL_HANDLE);
+	vkEnumeratePhysicalDevices(g_instance->vkInstance(), &deviceCount, VK_NULL_HANDLE);
 	if (deviceCount == 0)
 	{
 		ERROR_EXIT("Failed to find GPUs with Vulkan support");
 	}
 	std::vector<VkPhysicalDevice> devices{deviceCount};
-	vkEnumeratePhysicalDevices(vkInstance, &deviceCount, devices.data());
+	vkEnumeratePhysicalDevices(g_instance->vkInstance(), &deviceCount, devices.data());
 	
     // Takes the first suitable GPU
 	for (const VkPhysicalDevice& device : devices)
@@ -49,7 +51,7 @@ PhysicalDevice::PhysicalDevice(const VkInstance vkInstance, const VkSurfaceKHR v
 // Check if the device is suitable for renderings
 bool PhysicalDevice::isPhysicalDeviceSuitable(const VkPhysicalDevice device) const
 {
-    const SwapchainSupportDetails swapchainSupport = g_swapchain->querySupport(device, _vkSurface);
+    const SwapchainSupportDetails swapchainSupport = g_swapchain->querySupport(device);
     return findQueueFamilies(device).isComplete() 
         && checkDeviceExtensionSupport(device)
         && !swapchainSupport.formats.empty() && !swapchainSupport.presentModes.empty();
@@ -76,7 +78,7 @@ const QueueFamilyIndices PhysicalDevice::findQueueFamilies(const VkPhysicalDevic
 		}
 
 		VkBool32 presentSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, _vkSurface, &presentSupport);
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, g_instance->vkSurface(), &presentSupport);
 		if (presentSupport)
 		{
 			indices.present = i;

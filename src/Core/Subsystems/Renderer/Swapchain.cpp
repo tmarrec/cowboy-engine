@@ -3,16 +3,18 @@
 #include <vulkan/vulkan_core.h>
 #include "PhysicalDevice.h"
 #include "LogicalDevice.h"
+#include "Instance.h"
 
 extern Window                           g_Window;
 extern std::unique_ptr<PhysicalDevice>  g_physicalDevice;
 extern std::unique_ptr<LogicalDevice>   g_logicalDevice;
+extern std::unique_ptr<Instance>        g_instance;
 
 // Create the Vulkan swapchain
-Swapchain::Swapchain(const VkSurfaceKHR surface)
+Swapchain::Swapchain()
 {
     // Get the informations needed for the swapchain
-    const SwapchainSupportDetails swapchainSupport = querySupport(g_physicalDevice->vkPhysicalDevice(), surface);
+    const SwapchainSupportDetails swapchainSupport = querySupport(g_physicalDevice->vkPhysicalDevice());
     const VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(swapchainSupport.formats);
     const VkPresentModeKHR presentMode = choosePresentMode(swapchainSupport.presentModes);
     _imageCount = [&]()
@@ -35,7 +37,7 @@ Swapchain::Swapchain(const VkSurfaceKHR surface)
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .pNext = VK_NULL_HANDLE,
             .flags = 0,
-            .surface = surface,
+            .surface = g_instance->vkSurface(),
             .minImageCount = _imageCount,
             .imageFormat = _vkSurfaceFormat,
             .imageColorSpace = surfaceFormat.colorSpace,
@@ -124,26 +126,27 @@ VkExtent2D Swapchain::chooseExtent(const VkSurfaceCapabilitiesKHR capabilities)
 }
 
 // Get the details of the device swapchain support
-const SwapchainSupportDetails Swapchain::querySupport(const VkPhysicalDevice device, const VkSurfaceKHR surface) const
+const SwapchainSupportDetails Swapchain::querySupport(const VkPhysicalDevice physicalDevice) const
 {
+    const auto surface = g_instance->vkSurface();
     SwapchainSupportDetails details;
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.capabilities);
 
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, VK_NULL_HANDLE);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, VK_NULL_HANDLE);
 
     if (formatCount != 0)
     {
         details.formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, details.formats.data());
     }
 
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, VK_NULL_HANDLE);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, VK_NULL_HANDLE);
     if (presentModeCount != 0)
     {
         details.presentModes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, details.presentModes.data());
     }
     return details;
 }

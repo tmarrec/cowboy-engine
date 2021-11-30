@@ -70,6 +70,8 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Core/Subsystems/Renderer/CommandBuffer.cpp
     src/Core/Subsystems/Renderer/CommandPool.h
     src/Core/Subsystems/Renderer/CommandPool.cpp
+    src/Core/Subsystems/Renderer/Instance.h
+    src/Core/Subsystems/Renderer/Instance.cpp
 
     # Renderer World
     src/Core/Subsystems/Renderer/world/World.h

@@ -4,7 +4,7 @@
 #include "../Renderer/Renderer.h"
 #include "../Input/InputManager.h"
 
-extern Renderer g_Renderer;
+extern Renderer     g_Renderer;
 extern InputManager g_InputManager;
 
 // Init GLFW
