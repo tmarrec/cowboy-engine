@@ -13,7 +13,6 @@ std::unique_ptr<Swapchain>          g_swapchain         = nullptr;
 std::unique_ptr<DescriptorPool>     g_descriptorPool    = nullptr;
 std::unique_ptr<DescriptorSet>      g_descriptorSet     = nullptr;
 std::unique_ptr<GraphicsPipeline>   g_graphicsPipeline  = nullptr;
-std::unique_ptr<RenderPass>         g_renderPass        = nullptr;
 std::unique_ptr<CommandPool>        g_commandPool       = nullptr;
 
 // Initialize the Renderer manager
@@ -24,9 +23,10 @@ Renderer::Renderer()
     g_physicalDevice    = std::make_unique<PhysicalDevice>();
     g_logicalDevice     = std::make_unique<LogicalDevice>();
     g_swapchain         = std::make_unique<Swapchain>();
-    g_renderPass        = std::make_unique<RenderPass>();
     g_graphicsPipeline  = std::make_unique<GraphicsPipeline>();
+    g_swapchain->createFramebuffers();
     g_commandPool       = std::make_unique<CommandPool>();
+    exit(0);
     createDepthResources();
     //createFramebuffers();
     createTextureSampler();
@@ -268,9 +268,11 @@ void Renderer::drawFrame()
         INFO("Detected out-of-date image type, will rebuild the swapchain.");
         vkDeviceWaitIdle(vkDevice);
 
+        /*
         vkDestroyImageView(vkDevice, _depthImageView, VK_NULL_HANDLE);
         vkDestroyImage(vkDevice, _depthImage, VK_NULL_HANDLE);
         vkFreeMemory(vkDevice, _depthImageMemory, VK_NULL_HANDLE);
+        */
 
         /*
         for (auto& framebuffer : _vkSwapchainFramebuffers)
@@ -306,6 +308,8 @@ void Renderer::drawFrame()
     _vkImagesInFlight[imageIndex] = _vkInFlightFences[_currentFrame];
 
     createCommandBuffer(imageIndex);
+    //g_graphicsPipeline->renderPass().begin(_vkCommandBuffers[imageIndex], _vkSwapchainFramebuffers[imageIndex]);
+
     updateUniformBuffer(imageIndex);
 
     const std::array<VkSemaphore, 1> waitSemaphores = {_vkImageAvailableSemaphores[_currentFrame]};
@@ -413,25 +417,9 @@ void Renderer::copyBuffer(VkBuffer& srcBuffer, VkBuffer& dstBuffer, VkDeviceSize
     endSingleTimeCommands(commandBuffer);
 }
 
-uint32_t Renderer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
-{
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(g_physicalDevice->vkPhysicalDevice(), &memProperties);
-
-    for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i)
-    {
-        if (typeFilter & (1 << i)
-                && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
-        {
-            return i;
-        }
-    }
-
-    ERROR_EXIT("Failed to find suitable memory type.");
-}
-
 void Renderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
 {
+    /*
     VkDevice vkDevice = g_logicalDevice->vkDevice();
     const VkBufferCreateInfo bufferInfo =
     {
@@ -466,6 +454,7 @@ void Renderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemor
     }
 
     vkBindBufferMemory(vkDevice, buffer, bufferMemory, 0);
+    */
 }
 
 void Renderer::updateUniformBuffer(const uint32_t currentImage)
@@ -495,56 +484,6 @@ void Renderer::createDescriptorSets()
     g_descriptorSet = std::make_unique<DescriptorSet>();
 }
 
-void Renderer::createImage(const uint32_t width, const uint32_t height, const VkFormat format, const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
-{
-    VkDevice vkDevice = g_logicalDevice->vkDevice();
-    const VkImageCreateInfo imageInfo =
-    {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        .pNext = VK_NULL_HANDLE,
-        .flags = 0,
-        .imageType = VK_IMAGE_TYPE_2D,
-        .format = format,
-        .extent = 
-        {
-            .width = width,
-            .height = height,
-            .depth = 1,
-        },
-        .mipLevels = 1,
-        .arrayLayers = 1,
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        .tiling = tiling,
-        .usage = usage,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 0,
-        .pQueueFamilyIndices = VK_NULL_HANDLE,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-    };
-
-    if (vkCreateImage(vkDevice, &imageInfo, VK_NULL_HANDLE, &image) != VK_SUCCESS)
-    {
-        ERROR_EXIT("Failed to create image from texture.");
-    }
-
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(vkDevice, image, &memRequirements);
-
-    const VkMemoryAllocateInfo allocateInfo =
-    {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .pNext = VK_NULL_HANDLE,
-        .allocationSize = memRequirements.size,
-        .memoryTypeIndex= findMemoryType(memRequirements.memoryTypeBits, properties),
-    };
-
-    if (vkAllocateMemory(vkDevice, &allocateInfo, VK_NULL_HANDLE, &imageMemory) != VK_SUCCESS)
-    {
-        ERROR_EXIT("Failed to allocate image memory.");
-    }
-
-    vkBindImageMemory(vkDevice, image, imageMemory, 0);
-}
 
 VkCommandBuffer Renderer::beginSingleTimeCommands()
 {
@@ -746,6 +685,7 @@ void Renderer::setCameraParameters(const glm::vec3& position, const float FOV, c
 
 void Renderer::createTexture(const Image& image)
 {
+    /*
     // TEMP
     VkImage _textureImage;
     VkDeviceMemory _textureImageMemory;
@@ -776,6 +716,7 @@ void Renderer::createTexture(const Image& image)
 
     // Creating texture image view
     //_textureImageView = createImageView(_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+    */
 }
 
 void Renderer::loadTextures()

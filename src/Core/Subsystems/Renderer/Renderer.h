@@ -61,9 +61,6 @@ class Renderer
     void createTextureSampler();
     VkSampler _textureSampler;
 
-    VkImage _depthImage;
-    VkDeviceMemory _depthImageMemory;
-    VkImageView _depthImageView;
     void createDepthResources();
     VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
     VkFormat findDepthFormat();

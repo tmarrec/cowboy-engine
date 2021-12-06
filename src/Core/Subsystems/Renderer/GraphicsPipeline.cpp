@@ -4,8 +4,9 @@
 #include <array>
 #include <glm/glm.hpp>
 
+#include "Swapchain.h"
+
 extern std::unique_ptr<LogicalDevice>   g_logicalDevice;
-extern std::unique_ptr<RenderPass>      g_renderPass;
 extern std::unique_ptr<Swapchain>       g_swapchain;
 
 GraphicsPipeline::GraphicsPipeline()
@@ -225,7 +226,7 @@ GraphicsPipeline::GraphicsPipeline()
         .pColorBlendState = &colorBlendingInfo,
         .pDynamicState = &dynamicStateInfo,
         .layout = _vkPipelineLayout,
-        .renderPass = g_renderPass->vkRenderPass(),
+        .renderPass = _renderPass.vkRenderPass(),
         .subpass = 0,
         .basePipelineHandle = VK_NULL_HANDLE,
         .basePipelineIndex = -1,
@@ -311,5 +312,10 @@ const VkPipelineLayout& GraphicsPipeline::vkPipelineLayout() const
 const std::vector<VkDescriptorSetLayout>& GraphicsPipeline::vkDescriptorSetLayouts() const
 {
     return _vkDescriptorSetLayout;
+}
+
+const RenderPass& GraphicsPipeline::renderPass() const
+{
+    return _renderPass;
 }
 

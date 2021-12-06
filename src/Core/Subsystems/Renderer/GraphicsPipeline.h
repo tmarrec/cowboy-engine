@@ -6,7 +6,6 @@
 
 #include "Shader.h"
 #include "LogicalDevice.h"
-#include "Swapchain.h"
 #include "RenderPass.h"
 
 const uint8_t MAX_FRAMES_IN_FLIGHT = 3;
@@ -62,6 +61,7 @@ class GraphicsPipeline
     void bind(const VkCommandBuffer& vkCommandBuffer) const;
     const VkPipelineLayout& vkPipelineLayout() const;
     const std::vector<VkDescriptorSetLayout>& vkDescriptorSetLayouts() const;
+    const RenderPass& renderPass() const;
 
  private:
     void createDescriptorSetLayout();
@@ -71,4 +71,5 @@ class GraphicsPipeline
     std::vector<VkDescriptorSetLayout>      _vkDescriptorSetLayout  = {};
     std::shared_ptr<Shader>                 _vertShader             = nullptr;
     std::shared_ptr<Shader>                 _fragShader             = nullptr;
+    RenderPass                              _renderPass             = {};
 };

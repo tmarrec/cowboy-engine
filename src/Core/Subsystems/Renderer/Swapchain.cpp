@@ -4,11 +4,13 @@
 #include "PhysicalDevice.h"
 #include "LogicalDevice.h"
 #include "Instance.h"
+#include "GraphicsPipeline.h"
 
-extern Window                           g_Window;
-extern std::unique_ptr<PhysicalDevice>  g_physicalDevice;
-extern std::unique_ptr<LogicalDevice>   g_logicalDevice;
-extern std::unique_ptr<Instance>        g_instance;
+extern Window                               g_Window;
+extern std::unique_ptr<PhysicalDevice>      g_physicalDevice;
+extern std::unique_ptr<LogicalDevice>       g_logicalDevice;
+extern std::unique_ptr<Instance>            g_instance;
+extern std::unique_ptr<GraphicsPipeline>    g_graphicsPipeline;
 
 // Create the Vulkan swapchain
 Swapchain::Swapchain()
@@ -73,7 +75,7 @@ Swapchain::Swapchain()
 
     createImages();
     createImagesViews();
-    createFramebuffers();
+    createDepthResources();
 }
 
 // Get the swapchain surface format, aiming for RGBA 32bits sRGB 
@@ -225,40 +227,98 @@ VkImageView Swapchain::createImageView(const VkImage image, const VkFormat forma
     };
 
     VkImageView imageView;
-    CHECK("Texture image view", vkCreateImageView(g_logicalDevice->vkDevice(), &createInfo, VK_NULL_HANDLE, &imageView));
+    CHECK("Swapchain image view", vkCreateImageView(g_logicalDevice->vkDevice(), &createInfo, VK_NULL_HANDLE, &imageView));
     return imageView;
+}
+
+void Swapchain::createImage(const uint32_t width, const uint32_t height, const VkFormat format, const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+{
+    VkDevice vkDevice = g_logicalDevice->vkDevice();
+    const VkImageCreateInfo imageInfo =
+    {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .pNext = VK_NULL_HANDLE,
+        .flags = 0,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = format,
+        .extent = 
+        {
+            .width = width,
+            .height = height,
+            .depth = 1,
+        },
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = tiling,
+        .usage = usage,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 0,
+        .pQueueFamilyIndices = VK_NULL_HANDLE,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    };
+
+    if (vkCreateImage(vkDevice, &imageInfo, VK_NULL_HANDLE, &image) != VK_SUCCESS)
+    {
+        ERROR_EXIT("Failed to create image from texture.");
+    }
+
+    VkMemoryRequirements memRequirements;
+    vkGetImageMemoryRequirements(vkDevice, image, &memRequirements);
+
+    const VkMemoryAllocateInfo allocateInfo =
+    {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .pNext = VK_NULL_HANDLE,
+        .allocationSize = memRequirements.size,
+        .memoryTypeIndex= findMemoryType(memRequirements.memoryTypeBits, properties),
+    };
+
+    if (vkAllocateMemory(vkDevice, &allocateInfo, VK_NULL_HANDLE, &imageMemory) != VK_SUCCESS)
+    {
+        ERROR_EXIT("Failed to allocate image memory.");
+    }
+
+    vkBindImageMemory(vkDevice, image, imageMemory, 0);
+}
+
+void Swapchain::createDepthResources()
+{
+    const VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
+    createImage(_vkExtent.width, _vkExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, _depthImage, _depthImageMemory);
+    _depthImageView = createImageView(_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 void Swapchain::createFramebuffers()
 {
-    /*
-    _vkSwapchainFramebuffers.resize(_vkSwapchainImageViews.size());
+    ASSERT(g_graphicsPipeline, "g_graphicsPipeline should not be nullptr");
     for (size_t i = 0; i < _vkSwapchainImageViews.size(); ++i)
     {
-        const std::array<VkImageView, 2> attachments =
+        const std::vector<VkImageView> attachments =
         {
             _vkSwapchainImageViews[i],
             _depthImageView
         };
 
-        const VkFramebufferCreateInfo framebufferInfo =
-        {
-            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .pNext = VK_NULL_HANDLE,
-            .flags = 0,
-            .renderPass = g_renderPass->vkRenderPass(),
-            .attachmentCount = static_cast<uint32_t>(attachments.size()),
-            .pAttachments = attachments.data(),
-            .width = _vkExtent.width,
-            .height = _vkExtent.height,
-            .layers = 1,
-        };
-
-        if (vkCreateFramebuffer(g_logicalDevice->vkDevice(), &framebufferInfo, VK_NULL_HANDLE, &_vkSwapchainFramebuffers[i]) != VK_SUCCESS)
-        {
-            ERROR_EXIT("Failed to create framebuffer.");
-        }
+        auto framebuffer = std::make_unique<Framebuffer>(g_graphicsPipeline->renderPass().vkRenderPass(), attachments, _vkExtent.width, _vkExtent.height, 1);
+        _swapchainFramebuffers.emplace_back(std::move(framebuffer));
     }
     OK("Swapchain framebuffers");
-    */
+}
+
+uint32_t Swapchain::findMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags properties)
+{
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(g_physicalDevice->vkPhysicalDevice(), &memProperties);
+
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i)
+    {
+        if (typeFilter & (1 << i)
+                && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+        {
+            return i;
+        }
+    }
+
+    ERROR_EXIT("Failed to find suitable memory type.");
 }

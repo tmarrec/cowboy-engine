@@ -3,7 +3,7 @@
 
 #include "LogicalDevice.h"
 
-extern std::unique_ptr<LogicalDevice>   g_logicalDevice;
+extern std::unique_ptr<LogicalDevice> g_logicalDevice;
 
 Framebuffer::Framebuffer(const VkRenderPass vkRenderPass, const std::vector<VkImageView>& attachments, const uint32_t width, const uint32_t height, const uint32_t arrayLayers)
 {

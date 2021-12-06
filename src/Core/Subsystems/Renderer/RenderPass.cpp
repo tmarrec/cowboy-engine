@@ -91,3 +91,47 @@ const VkRenderPass& RenderPass::vkRenderPass() const
 {
     return _vkRenderPass;
 }
+
+void RenderPass::begin(const VkCommandBuffer vkCommandBuffer, const VkFramebuffer vkFramebuffer) const
+{
+    const std::array<VkClearValue, 2> clearValues =
+    {
+        VkClearValue
+        {
+            .color = 
+            VkClearColorValue
+            {
+                .float32 = {0.0f, 0.0f, 0.0f, 1.0f},
+            }
+        },
+        {
+            .depthStencil = 
+            VkClearDepthStencilValue
+            {
+                .depth = 1.0f,
+                .stencil = 0,
+            }
+        }
+    };
+    const VkRenderPassBeginInfo renderPassBeginInfo =
+    {
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        .pNext = VK_NULL_HANDLE,
+        .renderPass = _vkRenderPass,
+        .framebuffer = vkFramebuffer,
+        .renderArea = 
+        {
+            .offset = {0, 0},
+            .extent = g_swapchain->extent(),
+        },
+        .clearValueCount = static_cast<uint32_t>(clearValues.size()),
+        .pClearValues = clearValues.data(),
+    };
+
+    vkCmdBeginRenderPass(vkCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+void RenderPass::end(const VkCommandBuffer vkCommandBuffer) const
+{
+    vkCmdEndRenderPass(vkCommandBuffer);
+}
