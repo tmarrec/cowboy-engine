@@ -18,11 +18,6 @@
 
 #include "world/World.h"
 #include "Shader.h"
-#include "GraphicsPipeline.h"
-#include "DescriptorPool.h"
-#include "DescriptorSet.h"
-#include "CommandPool.h"
-#include "Instance.h"
 
 struct UniformBufferObject
 {
@@ -38,69 +33,25 @@ struct CameraParameters
     float FOV;
 };
 
+struct Vertex
+{
+    glm::vec3 pos;
+    glm::vec3 color;
+    glm::vec2 texCoord;
+};
+
 class Renderer
 {
  public:
     Renderer();
     ~Renderer();
     void drawFrame();
-    void waitIdle();
-    void updateGraphicsPipeline();
     void setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up);
     void createTexture(const Image& image);
 
  private:
-    void createTextureImage();
-
-    void createImage(const uint32_t width, const uint32_t height, const VkFormat format, const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-    VkCommandBuffer beginSingleTimeCommands();
-    void endSingleTimeCommands(const VkCommandBuffer& commandBuffer);
-    void transitionImageLayout(const VkImage image, const VkFormat format, const VkImageLayout oldLayout, const VkImageLayout newLayout);
-    void copyBufferToImage(const VkBuffer buffer, const VkImage image, const uint32_t width, const uint32_t height);
-    VkImageView createImageView(const VkImage image, const VkFormat format, const VkImageAspectFlags aspectFlags);
-    void createTextureSampler();
-    VkSampler _textureSampler;
-
-    void createDepthResources();
-    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-    VkFormat findDepthFormat();
-
-    void allocateCommandBuffers();
-    void createSyncObjects();
-    void createCommandBuffer(const uint32_t commandBufferIndex);
-
-    void createVertexBuffer();
-    void createIndexBuffer();
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-    void copyBuffer(VkBuffer& srcBuffer, VkBuffer& dstBuffer, VkDeviceSize& size);
-
-    void updateUniformBuffer(const uint32_t currentImage);
-    void createDescriptorPool();
-    void createDescriptorSets();
-
-    // Shaders (temp, should use shader class in future)
-    VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
-
-    VkSurfaceKHR                    _vkSurface                  = VK_NULL_HANDLE;
-    VkBuffer                        _vkVertexBuffer             = VK_NULL_HANDLE;
-    VkDeviceMemory                  _vkVertexBufferMemory       = VK_NULL_HANDLE;
-    VkBuffer                        _vkIndexBuffer              = VK_NULL_HANDLE;
-    VkDeviceMemory                  _vkIndexBufferMemory        = VK_NULL_HANDLE;
-
-    std::vector<VkCommandBuffer>    _vkCommandBuffers           = {};
-    std::vector<VkSemaphore>        _vkImageAvailableSemaphores = {};
-    std::vector<VkSemaphore>        _vkRenderFinishedSemaphores = {};
-    std::vector<VkFence>            _vkInFlightFences           = {};
-    std::vector<VkFence>            _vkImagesInFlight           = {};
-    std::vector<VkDescriptorSet>    _vkDescriptorSets           = {};
-    
-    uint8_t                         _currentFrame = 0;
-    
-    std::vector<Vertex>             _vertices = {};
-    std::vector<uint16_t>           _indices = {};
-
     void loadModels();
+    void initShaders();
     
     CameraParameters _cameraParameters;
     glm::mat4 _projView = {};
@@ -108,4 +59,40 @@ class Renderer
     void loadTextures();
     
     World _world {};
+
+    unsigned int _VAO;
+    unsigned int _VBO;
+    unsigned int _EBO;
+
+    Shader _mainShader {"./shaders/vert.vert", "./shaders/frag.frag"};
+
+    float _vertices[18] = {
+        // positions         // colors
+         0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
+        -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
+         0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f    // top 
+    };
+    unsigned int _indices[6] = {  // note that we start from 0!
+        0, 1, 2,   // first triangle
+    };
+    const char *_vertexShaderSource = "#version 330 core\n"
+    "layout (location = 0) in vec3 aPos;\n"
+    "layout (location = 1) in vec3 aColor;\n"
+    "out vec3 ourColor;\n"
+    "void main()\n"
+    "{\n"
+    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+    "   ourColor = aColor;\n"
+    "}\0";
+    unsigned int _vertexShader;
+    unsigned int _fragmentShader;
+    unsigned int _shaderProgram;
+
+    const char *_fragmentShaderSource = "#version 330 core\n"
+        "out vec4 FragColor;\n"
+        "in vec3 ourColor;\n"
+        "void main()\n"
+        "{\n"
+        "    FragColor = vec4(ourColor, 1.0f);\n"
+        "}\n";
 };

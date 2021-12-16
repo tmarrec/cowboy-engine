@@ -60,18 +60,17 @@ int Core::Run()
     {
         const auto startTime = std::chrono::high_resolution_clock::now();
 
-        g_Window.pollEvents();
-
         cameraSystem->Update(dt);
 
         g_Renderer.drawFrame();
+
+        g_Window.pollEvents();
+        g_Window.swapBuffers();
 
         const auto stopTime = std::chrono::high_resolution_clock::now();
 		dt = std::chrono::duration<float, std::chrono::seconds::period>(stopTime - startTime).count();
         //INFO("FPS: " << 1.0/dt);
     }
-
-    g_Renderer.waitIdle();
 
     return 0;  
 }

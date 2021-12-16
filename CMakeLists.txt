@@ -10,7 +10,7 @@ SET (ALLOW_DUPLICATE_CUSTOM_TARGETS TRUE)
 
 SET (CMAKE_CXX_STANDARD_REQUIRED ON)
 SET (CMAKE_CXX_STANDARD 20)
-SET (CMAKE_CXX_FLAGS "-Wall -pedantic -fno-exceptions -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi")
+SET (CMAKE_CXX_FLAGS "-Wall -pedantic -fno-exceptions -lglfw -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -lGL")
 SET (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -O0 -g -DDEBUG")
 SET (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -fopenmp -DNDEBUG")
 
@@ -25,6 +25,8 @@ SET (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # ╚═════════╝
 
 ADD_EXECUTABLE (${PROJECT_NAME}
+    extern/glad/gl.c
+
     src/main.cpp
 
     # Core
@@ -50,28 +52,6 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Core/Subsystems/Renderer/Renderer.cpp
     src/Core/Subsystems/Renderer/Shader.h
     src/Core/Subsystems/Renderer/Shader.cpp
-    src/Core/Subsystems/Renderer/Swapchain.h
-    src/Core/Subsystems/Renderer/Swapchain.cpp
-    src/Core/Subsystems/Renderer/DescriptorPool.h
-    src/Core/Subsystems/Renderer/DescriptorPool.cpp
-    src/Core/Subsystems/Renderer/DescriptorSet.h
-    src/Core/Subsystems/Renderer/DescriptorSet.cpp
-    src/Core/Subsystems/Renderer/GraphicsPipeline.h
-    src/Core/Subsystems/Renderer/GraphicsPipeline.cpp
-    src/Core/Subsystems/Renderer/RenderPass.h
-    src/Core/Subsystems/Renderer/RenderPass.cpp
-    src/Core/Subsystems/Renderer/PhysicalDevice.h
-    src/Core/Subsystems/Renderer/PhysicalDevice.cpp
-    src/Core/Subsystems/Renderer/LogicalDevice.h
-    src/Core/Subsystems/Renderer/LogicalDevice.cpp
-    src/Core/Subsystems/Renderer/Framebuffer.h
-    src/Core/Subsystems/Renderer/Framebuffer.cpp
-    src/Core/Subsystems/Renderer/CommandBuffer.h
-    src/Core/Subsystems/Renderer/CommandBuffer.cpp
-    src/Core/Subsystems/Renderer/CommandPool.h
-    src/Core/Subsystems/Renderer/CommandPool.cpp
-    src/Core/Subsystems/Renderer/Instance.h
-    src/Core/Subsystems/Renderer/Instance.cpp
 
     # Renderer World
     src/Core/Subsystems/Renderer/world/World.h
@@ -98,9 +78,9 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Systems/CameraHandler.cpp
 )
 
-# Shaderc
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} libshaderc_combined.a)
-
 # tinygltf
 TARGET_INCLUDE_DIRECTORIES (${PROJECT_NAME} SYSTEM PRIVATE "extern/tinygltf")
+
+# glad
+TARGET_INCLUDE_DIRECTORIES (${PROJECT_NAME} SYSTEM PRIVATE "extern")
 

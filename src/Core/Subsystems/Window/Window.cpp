@@ -1,8 +1,8 @@
 #include "Window.h"
-#include <GLFW/glfw3.h>
 
 #include "../Renderer/Renderer.h"
 #include "../Input/InputManager.h"
+
 
 extern Renderer     g_Renderer;
 extern InputManager g_InputManager;
@@ -16,8 +16,10 @@ Window::Window()
     }
 
     glfwSetErrorCallback(&Window::glfwError);
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     windowInit();
 
@@ -27,6 +29,16 @@ Window::Window()
     {
         glfwSetInputMode(_glfwWindow.get(), GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
     }
+
+    int version = gladLoadGL(glfwGetProcAddress);
+    if (version == 0)
+    {
+        ERROR_EXIT("Failed to initialize OpenGL context");
+    }
+
+    glViewport(0, 0, 800, 800);
+
+    OK("OpenGL");
 }
 
 // Destroy the window and terminate GLFW instance
@@ -49,31 +61,17 @@ void Window::pollEvents()
 	glfwPollEvents();
 }
 
-// Returns the Vulkan instance extensions required by GLFW
-std::pair<const char**, uint32_t> Window::windowGetRequiredInstanceExtensions()
+// SwapBuffers
+void Window::swapBuffers()
 {
-	uint32_t glfwExtensionCount = 0;
-	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-    if (!glfwExtensions)
-    {
-        ERROR_EXIT("Failed to get required Vulkan instance extensions.");
-    }
-	return std::pair<const char**, uint32_t>(glfwExtensions, glfwExtensionCount);
-}
-
-// Create a Vulkan surface for the window
-void Window::windowCreateSurface(VkInstance instance, VkSurfaceKHR* surface)
-{
-	if (glfwCreateWindowSurface(instance, _glfwWindow.get(), nullptr, surface) != VK_SUCCESS)
-	{
-        ERROR_EXIT("Failed to create GLFW window surface.");
-	}
+    glfwSwapBuffers(_glfwWindow.get());
 }
 
 // Create the window
 void Window::windowInit()
 {
 	_glfwWindow.reset(glfwCreateWindow(800, 800, "vulkan-testings", nullptr, nullptr));
+    glfwMakeContextCurrent(_glfwWindow.get());
 }
 
 // GLFW error callback
@@ -94,6 +92,6 @@ void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, 
 {
     if (key == GLFW_KEY_R && action == GLFW_PRESS)
     {
-        g_Renderer.updateGraphicsPipeline();
+        //g_Renderer.updateGraphicsPipeline();
     }
 }

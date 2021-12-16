@@ -15,8 +15,8 @@ class World
 
  private:
     std::vector<Scene>          _scenes;
-    std::vector<uint16_t>  _indicesBuffer;
+    std::vector<uint16_t>       _indicesBuffer;
     std::vector<float>          _vertexBuffer;
-    uint16_t               _currentScene;
+    uint16_t                    _currentScene;
     std::vector<Texture>        _textures;
 };

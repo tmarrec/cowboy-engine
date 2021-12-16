@@ -13,7 +13,7 @@ class Scene
 
  private:
     std::vector<Node>           _nodes;
-    std::vector<uint16_t>  _indicesBuffer;
+    std::vector<uint16_t>       _indicesBuffer;
     std::vector<float>          _vertexBuffer;
     std::vector<Primitive>      _primitives;
 };

@@ -1,117 +1,102 @@
 #include "Shader.h"
 
-extern std::unique_ptr<LogicalDevice> g_logicalDevice;
+#include <sstream>
+#include <fstream>
 
-static inline shaderc_shader_kind toShadercType(const ShaderType type)
+Shader::Shader(const std::string& vertexFilePath, const std::string& fragmentFilePath)
 {
+    std::string vertexCode;
+    std::string fragmentCode;
+    std::ifstream vShaderFile;
+    std::ifstream fShaderFile;
+
+    vShaderFile.open(vertexFilePath);
+    fShaderFile.open(fragmentFilePath);
+
+    std::stringstream vShaderStream, fShaderStream;
+    vShaderStream << vShaderFile.rdbuf();
+    fShaderStream << fShaderFile.rdbuf();		
+    vShaderFile.close();
+    fShaderFile.close();
+    vertexCode   = vShaderStream.str();
+    fragmentCode = fShaderStream.str();
+
+    if (vertexCode.size() == 0)
+    {
+        ERROR("Unable to find the vertex shader \"" << vertexFilePath << "\"");
+        return;
+    }
+    if (fragmentCode.size() == 0)
+    {
+        ERROR("Unable to find the fragment shader \"" << fragmentFilePath << "\"");
+        return;
+    }
+
+    // Compile shaders
+    // Vertex shader
+    GLuint vertex = 0;
+    const char* vShaderCode = vertexCode.c_str();
+    vertex = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertex, 1, &vShaderCode, nullptr);
+    glCompileShader(vertex);
+    checkCompilation(vertex, GL_VERTEX_SHADER);
+
+    // Fragment Shader
+    GLuint fragment = 0;
+    const char* fShaderCode = fragmentCode.c_str();
+    fragment = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment, 1, &fShaderCode, nullptr);
+    glCompileShader(fragment);
+    checkCompilation(fragment, GL_FRAGMENT_SHADER);
+
+    // Shader Program linking
+    _id = glCreateProgram();
+    glAttachShader(_id, vertex);
+    glAttachShader(_id, fragment);
+
+    glLinkProgram(_id);
+    checkCompilation(_id, GL_PROGRAM);
+
+    // Delete shaders as they are linked into our program
+    glDeleteShader(vertex);
+    glDeleteShader(fragment);
+
+    OK("Shader");
+}
+
+void Shader::use() const
+{
+    glUseProgram(_id);
+}
+
+void Shader::checkCompilation(const GLuint shader, const GLenum type) const
+{
+    GLint success;
+    GLsizei infoLogLength = 0;
     switch (type)
     {
-        case SHADER_TYPE_VERTEX:
-            return shaderc_glsl_vertex_shader;
-        case SHADER_TYPE_FRAGMENT:
-            return shaderc_glsl_fragment_shader;
-        default:
-            ERROR_EXIT("Wrong shader type");
+        case GL_PROGRAM:
+            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLogLength);
+            glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+            if (!success)
+            {
+                char* infoLog = new char[infoLogLength];
+                glGetShaderInfoLog(shader, infoLogLength, NULL, infoLog);
+                ERROR("Shader compilation error of type : " <<
+                        type << "\n" << infoLog << "\n");
+            }
+            break;
+        case GL_FRAGMENT_SHADER:
+        case GL_VERTEX_SHADER:
+            glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &infoLogLength);
+            glGetProgramiv(shader, GL_LINK_STATUS, &success);
+            if (!success)
+            {
+                char* infoLog = new char[infoLogLength];
+                glGetProgramInfoLog(shader, infoLogLength, NULL, infoLog);
+                ERROR("Program linking error of type : " <<
+                        type << "\n" << infoLog << "\n");
+            }
+            break;
     }
-}
-
-Shader::Shader(const std::string& filename, const ShaderType type)
-: _filename{filename}
-, _type{type}
-{
-    compile();
-    createShaderModule();
-}
-
-// Read the shader code from filename and compile it to spir-v bytecode
-void Shader::compile()
-{
-    std::ifstream file("shaders/" + _filename, std::ios::in);
-
-    if (!file.is_open())
-    {
-        ERROR_EXIT("Failed to read shader file " + _filename);
-    }
-
-    // Get the shader code into the code string
-    std::string code ((std::istreambuf_iterator<char>(file)),
-                        (std::istreambuf_iterator<char>()));
-
-    file.close();
-
-    const shaderc::Compiler compiler;
-    shaderc::CompileOptions options;
-    options.SetOptimizationLevel(shaderc_optimization_level_performance);
-    const auto shaderType = toShadercType(_type);
-
-    // Preprocess
-    const shaderc::PreprocessedSourceCompilationResult preprocessed = compiler.PreprocessGlsl(code, shaderType, _filename.c_str(), options);
-    if (preprocessed.GetCompilationStatus() != shaderc_compilation_status_success)
-    {
-        ERROR(preprocessed.GetErrorMessage());
-        if (_lastCompilationOk)
-        {
-            ERROR("Shader \"" + _filename + "\" preprocess failed. Will keep the last working shader bytecode");
-            return;
-        }
-        else
-        {
-            ERROR_EXIT("Shader preprocess failed");
-        }
-    }
-
-    // Compile
-    const shaderc::CompilationResult assembly = compiler.CompileGlslToSpv(code, shaderType, _filename.c_str(), options);
-    if (assembly.GetCompilationStatus() != shaderc_compilation_status_success)
-    {
-        if (_lastCompilationOk)
-        {
-            ERROR("Shader \"" + _filename + "\" compilation failed. Will keep the last working shader bytecode");
-            return;
-        }
-        else
-        {
-            ERROR_EXIT("Shader compilation failed");
-        }
-    }
-    
-    _shaderCode = {assembly.cbegin(), assembly.cend()};
-    _lastCompilationOk = true;
-    OK("Shader \"" + _filename + "\" successfully compiled");
-}
-
-// Create Vulkan shader module from shader bytecode
-void Shader::createShaderModule()
-{
-    const VkShaderModuleCreateInfo createInfo =
-    {
-        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        .pNext = VK_NULL_HANDLE,
-        .flags = 0,
-        .codeSize = _shaderCode.size() * sizeof(uint32_t),
-        .pCode = _shaderCode.data(),
-    };
-
-    if (vkCreateShaderModule(g_logicalDevice->vkDevice(), &createInfo, VK_NULL_HANDLE, &_shaderModule) != VK_SUCCESS)
-    {
-        ERROR_EXIT("Failed to create shader module");
-    }
-}
-
-// Destroy the Vulkan shader module
-void Shader::destroyShaderModule()
-{
-    vkDestroyShaderModule(g_logicalDevice->vkDevice(), _shaderModule, VK_NULL_HANDLE);
-}
-
-// Getter to the spir-v bytecode
-const std::vector<uint32_t>& Shader::code() const
-{
-    return _shaderCode;
-}
-
-// Getter to the Vulkan shader module
-const VkShaderModule& Shader::shaderModule() const
-{
-    return _shaderModule;
 }

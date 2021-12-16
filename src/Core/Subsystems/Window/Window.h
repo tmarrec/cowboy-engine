@@ -2,7 +2,7 @@
 
 #include "../../utils.h"
 
-#define GLFW_INCLUDE_VULKAN
+#include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <memory>
 
@@ -17,8 +17,7 @@ class Window
     Window();
     bool windowShouldClose() const;
     void pollEvents();
-    std::pair<const char**, uint32_t> windowGetRequiredInstanceExtensions();
-    void windowCreateSurface(VkInstance instance, VkSurfaceKHR* surface);
+    void swapBuffers();
     void windowGetFramebufferSize(uint32_t& width, uint32_t& height);
 
  private:
