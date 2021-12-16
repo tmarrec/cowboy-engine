@@ -4,7 +4,6 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
 #include <array>
-#include <vulkan/vulkan.h>
 #include <vector>
 #include <memory>
 #include <iostream>
@@ -33,13 +32,6 @@ struct CameraParameters
     float FOV;
 };
 
-struct Vertex
-{
-    glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
-};
-
 class Renderer
 {
  public:
@@ -50,7 +42,6 @@ class Renderer
     void createTexture(const Image& image);
 
  private:
-    void loadModels();
     void initShaders();
     
     CameraParameters _cameraParameters;

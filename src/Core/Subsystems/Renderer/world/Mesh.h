@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <glm/glm.hpp>
+#include <glad/gl.h>
 
 #include "./../../../utils.h"
 
@@ -14,11 +15,27 @@ struct Buffer
     const size_t    size = 0;
 };
 
+struct Vertex
+{
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec2 texCoords;
+};
+
+struct GLTexture
+{
+    GLuint id;
+    std::string type;
+};
+
 struct Primitive
 {
-    const size_t firstIndex;
-    const size_t indexCount;
-    const size_t vertexOffset;
+    GLuint                  VAO;
+    GLuint                  VBO;
+    GLuint                  EBO;
+    std::vector<Vertex>     vertices;
+    std::vector<GLuint>     indices;
+    std::vector<GLTexture>  textures;
 };
 
 class Mesh

@@ -64,6 +64,11 @@ Shader::Shader(const std::string& vertexFilePath, const std::string& fragmentFil
     OK("Shader");
 }
 
+void Shader::setMat4f(const std::string& name, const glm::mat4& mat) const
+{
+    glUniformMatrix4fv(glGetUniformLocation(_id, name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
+}
+
 void Shader::use() const
 {
     glUseProgram(_id);

@@ -10,7 +10,7 @@ extern Window g_Window;
 Renderer::Renderer()
 {
     initShaders();
-    loadModels();
+    glEnable(GL_DEPTH_TEST);
 }
 
 // Clean all the objects related to Vulkan
@@ -26,43 +26,22 @@ void Renderer::initShaders()
 // Draw the frame by executing the queues while staying synchronised
 void Renderer::drawFrame()
 {
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    _mainShader.use();
+    _mainShader.setMat4f("view", glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up));
+    _mainShader.setMat4f("projection", glm::perspective(glm::radians(_cameraParameters.FOV), 800.0f / 800.0f, 0.1f, 100.0f));
 
-    glBindVertexArray(_VAO);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-}
-
-void Renderer::loadModels()
-{
-    //const auto& badVertices = _world.getVertexBuffer();
-    //const auto& badIndices = _world.getIndicesBuffer();
-
-
-    
-    //
-    glGenVertexArrays(1, &_VAO);
-    glGenBuffers(1, &_VBO);
-    glGenBuffers(1, &_EBO);
-
-    glBindVertexArray(_VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, _VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(_vertices), _vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(_indices), _indices, GL_STATIC_DRAW);
-
-    // Position attributes
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
-    glEnableVertexAttribArray(0);
-    // Color attributes
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    for (const auto& node : _world.getNodes())
+    {
+        _mainShader.setMat4f("model", node.getTransform());
+        _mainShader.use();
+        for (const auto& primitive : node.getPrimitives())
+        {
+            glBindVertexArray(primitive.VAO);
+            glDrawElements(GL_TRIANGLES, primitive.indices.size(), GL_UNSIGNED_INT, 0);
+        }
+    }
     glBindVertexArray(0);
 }
 

@@ -23,6 +23,8 @@ Window::Window()
 
     windowInit();
 
+    glfwSwapInterval(0);
+
     glfwSetKeyCallback(_glfwWindow.get(), g_InputManager.keyCallback);
     glfwSetCursorPosCallback(_glfwWindow.get(), g_InputManager.cursorPositionCallback);
     if (glfwRawMouseMotionSupported())
