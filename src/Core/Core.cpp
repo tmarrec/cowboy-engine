@@ -50,7 +50,7 @@ int Core::Run()
             .FOV = 60.0f,
             .yaw = 111.5f,
             .pitch = -19.5f,
-            .speed = 2.0f,
+            .speed = 5.0f,
         }
     );
 
@@ -69,7 +69,7 @@ int Core::Run()
 
         const auto stopTime = std::chrono::high_resolution_clock::now();
 		dt = std::chrono::duration<float, std::chrono::seconds::period>(stopTime - startTime).count();
-        INFO("FPS: " << 1.0/dt);
+        //INFO("FPS: " << 1.0/dt);
     }
 
     return 0;  

@@ -19,6 +19,7 @@ class Texture
     const Image& getImage() const;
 
  private:
+    GLuint _id;
     std::shared_ptr<tinygltf::Image> _image;
     const Image _img;
 };

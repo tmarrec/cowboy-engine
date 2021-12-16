@@ -2,6 +2,8 @@
 
 #include "../Window/Window.h"
 
+#include <glm/gtx/string_cast.hpp>
+
 #include <memory>
 
 extern Window g_Window;
@@ -29,17 +31,20 @@ void Renderer::drawFrame()
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    _mainShader.use();
     _mainShader.setMat4f("view", glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up));
     _mainShader.setMat4f("projection", glm::perspective(glm::radians(_cameraParameters.FOV), 800.0f / 800.0f, 0.1f, 100.0f));
 
     for (const auto& node : _world.getNodes())
     {
-        _mainShader.setMat4f("model", node.getTransform());
-        _mainShader.use();
-        for (const auto& primitive : node.getPrimitives())
+        if (node.gotMesh())
         {
-            glBindVertexArray(primitive.VAO);
-            glDrawElements(GL_TRIANGLES, primitive.indices.size(), GL_UNSIGNED_INT, 0);
+            _mainShader.setMat4f("model", node.getTransform());
+            for (const auto& primitive : node.getPrimitives())
+            {
+                glBindVertexArray(primitive.VAO);
+                glDrawElements(GL_TRIANGLES, primitive.indices.size(), GL_UNSIGNED_INT, 0);
+            }
         }
     }
     glBindVertexArray(0);

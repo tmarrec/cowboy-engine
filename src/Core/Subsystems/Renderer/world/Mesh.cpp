@@ -5,8 +5,8 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
     for (const auto& primitiveData : model.meshes[idx].primitives)
     {
         const Buffer<uint16_t> primIndicesBuffer = getBuffer<uint16_t>(primitiveData.indices, model);
-
         const Buffer<float> primVertexBuffer = getBuffer<float>(primitiveData.attributes.at("POSITION"), model);
+        const Buffer<float> primNormalBuffer = getBuffer<float>(primitiveData.attributes.at("NORMAL"), model);
 
         Primitive primitive;
 
@@ -15,15 +15,17 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
             const Vertex v =
             {
                 .position = {primVertexBuffer.buffer[i], primVertexBuffer.buffer[i+1], primVertexBuffer.buffer[i+2]},
-                .normal = {0,0,0},
-                .texCoords = {0,0},
+                .normal = {primNormalBuffer.buffer[i],primNormalBuffer.buffer[i+1],primNormalBuffer.buffer[i+2]},
+                .texCoords = {1,0},
             };
             primitive.vertices.emplace_back(v);
         }
 
         for (int i = 0; i < primIndicesBuffer.size; ++i)
+        {
             primitive.indices.emplace_back(primIndicesBuffer.buffer[i]);
-            
+        }
+
         glGenVertexArrays(1, &primitive.VAO);
         glGenBuffers(1, &primitive.VBO);
         glGenBuffers(1, &primitive.EBO);
