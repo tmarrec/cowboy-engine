@@ -43,7 +43,11 @@ void Renderer::drawFrame()
             _mainShader.setMat4f("model", node.getTransform());
             for (const auto& primitive : node.getPrimitives())
             {
-                glBindTexture(GL_TEXTURE_2D, textures[primitive.material.textureID].id);
+                if (primitive.material.hasTexture)
+                {
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, textures[primitive.material.textureID].id);
+                }
                 glBindVertexArray(primitive.VAO);
                 glDrawElements(GL_TRIANGLES, primitive.indices.size(), GL_UNSIGNED_INT, 0);
             }

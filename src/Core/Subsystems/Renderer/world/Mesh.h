@@ -24,7 +24,8 @@ struct Vertex
 
 struct Material
 {
-    GLuint textureID;
+    bool    hasTexture;
+    GLuint  textureID;
 };
 
 struct Primitive
@@ -47,11 +48,26 @@ class Mesh
     template<typename T>
     const Buffer<T> getBuffer(const int from, const tinygltf::Model& model) const
     {
-        const auto& accessor    = model.accessors[from];
-        const auto& bufferView  = model.bufferViews[accessor.bufferView];
-        const auto& buffer      = model.buffers[bufferView.buffer];
-
-        const size_t bufferSize = accessor.count * accessor.type;
+        const auto&  accessor   = model.accessors[from];
+        const auto&  bufferView = model.bufferViews[accessor.bufferView];
+        const auto&  buffer     = model.buffers[bufferView.buffer];
+        const size_t typeSize   = [&accessor]()
+        {
+            switch(accessor.type)
+            {
+                case TINYGLTF_TYPE_SCALAR:
+                    return 1;
+                case TINYGLTF_TYPE_VEC2:
+                    return 2;
+                case TINYGLTF_TYPE_VEC3:
+                    return 3;
+                case TINYGLTF_TYPE_VEC4:
+                    return 4;
+                default:
+                    ERROR_EXIT("Accessor data type unknown yet");
+            }
+        }();
+        const size_t bufferSize = accessor.count * typeSize;
 
         return
         {
