@@ -63,7 +63,6 @@ ADD_EXECUTABLE (${PROJECT_NAME}
     src/Core/Subsystems/Renderer/world/Mesh.h
     src/Core/Subsystems/Renderer/world/Mesh.cpp
     src/Core/Subsystems/Renderer/world/Texture.h
-    src/Core/Subsystems/Renderer/world/Texture.cpp
 
     # Input Subsystem
     src/Core/Subsystems/Input/InputManager.h

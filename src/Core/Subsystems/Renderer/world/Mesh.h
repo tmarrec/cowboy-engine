@@ -22,10 +22,9 @@ struct Vertex
     glm::vec2 texCoords;
 };
 
-struct GLTexture
+struct Material
 {
-    GLuint id;
-    std::string type;
+    GLuint textureID;
 };
 
 struct Primitive
@@ -35,7 +34,7 @@ struct Primitive
     GLuint                  EBO;
     std::vector<Vertex>     vertices;
     std::vector<GLuint>     indices;
-    std::vector<GLTexture>  textures;
+    Material                material;
 };
 
 class Mesh
@@ -52,18 +51,7 @@ class Mesh
         const auto& bufferView  = model.bufferViews[accessor.bufferView];
         const auto& buffer      = model.buffers[bufferView.buffer];
 
-        const size_t bufferSize = [&]()
-        {
-            switch (bufferView.target)
-            {
-                case TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER:
-                    return accessor.count;
-                case TINYGLTF_TARGET_ARRAY_BUFFER:
-                    return accessor.count * 3;
-                default:
-                    ERROR_EXIT("Bufferview target unrecognized.");
-            }
-        }();
+        const size_t bufferSize = accessor.count * accessor.type;
 
         return
         {

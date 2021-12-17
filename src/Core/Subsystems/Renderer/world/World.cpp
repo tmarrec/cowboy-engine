@@ -13,8 +13,8 @@ World::World()
     std::string err;
     std::string warn;
 
-    bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, "models/scene.gltf");
-    //bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, "models/BoxTextured.glb");
+    //bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, "models/scene.gltf");
+    bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, "models/BoxTextured.glb");
 
     if (!warn.empty())
     {
@@ -39,24 +39,11 @@ World::World()
 
     _currentScene = model.defaultScene;
 
-    _indicesBuffer = _scenes[_currentScene].getIndicesBuffer();
-    _vertexBuffer = _scenes[_currentScene].getPositionBuffer();
-
     for (const auto& gltfTexture : model.textures)
     {
         const Texture texture {gltfTexture, model};
         _textures.emplace_back(texture);
     }
-}
-
-const std::vector<uint16_t>& World::getIndicesBuffer() const
-{
-    return _indicesBuffer;
-}
-
-const std::vector<float>& World::getVertexBuffer() const
-{
-    return _vertexBuffer;
 }
 
 const std::vector<Node>& World::getNodes() const

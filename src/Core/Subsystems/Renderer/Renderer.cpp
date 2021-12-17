@@ -35,6 +35,7 @@ void Renderer::drawFrame()
     _mainShader.setMat4f("view", glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up));
     _mainShader.setMat4f("projection", glm::perspective(glm::radians(_cameraParameters.FOV), 800.0f / 800.0f, 0.1f, 100.0f));
 
+    const auto& textures = _world.getTextures();
     for (const auto& node : _world.getNodes())
     {
         if (node.gotMesh())
@@ -42,6 +43,7 @@ void Renderer::drawFrame()
             _mainShader.setMat4f("model", node.getTransform());
             for (const auto& primitive : node.getPrimitives())
             {
+                glBindTexture(GL_TEXTURE_2D, textures[primitive.material.textureID].id);
                 glBindVertexArray(primitive.VAO);
                 glDrawElements(GL_TRIANGLES, primitive.indices.size(), GL_UNSIGNED_INT, 0);
             }
@@ -58,15 +60,3 @@ void Renderer::setCameraParameters(const glm::vec3& position, const float FOV, c
     _cameraParameters.up = up;
 }
 
-void Renderer::createTexture(const Image& image)
-{
-}
-
-void Renderer::loadTextures()
-{
-    const auto& textures = _world.getTextures();
-    for (const auto& texture : textures)
-    {
-        createTexture(texture.getImage());
-    }
-}

@@ -39,7 +39,6 @@ class Renderer
     ~Renderer();
     void drawFrame();
     void setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up);
-    void createTexture(const Image& image);
 
  private:
     void initShaders();
@@ -47,8 +46,6 @@ class Renderer
     CameraParameters _cameraParameters;
     glm::mat4 _projView = {};
 
-    void loadTextures();
-    
     World _world {};
 
     unsigned int _VAO;
