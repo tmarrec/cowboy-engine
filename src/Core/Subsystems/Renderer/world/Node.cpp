@@ -40,12 +40,13 @@ Node::Node(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
         glm::mat4 scale {1};
         if (!node.scale.empty())
         {
-            scale = glm::scale(glm::mat4(), glm::vec3(node.scale[0], node.scale[1], node.scale[2]));
+            scale = glm::scale(scale, glm::vec3(node.scale[0], node.scale[1], node.scale[2]));
         }
         _transform = translation * rotation * scale;
     }
-    
+
     _transform = parentTransform * _transform;
+
 
     for (const auto childrenIdx : node.children)
     {

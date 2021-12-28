@@ -55,7 +55,6 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
             const auto& pbr = model.materials[pData.material].pbrMetallicRoughness;
             p.material.baseColorTexture = pbr.baseColorTexture.index;
             p.material.metallicRoughnessTexture = pbr.metallicRoughnessTexture.index;
-            std::cout << model.materials[pData.material].occlusionTexture.index << std::endl;
         }
 
         p.indices = std::vector<GLuint>(pIndicesBuffer.buffer, pIndicesBuffer.buffer+pIndicesBuffer.size);
