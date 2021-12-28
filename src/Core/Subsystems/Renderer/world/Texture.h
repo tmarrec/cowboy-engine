@@ -48,7 +48,7 @@ struct Texture
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, sampler.minFilter);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, sampler.magFilter);
         }
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_SRGB, img.width, img.height, 0, format, type, img.image.data());
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGB, img.width, img.height, 0, format, type, img.image.data());
         glGenerateMipmap(GL_TEXTURE_2D);
         OK("Texture " << gltfTexture.source);
     }

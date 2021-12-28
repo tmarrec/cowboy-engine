@@ -72,7 +72,7 @@ void Window::swapBuffers()
 // Create the window
 void Window::windowInit()
 {
-	_glfwWindow.reset(glfwCreateWindow(800, 800, "vulkan-testings", nullptr, nullptr));
+	_glfwWindow.reset(glfwCreateWindow(800, 800, "OpenGL Testings", nullptr, nullptr));
     glfwMakeContextCurrent(_glfwWindow.get());
 }
 

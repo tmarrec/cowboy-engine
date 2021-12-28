@@ -12,11 +12,29 @@ extern Window g_Window;
 Renderer::Renderer()
 {
     glEnable(GL_DEPTH_TEST);
+    loadDefaultTextures();
 }
 
 // Clean all the objects related to Vulkan
 Renderer::~Renderer()
 {
+}
+
+void Renderer::loadDefaultTextures()
+{
+    // Default Albedo texture
+    uint8_t albedo[3] = {255,0,0};
+    glGenTextures(1, &_defaultAlbedoTexture);
+    glBindTexture(GL_TEXTURE_2D, _defaultAlbedoTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, &albedo);
+
+    // Default MetallicRoughness texture
+    uint8_t metallicRoughness[3] = {0,0,0};
+    glGenTextures(1, &_defaultMetallicRoughnessTexture);
+    glBindTexture(GL_TEXTURE_2D, _defaultMetallicRoughnessTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, &metallicRoughness);
+
+    OK("Default textures loaded");
 }
 
 // Draw the frame by executing the queues while staying synchronised
@@ -64,13 +82,28 @@ void Renderer::drawFrame()
 
             for (const auto& primitive : node.getPrimitives())
             {
-                if (primitive.material.hasTexture)
+                // Albedo texture
+                glActiveTexture(GL_TEXTURE0);
+                if (primitive.material.hasAlbedoTexture)
                 {
-                    glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, textures[primitive.material.baseColorTexture].id);
-                    glActiveTexture(GL_TEXTURE1);
+                    glBindTexture(GL_TEXTURE_2D, textures[primitive.material.albedoTexture].id);
+                }
+                else
+                {
+                    glBindTexture(GL_TEXTURE_2D, _defaultAlbedoTexture);
+                }
+
+                // MetallicRoughness texture
+                glActiveTexture(GL_TEXTURE1);
+                if (primitive.material.hasMetallicRoughnessTexture)
+                {
                     glBindTexture(GL_TEXTURE_2D, textures[primitive.material.metallicRoughnessTexture].id);
                 }
+                else
+                {
+                    glBindTexture(GL_TEXTURE_2D, _defaultMetallicRoughnessTexture);
+                }
+
                 glBindVertexArray(primitive.VAO);
                 glDrawElements(GL_TRIANGLES, primitive.indices.size(), GL_UNSIGNED_INT, 0);
             }

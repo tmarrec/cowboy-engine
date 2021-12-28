@@ -2,6 +2,8 @@
 
 #include <sstream>
 
+#include "../Renderer.h"
+
 Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& indicesBuffer, std::vector<float>& vertexBuffer, std::vector<Primitive>& primitives)
 {
     for (const auto& pData : model.meshes[idx].primitives)
@@ -22,12 +24,10 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
                 // If has texture
                 if (pData.attributes.find(s.str()) != pData.attributes.end())
                 {
-                    p.material.hasTexture = true;
                     return getBuffer<GLfloat>(pData.attributes.at(s.str()), model);
                 }
             }
             // If no texture, zeros for all texcoord
-            p.material.hasTexture = false;
             std::vector<GLfloat> buffer((pVertexBuffer.size / 3) * 2, 0);
             return Buffer<GLfloat>
             {
@@ -53,8 +53,16 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
         if (pData.material >= 0)
         {
             const auto& pbr = model.materials[pData.material].pbrMetallicRoughness;
-            p.material.baseColorTexture = pbr.baseColorTexture.index;
-            p.material.metallicRoughnessTexture = pbr.metallicRoughnessTexture.index;
+            if (pbr.baseColorTexture.index >= 0)
+            {
+                p.material.hasAlbedoTexture = true;
+                p.material.albedoTexture = pbr.baseColorTexture.index;
+            }
+            if (pbr.metallicRoughnessTexture.index >= 0)
+            {
+                p.material.hasMetallicRoughnessTexture = true;
+                p.material.metallicRoughnessTexture = pbr.metallicRoughnessTexture.index;
+            }
         }
 
         p.indices = std::vector<GLuint>(pIndicesBuffer.buffer, pIndicesBuffer.buffer+pIndicesBuffer.size);

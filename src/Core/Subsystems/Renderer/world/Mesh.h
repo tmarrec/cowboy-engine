@@ -24,8 +24,9 @@ struct Vertex
 
 struct Material
 {
-    bool    hasTexture;
-    GLuint  baseColorTexture;
+    bool    hasAlbedoTexture = false;
+    GLuint  albedoTexture;
+    bool    hasMetallicRoughnessTexture = false;
     GLuint  metallicRoughnessTexture;
 };
 
