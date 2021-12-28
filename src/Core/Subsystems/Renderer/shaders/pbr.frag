@@ -4,19 +4,22 @@
 
 out vec4 FragColor;
 
-in  vec2 texCoord;
-in  vec3 normal;
-in  vec3 worldPos;
+in vec2 texCoords;
 
-uniform vec3        camPos;
+uniform sampler2D gPosition;
+uniform sampler2D gNormal;
+uniform sampler2D gAlbedo;
+uniform sampler2D gMetallicRoughness;
 
-// Temp lights
-uniform vec3        lightPositions[4];
-uniform vec3        lightColors[4];
+struct Light
+{
+    vec3 position;
+    vec3 color;
+};
 
-uniform sampler2D   albedoMap;
-uniform sampler2D   metallicRoughnessMap;
-//uniform sampler2D   aoMap;
+const int NR_LIGHTS = 256;
+uniform Light lights[NR_LIGHTS];
+uniform vec3 viewPos;
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
@@ -59,24 +62,26 @@ float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 }
 
 void main()
-{
-    vec3 albedo = pow(texture(albedoMap, texCoord).rgb, vec3(2.2, 2.2, 2.2));
-    float metallic = texture(metallicRoughnessMap, texCoord).b;
-    float roughness = texture(metallicRoughnessMap, texCoord).g;
-    //float ao = texture(aoMap, texCoord).r;
+{             
+    vec3 fragPos = texture(gPosition, texCoords).rgb;
+    vec3 normal = texture(gNormal, texCoords).rgb;
+    vec3 albedo = pow(texture(gAlbedo, texCoords).rgb, vec3(2.2, 2.2, 2.2));
+    float metallic = texture(gMetallicRoughness, texCoords).b;
+    float roughness = texture(gMetallicRoughness, texCoords).g;
 
     vec3 N = normalize(normal);
-    vec3 V = normalize(camPos - worldPos);
+    vec3 V = normalize(viewPos - fragPos);
 
     vec3 Lo = vec3(0.0);
-    for (int i = 0; i < 4; ++i)
+    
+    for(int i = 0; i < NR_LIGHTS; ++i)
     {
-        vec3 L = normalize(lightPositions[i] - worldPos);
+        vec3 L = normalize(lights[i].position - fragPos);
         vec3 H = normalize(V + L);
 
-        float dist = length(lightPositions[i] - worldPos);
+        float dist = length(lights[i].position - fragPos);
         float attenuation = 1.0 / (dist * dist);
-        vec3 radiance = lightColors[i] * attenuation;
+        vec3 radiance = lights[i].color * attenuation;
 
         vec3 F0 = vec3(0.04);
         F0 = mix(F0, albedo, metallic);

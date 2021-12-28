@@ -14,7 +14,7 @@ World::World()
     std::string warn;
 
     bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, "models/Sponza.gltf");
-    //bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, "models/DamagedHelmet.glb");
+    //bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, "models/MetalRoughSpheres.glb");
  
     if (!warn.empty())
     {

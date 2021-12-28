@@ -42,13 +42,27 @@ class Renderer
 
  private:
     void loadDefaultTextures();
+    void prepareGBuffer();
     CameraParameters _cameraParameters;
     glm::mat4 _projView = {};
 
     World _world {};
 
-    Shader _mainShader {"./shaders/vert.vert", "./shaders/frag.frag"};
+    Shader _gPass {"./shaders/gpass.vert", "./shaders/gpass.frag"};
+    Shader _pbr {"./shaders/pbr.vert", "./shaders/pbr.frag"};
 
     GLuint _defaultAlbedoTexture;
     GLuint _defaultMetallicRoughnessTexture;
+
+    GLuint _gBuffer;
+    GLuint _gPosition;
+    GLuint _gNormal;
+    GLuint _gAlbedo;
+    GLuint _gMetallicRoughness;
+
+    unsigned int quadVAO = 0;
+    unsigned int quadVBO;
+
+    std::vector<glm::vec3> lightPositions;
+    std::vector<glm::vec3> lightColors;
 };
