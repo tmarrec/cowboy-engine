@@ -14,8 +14,8 @@ World::World()
     std::string warn;
 
     //bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, "models/scene.gltf");
-    bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, "models/Duck.glb");
-
+    bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, "models/MetalRoughSpheres.glb");
+ 
     if (!warn.empty())
     {
         WARNING(warn.c_str());

@@ -25,7 +25,8 @@ struct Vertex
 struct Material
 {
     bool    hasTexture;
-    GLuint  textureID;
+    GLuint  baseColorTexture;
+    GLuint  metallicRoughnessTexture;
 };
 
 struct Primitive

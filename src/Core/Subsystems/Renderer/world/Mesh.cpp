@@ -23,7 +23,6 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
                 if (pData.attributes.find(s.str()) != pData.attributes.end())
                 {
                     p.material.hasTexture = true;
-                    p.material.textureID = model.materials[pData.material].pbrMetallicRoughness.baseColorTexture.index;
                     return getBuffer<GLfloat>(pData.attributes.at(s.str()), model);
                 }
             }
@@ -50,13 +49,21 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
             t += 2;
         }
 
+        // If has material
+        if (pData.material >= 0)
+        {
+            const auto& pbr = model.materials[pData.material].pbrMetallicRoughness;
+            p.material.baseColorTexture = pbr.baseColorTexture.index;
+            p.material.metallicRoughnessTexture = pbr.metallicRoughnessTexture.index;
+            std::cout << model.materials[pData.material].occlusionTexture.index << std::endl;
+        }
+
         p.indices = std::vector<GLuint>(pIndicesBuffer.buffer, pIndicesBuffer.buffer+pIndicesBuffer.size);
 
         /*
         for (size_t i = 0; i < pIndicesBuffer.size; ++i)
             p.indices.emplace_back(pIndicesBuffer.buffer[i]);
         */
-
 
         glGenVertexArrays(1, &p.VAO);
         glGenBuffers(1, &p.VBO);

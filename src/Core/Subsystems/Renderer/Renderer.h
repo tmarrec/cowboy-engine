@@ -41,8 +41,6 @@ class Renderer
     void setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up);
 
  private:
-    void initShaders();
-    
     CameraParameters _cameraParameters;
     glm::mat4 _projView = {};
 

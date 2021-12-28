@@ -24,7 +24,7 @@ struct Texture
                 case 4:
                     return GL_RGBA;
                 default:
-                    ERROR_EXIT("texture prout");
+                    ERROR_EXIT("Texture image format");
             }
         }();
         const GLenum type = [&img]()
