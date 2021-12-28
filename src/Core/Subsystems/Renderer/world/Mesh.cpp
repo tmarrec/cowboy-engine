@@ -59,11 +59,6 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
 
         p.indices = std::vector<GLuint>(pIndicesBuffer.buffer, pIndicesBuffer.buffer+pIndicesBuffer.size);
 
-        /*
-        for (size_t i = 0; i < pIndicesBuffer.size; ++i)
-            p.indices.emplace_back(pIndicesBuffer.buffer[i]);
-        */
-
         glGenVertexArrays(1, &p.VAO);
         glGenBuffers(1, &p.VBO);
         glGenBuffers(1, &p.EBO);
