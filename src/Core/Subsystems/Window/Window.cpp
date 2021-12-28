@@ -20,6 +20,7 @@ Window::Window()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, 8);
 
     windowInit();
 
@@ -38,7 +39,7 @@ Window::Window()
         ERROR_EXIT("Failed to initialize OpenGL context");
     }
 
-    glViewport(0, 0, 800, 800);
+    glViewport(0, 0, 1280, 720);
 
     OK("OpenGL");
 }
@@ -72,7 +73,7 @@ void Window::swapBuffers()
 // Create the window
 void Window::windowInit()
 {
-	_glfwWindow.reset(glfwCreateWindow(800, 800, "OpenGL Testings", nullptr, nullptr));
+	_glfwWindow.reset(glfwCreateWindow(1280, 720, "OpenGL Testings", nullptr, nullptr));
     glfwMakeContextCurrent(_glfwWindow.get());
 }
 

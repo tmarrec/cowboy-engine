@@ -12,6 +12,7 @@ extern Window g_Window;
 Renderer::Renderer()
 {
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);  
     loadDefaultTextures();
 }
 
@@ -45,7 +46,7 @@ void Renderer::drawFrame()
 
     _mainShader.use();
     _mainShader.setMat4f("view", glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up));
-    _mainShader.setMat4f("projection", glm::perspective(glm::radians(_cameraParameters.FOV), 800.0f / 800.0f, 0.1f, 100.0f));
+    _mainShader.setMat4f("projection", glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 100.0f));
     _mainShader.set3f("camPos", _cameraParameters.position);
 
     const auto& textures = _world.getTextures();
