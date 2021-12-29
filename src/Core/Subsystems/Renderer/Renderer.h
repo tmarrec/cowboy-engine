@@ -43,6 +43,8 @@ class Renderer
  private:
     void loadDefaultTextures();
     void prepareGBuffer();
+    void geometryPass();
+    void lightsPass();
     CameraParameters _cameraParameters;
     glm::mat4 _projView = {};
 
@@ -50,6 +52,7 @@ class Renderer
 
     Shader _gPass {"./shaders/gpass.vert", "./shaders/gpass.frag"};
     Shader _pbr {"./shaders/pbr.vert", "./shaders/pbr.frag"};
+    Shader _lightSpheres {"./shaders/lightSpheres.vert", "./shaders/lightSpheres.frag"};
 
     GLuint _defaultAlbedoTexture;
     GLuint _defaultMetallicRoughnessTexture;
@@ -62,6 +65,11 @@ class Renderer
 
     unsigned int quadVAO = 0;
     unsigned int quadVBO;
+    unsigned int cubeVAO = 0;
+    unsigned int cubeVBO = 0;
+    unsigned int cubeEBO = 0;
+    std::vector<GLfloat> sphereVertices;
+    std::vector<GLuint> sphereIndices;
 
     std::vector<glm::vec3> lightPositions;
     std::vector<glm::vec3> lightColors;
