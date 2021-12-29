@@ -15,30 +15,11 @@ extern Window g_Window;
 Renderer::Renderer()
 {
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_MULTISAMPLE);  
+
     loadDefaultTextures();
     prepareGBuffer();
 
-    const unsigned int NR_LIGHTS = 16;
-
-    srand (static_cast <unsigned> (time(0)));
-
-    for (unsigned int i = 0; i < NR_LIGHTS; i++)
-    {
-        // calculate slightly random offsets
-        float x = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        //float y = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        float z = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        x -= 0.5;
-        //y -= 0.5;
-        z -= 0.5;
-        lightPositions.push_back(glm::vec3(x*20, 0.5, z*10));
-        // also calculate random color
-        float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        lightColors.push_back(glm::vec3(r, g, b));
-    }
+    generateRandomLights();
 }
 
 // Clean all the objects related to Vulkan
@@ -127,10 +108,45 @@ void Renderer::drawFrame()
 {
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
+
+
+    geometryPass();
+
+    lightsPass();
+
+
+    // Final screenspace render
+    if (quadVAO == 0)
+    {
+        float quadVertices[] = {
+            // positions        // texture Coords
+            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+             1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+             1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+        };
+        // setup plane VAO
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    }
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    debugPass();
+    glBindVertexArray(0);
+}
+
+void Renderer::geometryPass()
+{
     const auto projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 100.0f);
     const auto view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
-
-    // 1. Geometry Pass
     glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_BLEND);
@@ -177,8 +193,10 @@ void Renderer::drawFrame()
         }
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 
-    // 2. Lighting pass
+void Renderer::lightsPass()
+{
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     _pbr.use();
     glActiveTexture(GL_TEXTURE0);
@@ -190,56 +208,36 @@ void Renderer::drawFrame()
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, _gMetallicRoughness);
 
-    for (unsigned int i = 0; i < lightPositions.size(); ++i)
+    for (uint16_t i = 0; i < pointLights.size(); ++i)
     {
-        glm::vec3 newPos = lightPositions[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
-        newPos = lightPositions[i];
-        _pbr.set3f("lights[" + std::to_string(i) + "].position", lightPositions[i]);
-        _pbr.set3f("lights[" + std::to_string(i) + "].color", lightColors[i]);
+        glm::vec3 newPos = pointLights[i].position + glm::vec3(sin(glfwGetTime() * 0.5) * 5.0, 0.0, 0.0);
+        _pbr.set3f("lights[" + std::to_string(i) + "].position", newPos);
+        _pbr.set3f("lights[" + std::to_string(i) + "].color", pointLights[i].color);
     }
 
     _pbr.set3f("viewPos", _cameraParameters.position);
+}
 
-    // Final screenspace render
-    if (quadVAO == 0)
-    {
-        float quadVertices[] = {
-            // positions        // texture Coords
-            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-             1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-             1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-        };
-        // setup plane VAO
-        glGenVertexArrays(1, &quadVAO);
-        glGenBuffers(1, &quadVBO);
-        glBindVertexArray(quadVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    }
-    glBindVertexArray(quadVAO);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
+void Renderer::debugPass()
+{
     // Copy depth buffer to default framebuffer
     glBindFramebuffer(GL_READ_FRAMEBUFFER, _gBuffer);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBlitFramebuffer(0, 0, 1280, 720, 0, 0, 1280, 720, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    const auto projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 100.0f);
+    const auto view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
     _lightSpheres.use();
     _lightSpheres.setMat4f("projection", projection);
     _lightSpheres.setMat4f("view", view);
-    for (unsigned int i = 0; i < lightPositions.size(); ++i)
+    for (uint16_t i = 0; i < pointLights.size(); ++i)
     {
         glm::mat4 model{1.0f};
-        model = glm::translate(model, lightPositions[i]);
+        glm::vec3 newPos = pointLights[i].position + glm::vec3(sin(glfwGetTime() * 0.5) * 5.0, 0.0, 0.0);
+        model = glm::translate(model, newPos);
         model = glm::scale(model, glm::vec3(0.25f));
         _lightSpheres.setMat4f("model", model);
-        // initialize (if necessary)
         if (cubeVAO == 0)
         {
             float radius = 1.0f;
@@ -247,24 +245,17 @@ void Renderer::drawFrame()
             float sectorCount = 16;
             float stackCount = 16;
             float x, y, z, xy;                              // vertex position
-
             float sectorStep = 2 * PI / sectorCount;
             float stackStep = PI / stackCount;
             float sectorAngle, stackAngle;
-
             for(int i = 0; i <= stackCount; ++i)
             {
                 stackAngle = PI / 2 - i * stackStep;        // starting from pi/2 to -pi/2
                 xy = radius * cosf(stackAngle);             // r * cos(u)
                 z = radius * sinf(stackAngle);              // r * sin(u)
-
-                // add (sectorCount+1) vertices per stack
-                // the first and last vertices have same position and normal, but different tex coords
                 for(int j = 0; j <= sectorCount; ++j)
                 {
                     sectorAngle = j * sectorStep;           // starting from 0 to 2pi
-
-                    // vertex position (x, y, z)
                     x = xy * cosf(sectorAngle);             // r * cos(u) * cos(v)
                     y = xy * sinf(sectorAngle);             // r * cos(u) * sin(v)
                     sphereVertices.push_back(x);
@@ -280,16 +271,12 @@ void Renderer::drawFrame()
 
                 for(int j = 0; j < sectorCount; ++j, ++k1, ++k2)
                 {
-                    // 2 triangles per sector excluding first and last stacks
-                    // k1 => k2 => k1+1
                     if(i != 0)
                     {
                         sphereIndices.push_back(k1);
                         sphereIndices.push_back(k2);
                         sphereIndices.push_back(k1 + 1);
                     }
-
-                    // k1+1 => k2 => k2+1
                     if(i != (stackCount-1))
                     {
                         sphereIndices.push_back(k1 + 1);
@@ -302,7 +289,6 @@ void Renderer::drawFrame()
             glGenVertexArrays(1, &cubeVAO);
             glGenBuffers(1, &cubeVBO);
             glGenBuffers(1, &cubeEBO);
-            // fill buffer
             glBindVertexArray(cubeVAO);
 
                 glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
@@ -315,17 +301,31 @@ void Renderer::drawFrame()
 
             glBindVertexArray(0);
         }
-        // render Cube
         glBindVertexArray(cubeVAO);
         glDrawElements(GL_TRIANGLES, sphereIndices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
+}
 
+void Renderer::generateRandomLights()
+{
+    const unsigned int NR_LIGHTS = 16;
 
+    srand (static_cast <unsigned> (time(0)));
 
-
-
-    glBindVertexArray(0);
+    for (unsigned int i = 0; i < NR_LIGHTS; i++)
+    {
+        float x = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+        //float y = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+        float z = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+        x -= 0.5;
+        //y -= 0.5;
+        z -= 0.5;
+        float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+        float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+        float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+        pointLights.emplace_back(16, glm::vec3(x*20, 0.5, z*10), glm::vec3(r, g, b));
+    }
 }
 
 void Renderer::setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up)

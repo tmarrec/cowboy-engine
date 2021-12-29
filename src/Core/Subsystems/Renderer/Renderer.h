@@ -18,18 +18,19 @@
 #include "world/World.h"
 #include "Shader.h"
 
-struct UniformBufferObject
-{
-    glm::mat4 view;
-    glm::mat4 proj;
-};
-
 struct CameraParameters
 {
     glm::vec3 position;
     glm::vec3 front;
     glm::vec3 up;
     float FOV;
+};
+
+struct PointLight
+{
+    float       radius;
+    glm::vec3   position;
+    glm::vec3   color;
 };
 
 class Renderer
@@ -45,6 +46,9 @@ class Renderer
     void prepareGBuffer();
     void geometryPass();
     void lightsPass();
+    void debugPass();
+    void generateRandomLights();
+
     CameraParameters _cameraParameters;
     glm::mat4 _projView = {};
 
@@ -71,6 +75,5 @@ class Renderer
     std::vector<GLfloat> sphereVertices;
     std::vector<GLuint> sphereIndices;
 
-    std::vector<glm::vec3> lightPositions;
-    std::vector<glm::vec3> lightColors;
+    std::vector<PointLight> pointLights;
 };
