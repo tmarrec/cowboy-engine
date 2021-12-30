@@ -11,15 +11,41 @@
 
 extern Window g_Window;
 
+void GLAPIENTRY MessageCallback(const GLenum source, const GLenum type, const GLuint id, const GLenum severity, const GLsizei length, const GLchar* message, const void* userParam)
+{
+    if (type == GL_DEBUG_TYPE_ERROR)
+    {
+        ERROR(message);
+    }
+    else
+    {
+        WARNING(message);
+    }
+}
+
 // Initialize the Renderer manager
 Renderer::Renderer()
 {
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(MessageCallback, 0);
 
     loadDefaultTextures();
     prepareGBuffer();
 
     generateRandomLights();
+    glGenBuffers(1, &_lightsBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _lightsBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, pointLights.size() * sizeof(PointLight), nullptr, GL_STATIC_DRAW);
+
+    glGenTextures(1, &_output);
+    glBindTexture(GL_TEXTURE_2D, _output);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_INT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+
+    generateRenderingQuad();
 }
 
 // Clean all the objects related to Vulkan
@@ -68,7 +94,7 @@ void Renderer::prepareGBuffer()
     // Albedo
     glGenTextures(1, &_gAlbedo);
     glBindTexture(GL_TEXTURE_2D, _gAlbedo);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, 1280, 720, 0, GL_RGB, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 1280, 720, 0, GL_RGBA, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, _gAlbedo, 0);
@@ -76,7 +102,7 @@ void Renderer::prepareGBuffer()
     // MetallicRoughness
     glGenTextures(1, &_gMetallicRoughness);
     glBindTexture(GL_TEXTURE_2D, _gMetallicRoughness);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, 1280, 720, 0, GL_RGB, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 1280, 720, 0, GL_RGBA, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, _gMetallicRoughness, 0);
@@ -96,72 +122,92 @@ void Renderer::prepareGBuffer()
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    _pbr.use();
-    _pbr.set1i("gPosition", 0);
-    _pbr.set1i("gNormal", 1);
-    _pbr.set1i("gAlbedo", 2);
-    _pbr.set1i("gMetallicRoughness", 3);
+    _pbrShader.use();
+    _pbrShader.set1i("gPosition", 0);
+    _pbrShader.set1i("gNormal", 1);
+    _pbrShader.set1i("gAlbedo", 2);
+    _pbrShader.set1i("gMetallicRoughness", 3);
 }
 
 // Draw the frame by executing the queues while staying synchronised
 void Renderer::drawFrame()
 {
+    // rotate lights
+    for (int i = 0; i < pointLights.size(); ++i)
+    {
+        auto& l = pointLights[i];
+        float angle = pointLightsSpeed[i];
+        float s = sin(angle);
+        float c = cos(angle);
+
+        float x = l.position.x * c - l.position.z * s;
+        float z = l.position.x * s + l.position.z * c;
+
+        l.position.x = x;
+        l.position.z = z;
+    }
+    copyLightDataToGPU();
+
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-
-
 
     geometryPass();
 
-    lightsPass();
 
+    const auto projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 1000.0f);
+    const auto view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
 
+    // Tiled Shading
+    _cullLightsShader.use();
+    _cullLightsShader.setMat4f("projection", projection);
+    _cullLightsShader.setMat4f("view", view);
+    _cullLightsShader.set3f("viewPos", _cameraParameters.position);
+    glBindImageTexture(0, _gPosition,           0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA16F);
+    glBindImageTexture(1, _gNormal,             0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA16F);
+    glBindImageTexture(2, _gAlbedo,             0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA16F);
+    glBindImageTexture(3, _gMetallicRoughness,  0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA16F);
+    glBindImageTexture(4, _output,              0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, _lightsBuffer);
+    glDispatchCompute(80, 45, 1);
+
+    //lightsPass();
+
+    /*
     // Final screenspace render
-    if (quadVAO == 0)
-    {
-        float quadVertices[] = {
-            // positions        // texture Coords
-            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-             1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-             1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-        };
-        // setup plane VAO
-        glGenVertexArrays(1, &quadVAO);
-        glGenBuffers(1, &quadVBO);
-        glBindVertexArray(quadVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    }
-    glBindVertexArray(quadVAO);
+    glBindVertexArray(_quadVAO);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    */
 
-    debugPass();
+    // Copy depth buffer to default framebuffer
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, _gBuffer);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, 1280, 720, 0, 0, 1280, 720, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    drawTextureToScreen(_output);
+
+    //debugPass();
     glBindVertexArray(0);
 }
 
 void Renderer::geometryPass()
 {
-    const auto projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 100.0f);
+    const auto projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 1000.0f);
     const auto view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
     glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_BLEND);
-    _gPass.use();
-    _gPass.set1i("albedoMap", 0);
-    _gPass.set1i("metallicRoughnessMap", 1);
-    _gPass.setMat4f("projection", projection);
-    _gPass.setMat4f("view", view);
+    _gPassShader.use();
+    _gPassShader.set1i("albedoMap", 0);
+    _gPassShader.set1i("metallicRoughnessMap", 1);
+    _gPassShader.setMat4f("projection", projection);
+    _gPassShader.setMat4f("view", view);
 
     const auto& textures = _world.getTextures();
     for (const auto& node : _world.getNodes())
     {
         if (node.gotMesh())
         {
-            _gPass.setMat4f("model", node.getTransform());
+            _gPassShader.setMat4f("model", node.getTransform());
 
             for (const auto& primitive : node.getPrimitives())
             {
@@ -198,7 +244,7 @@ void Renderer::geometryPass()
 void Renderer::lightsPass()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    _pbr.use();
+    _pbrShader.use();
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _gPosition);
     glActiveTexture(GL_TEXTURE1);
@@ -210,37 +256,63 @@ void Renderer::lightsPass()
 
     for (uint16_t i = 0; i < pointLights.size(); ++i)
     {
-        glm::vec3 newPos = pointLights[i].position + glm::vec3(sin(glfwGetTime() * 0.5) * 5.0, 0.0, 0.0);
-        _pbr.set3f("lights[" + std::to_string(i) + "].position", newPos);
-        _pbr.set3f("lights[" + std::to_string(i) + "].color", pointLights[i].color);
+        _pbrShader.set3f("lights[" + std::to_string(i) + "].position", pointLights[i].position);
+        _pbrShader.set3f("lights[" + std::to_string(i) + "].color", pointLights[i].color);
     }
 
-    _pbr.set3f("viewPos", _cameraParameters.position);
+    _pbrShader.set3f("viewPos", _cameraParameters.position);
+}
+
+void Renderer::copyLightDataToGPU()
+{
+
+    glBindBuffer(GL_ARRAY_BUFFER, _lightsBuffer);
+    PointLight* ptr = reinterpret_cast<PointLight*>(glMapBufferRange(GL_ARRAY_BUFFER, 0, pointLights.size() * sizeof(PointLight), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
+    for (uint16_t i = 0; i < pointLights.size(); ++i)
+    {
+        ptr[i].color = pointLights[i].color;
+        ptr[i].radius = pointLights[i].radius;
+        ptr[i].position = pointLights[i].position;
+    }
+    glUnmapBuffer(GL_ARRAY_BUFFER);
+}
+
+void Renderer::generateRenderingQuad()
+{
+    const std::array<float, 20> quadVertices =
+    {
+        -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+         1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+         1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+    };
+    glGenVertexArrays(1, &_quadVAO);
+    glGenBuffers(1, &_quadVBO);
+    glBindVertexArray(_quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, _quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 }
 
 void Renderer::debugPass()
 {
-    // Copy depth buffer to default framebuffer
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, _gBuffer);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, 1280, 720, 0, 0, 1280, 720, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    const auto projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 100.0f);
+    const auto projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 1000.0f);
     const auto view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
-    _lightSpheres.use();
-    _lightSpheres.setMat4f("projection", projection);
-    _lightSpheres.setMat4f("view", view);
+    _lightSpheresShader.use();
+    _lightSpheresShader.setMat4f("projection", projection);
+    _lightSpheresShader.setMat4f("view", view);
     for (uint16_t i = 0; i < pointLights.size(); ++i)
     {
         glm::mat4 model{1.0f};
-        glm::vec3 newPos = pointLights[i].position + glm::vec3(sin(glfwGetTime() * 0.5) * 5.0, 0.0, 0.0);
-        model = glm::translate(model, newPos);
+        model = glm::translate(model, pointLights[i].position);
         model = glm::scale(model, glm::vec3(0.25f));
-        _lightSpheres.setMat4f("model", model);
+        _lightSpheresShader.setMat4f("model", model);
         if (cubeVAO == 0)
         {
-            float radius = 1.0f;
+            float radius = 0.1f;
             float PI = 3.14159265359;
             float sectorCount = 16;
             float stackCount = 16;
@@ -309,23 +381,32 @@ void Renderer::debugPass()
 
 void Renderer::generateRandomLights()
 {
-    const unsigned int NR_LIGHTS = 16;
+    const unsigned int NR_LIGHTS = 12000;
 
     srand (static_cast <unsigned> (time(0)));
 
     for (unsigned int i = 0; i < NR_LIGHTS; i++)
     {
-        float x = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        //float y = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        float z = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        x -= 0.5;
-        //y -= 0.5;
-        z -= 0.5;
+        float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 16;
+        float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 16;
+        float z = 0;
         float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        pointLights.emplace_back(16, glm::vec3(x*20, 0.5, z*10), glm::vec3(r, g, b));
+        pointLights.emplace_back(glm::vec3{r, g, b}, 1.0f, glm::vec3{x,y,z});
+        pointLightsSpeed.emplace_back(r/50);
     }
+}
+
+void Renderer::drawTextureToScreen(const GLuint texture)
+{
+    _textureShader.use();
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindVertexArray(_quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
 void Renderer::setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up)

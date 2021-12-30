@@ -28,9 +28,10 @@ struct CameraParameters
 
 struct PointLight
 {
+    glm::vec3   color;
     float       radius;
     glm::vec3   position;
-    glm::vec3   color;
+    unsigned int : 32;
 };
 
 class Renderer
@@ -48,15 +49,21 @@ class Renderer
     void lightsPass();
     void debugPass();
     void generateRandomLights();
+    void copyLightDataToGPU();
+    void drawTextureToScreen(const GLuint texture);
+    void generateRenderingQuad();
 
     CameraParameters _cameraParameters;
     glm::mat4 _projView = {};
 
     World _world {};
 
-    Shader _gPass {"./shaders/gpass.vert", "./shaders/gpass.frag"};
-    Shader _pbr {"./shaders/pbr.vert", "./shaders/pbr.frag"};
-    Shader _lightSpheres {"./shaders/lightSpheres.vert", "./shaders/lightSpheres.frag"};
+    Shader _gPassShader {"./shaders/gpass.vert", "./shaders/gpass.frag"};
+    Shader _pbrShader {"./shaders/pbr.vert", "./shaders/pbr.frag"};
+    Shader _lightSpheresShader {"./shaders/lightSpheres.vert", "./shaders/lightSpheres.frag"};
+    Shader _cullLightsShader {"./shaders/cullLights.comp"};
+    Shader _textureShader {"./shaders/texture.vert", "./shaders/texture.frag"};
+
 
     GLuint _defaultAlbedoTexture;
     GLuint _defaultMetallicRoughnessTexture;
@@ -67,8 +74,12 @@ class Renderer
     GLuint _gAlbedo;
     GLuint _gMetallicRoughness;
 
-    unsigned int quadVAO = 0;
-    unsigned int quadVBO;
+    GLuint _lightsBuffer;
+
+    GLuint _output;
+
+    GLuint _quadVAO = 0;
+    GLuint _quadVBO = 0;
     unsigned int cubeVAO = 0;
     unsigned int cubeVBO = 0;
     unsigned int cubeEBO = 0;
@@ -76,4 +87,5 @@ class Renderer
     std::vector<GLuint> sphereIndices;
 
     std::vector<PointLight> pointLights;
+    std::vector<float> pointLightsSpeed;
 };

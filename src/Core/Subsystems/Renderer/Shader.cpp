@@ -64,6 +64,45 @@ Shader::Shader(const std::string& vertexFilePath, const std::string& fragmentFil
     OK("Shader");
 }
 
+Shader::Shader(const std::string& computeFilePath)
+{
+    std::string computeCode;
+    std::ifstream cShaderFile;
+
+    cShaderFile.open(computeFilePath);
+
+    std::stringstream cShaderStream;
+    cShaderStream << cShaderFile.rdbuf();
+    cShaderFile.close();
+    computeCode = cShaderStream.str();
+
+    if (computeCode.size() == 0)
+    {
+        ERROR("Unable to find the compute shader \"" << computeFilePath << "\"");
+        return;
+    }
+
+    // Compile shaders
+    GLuint compute = 0;
+    const char* cShaderCode = computeCode.c_str();
+    compute = glCreateShader(GL_COMPUTE_SHADER);
+    glShaderSource(compute, 1, &cShaderCode, nullptr);
+    glCompileShader(compute);
+    checkCompilation(compute, GL_COMPUTE_SHADER);
+
+    // Shader Program linking
+    _id = glCreateProgram();
+    glAttachShader(_id, compute);
+
+    glLinkProgram(_id);
+    checkCompilation(_id, GL_PROGRAM);
+
+    // Delete shaders as they are linked into our program
+    glDeleteShader(compute);
+
+    OK("Compute Shader");
+}
+
 void Shader::setMat4f(const std::string& name, const glm::mat4& mat) const
 {
     glUniformMatrix4fv(glGetUniformLocation(_id, name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
