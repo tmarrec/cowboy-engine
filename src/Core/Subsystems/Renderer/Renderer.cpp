@@ -78,7 +78,7 @@ void Renderer::prepareGBuffer()
     // Position
     glGenTextures(1, &_gPosition);
     glBindTexture(GL_TEXTURE_2D, _gPosition);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 1280, 720, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1280, 720, 0, GL_RGBA, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _gPosition, 0);
@@ -161,7 +161,7 @@ void Renderer::drawFrame()
     _cullLightsShader.setMat4f("projection", projection);
     _cullLightsShader.setMat4f("view", view);
     _cullLightsShader.set3f("viewPos", _cameraParameters.position);
-    glBindImageTexture(0, _gPosition,           0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA16F);
+    glBindImageTexture(0, _gPosition,           0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA32F);
     glBindImageTexture(1, _gNormal,             0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA16F);
     glBindImageTexture(2, _gAlbedo,             0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA16F);
     glBindImageTexture(3, _gMetallicRoughness,  0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA16F);
@@ -381,20 +381,20 @@ void Renderer::debugPass()
 
 void Renderer::generateRandomLights()
 {
-    const unsigned int NR_LIGHTS = 12000;
+    const unsigned int NR_LIGHTS = 32;
 
     srand (static_cast <unsigned> (time(0)));
 
     for (unsigned int i = 0; i < NR_LIGHTS; i++)
     {
-        float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 16;
-        float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 16;
+        float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 8;
+        float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 8;
         float z = 0;
         float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         pointLights.emplace_back(glm::vec3{r, g, b}, 1.0f, glm::vec3{x,y,z});
-        pointLightsSpeed.emplace_back(r/50);
+        pointLightsSpeed.emplace_back(r/300);
     }
 }
 

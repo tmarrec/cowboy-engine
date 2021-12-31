@@ -4,8 +4,8 @@
 
 layout (local_size_x = 16, local_size_y = 16) in;
 
-const int NUM_LIGHTS = 12000;
-const int MAX_LIGHTS_PER_TILE = 1024;
+const int NUM_LIGHTS = 32;
+const int MAX_LIGHTS_PER_TILE = 64;
 const int WORK_GROUP_SIZE = 16;
 const float SCREEN_WIDTH = 1280.0f;
 const float SCREEN_HEIGHT = 720.0f;
@@ -17,7 +17,7 @@ struct PointLight
     vec3 position;
 };
 
-layout (binding = 0, rgba16f) uniform readonly  image2D gPosition;
+layout (binding = 0, rgba32f) uniform readonly  image2D gPosition;
 layout (binding = 1, rgba16f) uniform readonly  image2D gNormal;
 layout (binding = 2, rgba16f) uniform readonly  image2D gAlbedo;
 layout (binding = 3, rgba16f) uniform readonly  image2D gMetallicRoughness;
@@ -182,4 +182,5 @@ void main()
 
     imageStore(gOutput, texelSpaceTexCoords, vec4(mix(blue, red, test), 0.6));
     */
+    //imageStore(gOutput, texelSpaceTexCoords, vec4(fragPos.z,0,0,1));
 }
