@@ -61,7 +61,7 @@ Shader::Shader(const std::string& vertexFilePath, const std::string& fragmentFil
     glDeleteShader(vertex);
     glDeleteShader(fragment);
 
-    OK("Shader");
+    OK("Shader \"" << vertexFilePath << "\" \"" << fragmentFilePath << "\"");
 }
 
 Shader::Shader(const std::string& computeFilePath)
@@ -100,7 +100,7 @@ Shader::Shader(const std::string& computeFilePath)
     // Delete shaders as they are linked into our program
     glDeleteShader(compute);
 
-    OK("Compute Shader");
+    OK("Compute Shader \"" << computeFilePath << "\"");
 }
 
 void Shader::setMat4f(const std::string& name, const glm::mat4& mat) const

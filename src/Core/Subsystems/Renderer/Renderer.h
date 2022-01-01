@@ -38,7 +38,6 @@ class Renderer
 {
  public:
     Renderer();
-    ~Renderer();
     void drawFrame();
     void setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up);
 
@@ -46,24 +45,23 @@ class Renderer
     void loadDefaultTextures();
     void prepareGBuffer();
     void geometryPass();
-    void lightsPass();
-    void debugPass();
     void generateRandomLights();
     void copyLightDataToGPU();
     void drawTextureToScreen(const GLuint texture);
     void generateRenderingQuad();
+
+    void debugPass();
+    void generateSphereVAO();
 
     CameraParameters _cameraParameters;
     glm::mat4 _projView = {};
 
     World _world {};
 
-    Shader _gPassShader {"./shaders/gpass.vert", "./shaders/gpass.frag"};
-    Shader _pbrShader {"./shaders/pbr.vert", "./shaders/pbr.frag"};
-    Shader _lightSpheresShader {"./shaders/lightSpheres.vert", "./shaders/lightSpheres.frag"};
-    Shader _cullLightsShader {"./shaders/cullLights.comp"};
-    Shader _textureShader {"./shaders/texture.vert", "./shaders/texture.frag"};
-
+    Shader _gPassShader         {"./shaders/gpass.vert",            "./shaders/gpass.frag"};
+    Shader _lightSpheresShader  {"./shaders/lightSpheres.vert",     "./shaders/lightSpheres.frag"};
+    Shader _textureShader       {"./shaders/texture.vert",          "./shaders/texture.frag"};
+    Shader _tiledDeferredShader {"./shaders/tiledDeferred.comp"};
 
     GLuint _defaultAlbedoTexture;
     GLuint _defaultMetallicRoughnessTexture;
@@ -80,9 +78,9 @@ class Renderer
 
     GLuint _quadVAO = 0;
     GLuint _quadVBO = 0;
-    unsigned int cubeVAO = 0;
-    unsigned int cubeVBO = 0;
-    unsigned int cubeEBO = 0;
+    GLuint _sphereVAO = 0;
+    GLuint _sphereVBO = 0;
+    GLuint _sphereEBO = 0;
     std::vector<GLfloat> sphereVertices;
     std::vector<GLuint> sphereIndices;
 

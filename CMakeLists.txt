@@ -10,7 +10,7 @@ SET (ALLOW_DUPLICATE_CUSTOM_TARGETS TRUE)
 
 SET (CMAKE_CXX_STANDARD_REQUIRED ON)
 SET (CMAKE_CXX_STANDARD 20)
-SET (CMAKE_CXX_FLAGS "-Wall -pedantic -fno-exceptions -lglfw -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -lGL")
+SET (CMAKE_CXX_FLAGS "-Wall -pedantic -fno-exceptions -lglfw -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi -lGL -fdiagnostics-color")
 SET (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -O0 -g -DDEBUG")
 SET (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -fopenmp -DNDEBUG")
 
