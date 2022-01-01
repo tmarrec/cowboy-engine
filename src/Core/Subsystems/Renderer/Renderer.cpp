@@ -10,7 +10,7 @@
 #include <ctime>
 
 extern Window g_Window;
-const uint16_t NR_LIGHTS = 12000;
+const uint16_t NR_LIGHTS = 1024;
 
 void GLAPIENTRY MessageCallback(const GLenum source, const GLenum type, const GLuint id, const GLenum severity, const GLsizei length, const GLchar* message, const void* userParam)
 {
@@ -297,8 +297,8 @@ void Renderer::generateRandomLights()
         float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        pointLights.emplace_back(glm::vec3{r, g, b}, 64.0f, glm::vec3{x+8,y-8,z});
-        pointLightsSpeed.emplace_back(r/300);
+        pointLights.emplace_back(glm::vec3{r, g, b}, 1.0f, glm::vec3{x+4,y-8,z});
+        pointLightsSpeed.emplace_back(r/200);
     }
 }
 
