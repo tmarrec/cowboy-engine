@@ -1,0 +1,215 @@
+#version 460 core
+
+#define PI 3.14159265359
+#define MAX_LIGHTS 12000
+
+layout (local_size_x = 16, local_size_y = 16) in;
+
+struct PointLight
+{
+    vec3    color;
+    float   radius;
+    vec3    position;
+};
+
+struct Plane
+{
+    vec3    N; // Normal
+    float   d; // Distance to origin
+};
+
+struct Frustum
+{
+    Plane planes[4]; // left, right, top, bottom
+};
+
+layout (binding = 0, rgba32f) uniform readonly  image2D gDepth;
+layout (binding = 1, rgba16f) uniform readonly  image2D gNormal;
+layout (binding = 2, rgba16f) uniform readonly  image2D gAlbedo;
+layout (binding = 3, rgba16f) uniform readonly  image2D gMetallicRoughness;
+layout (binding = 4, rgba32f) uniform writeonly image2D gOutput;
+layout (std430, binding = 5) buffer LightsBuffer
+{
+    PointLight gPointLights[];
+};
+
+uniform mat4 invProjection;
+uniform mat4 projection;
+uniform mat4 view;
+uniform vec3 viewPos;
+
+uniform int numLights;
+uniform int maxLightsPerTile;
+uniform int workGroupSize;
+uniform int screenWidth;
+uniform int screenHeight;
+
+shared uint sVisibleLightIndices[MAX_LIGHTS];
+shared int sNumVisibleLights = 0;
+
+// Convert clip space coordinates to view space
+vec4 clipToView(vec4 clip)
+{
+    vec4 view = clip * invProjection;
+    view = view / view.w;
+    return view;
+}
+
+// Convert screen space coordinates to view space
+vec4 screenToView(vec4 screen)
+{
+    // Convert to normalized texture coordinates
+    vec2 texCoord = screen.xy / vec2(screenWidth, screenHeight);
+    // Convert to clip space
+    vec4 clip = vec4(vec2(texCoord.x, 1.0f - texCoord.y) * 2.0f - 1.0f, screen.z, screen.w);
+    return screen;
+}
+
+Plane computePlane(vec3 p0, vec3 p1, vec3 p2)
+{
+    Plane plane;
+    vec3 v0 = p1 - p0;
+    vec3 v2 = p2 - p0;
+    plane.N = normalize(cross(v0, v2));
+    plane.d = dot(plane.N, p0);
+    return plane;
+}
+
+void main()
+{
+    const vec3 eyePos = vec3(0,0,0);
+
+    vec4 screenSpace[4];
+    screenSpace[0] = vec4(gl_WorkGroupID.xy * workGroupSize, -1.0f, 1.0f);
+    screenSpace[1] = vec4(vec2(gl_WorkGroupID.x + 1, gl_WorkGroupID.y) * workGroupSize, -1.0f, 1.0f);
+    screenSpace[2] = vec4(vec2(gl_WorkGroupID.x, gl_WorkGroupID.y + 1) * workGroupSize, -1.0f, 1.0f);
+    screenSpace[3] = vec4(vec2(gl_WorkGroupID.x + 1, gl_WorkGroupID.y + 1) * workGroupSize, -1.0f, 1.0f);
+
+    vec3 viewSpace[4];
+    for (int i = 0; i < 4; ++i)
+    {
+        viewSpace[i] = screenToView(screenSpace[i]).xyz;
+    }
+
+    Frustum frustum;
+    frustum.planes[0] = computePlane(eyePos, viewSpace[2], viewSpace[0]);
+    frustum.planes[1] = computePlane(eyePos, viewSpace[1], viewSpace[3]);
+    frustum.planes[2] = computePlane(eyePos, viewSpace[0], viewSpace[1]);
+    frustum.planes[3] = computePlane(eyePos, viewSpace[3], viewSpace[2]);
+
+
+    /*
+    ivec2       position = ivec2(gl_GlobalInvocationID.xy);
+    vec2        screenNormalized = vec2(position) / vec2(1280,720); // ctxSize is the size of the depth and color textures
+    vec4        depthSample = texture2D(gDepth, screenNormalized);
+
+    */
+    ivec2 texelSpaceTexCoords = ivec2(gl_GlobalInvocationID.xy);
+    float depth = imageLoad(gDepth, texelSpaceTexCoords).x;
+    imageStore(gOutput, texelSpaceTexCoords, vec4(1,0,0,1));
+
+    /*
+    vec2 center = vec2(screenWidth, screenHeight) / float(2 * workGroupSize);
+    vec2 offset = center - vec2(gl_WorkGroupID.xy);
+    // Extract the viewing frustum planes (normals)
+    vec4 column0 = vec4(-projection[0][0] * center.x,  projection[0][1],            offset.x, projection[0][3]);
+    vec4 column1 = vec4( projection[1][0]           , -projection[1][1] * center.y, offset.y, projection[1][3]);
+    vec4 column3 = vec4( projection[3][0],             projection[3][1],            -1.0f,    projection[3][3]);
+
+    vec4 frustrumPlanes[4];
+    frustrumPlanes[0] = column3 + column0; // Left
+    frustrumPlanes[1] = column3 - column0; // Right
+    frustrumPlanes[2] = column3 - column1; // Top
+    frustrumPlanes[3] = column3 + column1; // Bottom
+    for (uint i = 0; i < 4; ++i)
+    {
+        frustrumPlanes[i] /= length(frustrumPlanes[i].xyz);
+    }
+
+    int numThreads = workGroupSize * workGroupSize;
+    int numPasses = (numLights + numThreads - 1) / numThreads;
+    for (int i = 0; i < numPasses; ++i)
+    {
+        uint lightIndex = min(i * numThreads + gl_LocalInvocationIndex, numLights - 1);
+        PointLight pointLight = gPointLights[lightIndex];
+        if (sNumVisibleLights < maxLightsPerTile)
+        {
+            bool inFrustrum = true;
+            for (int j = 3; j >= 0 && inFrustrum; --j)
+            {
+                // Distance of the point from the plane
+                float dist = dot(frustrumPlanes[j], view * vec4(pointLight.position, 1.0f));
+                // Checks if the vector is contained inside the viewing frustrum
+                inFrustrum = -pointLight.radius <= dist;
+            }
+            if (inFrustrum)
+            {
+                int mem = atomicAdd(sNumVisibleLights, 1);
+                sVisibleLightIndices[mem] = lightIndex;
+            }
+        }
+    }
+
+    barrier();
+
+    ivec2 texelSpaceTexCoords = ivec2(gl_GlobalInvocationID.xy);
+    vec2 texCoords = vec2(texelSpaceTexCoords.x / screenWidth, texelSpaceTexCoords.y / screenHeight);
+    vec4 fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+
+    vec3 fragPos = imageLoad(gPosition, texelSpaceTexCoords).xyz;
+    vec3 normal = imageLoad(gNormal, texelSpaceTexCoords).xyz;
+    vec3 albedo = imageLoad(gAlbedo, texelSpaceTexCoords).rgb;
+    float metallic = imageLoad(gMetallicRoughness, texelSpaceTexCoords).b;
+    float roughness = imageLoad(gMetallicRoughness, texelSpaceTexCoords).g;
+
+    vec3 N = normalize(normal);
+    vec3 V = normalize(viewPos - fragPos);
+
+    vec3 Lo = vec3(0.0);
+
+    for (int i = 0; i < sNumVisibleLights; ++i)
+    {
+        PointLight light = gPointLights[sVisibleLightIndices[i]];
+        vec3 L = normalize(light.position - fragPos);
+        vec3 H = normalize(V + L);
+
+        float dist = length(light.position - fragPos);
+        float attenuation = 1.0 / (dist * dist);
+        vec3 radiance = light.color * attenuation;
+
+        vec3 F0 = vec3(0.04);
+        F0 = mix(F0, albedo, metallic);
+        vec3 F = fresnelSchlick(max(dot(H,V), 0.0), F0);
+
+        float NDF = distributionGGX(N, H, roughness);
+        float G = geometrySmith(N, V, L, roughness);
+
+        vec3 numerator = NDF * G * F;
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+        vec3 specular = numerator / denominator;
+
+        vec3 kS = F;
+        vec3 kD = vec3(1.0) - kS;
+        
+        kD *= 1.0 - metallic;
+
+        float NdotL = max(dot(N, L), 0.0);
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+    }
+
+    vec3 ambient = vec3(0.03) * albedo;
+    vec3 color = ambient + Lo;
+
+    color = color / (color + vec3(1.0));
+    color = pow(color, vec3(1.0/2.2));
+
+    fragColor = vec4(color, 1.0);
+    
+    imageStore(gOutput, texelSpaceTexCoords, fragColor);
+
+    double test = double(sNumVisibleLights)/double(maxLightsPerTile);
+    vec3 black = vec3(0, 0, 0);
+    vec3 blue = vec3(0, 0, 1);
+    imageStore(gOutput, texelSpaceTexCoords, vec4(mix(black,blue,test), 0.5));
+    */
+}

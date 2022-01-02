@@ -45,6 +45,8 @@ class Renderer
     void loadDefaultTextures();
     void prepareGBuffer();
     void geometryPass();
+    void prepareDepthBuffer();
+    void depthPass();
     void generateRandomLights();
     void copyLightDataToGPU();
     void drawTextureToScreen(const GLuint texture);
@@ -59,18 +61,23 @@ class Renderer
     World _world {};
 
     Shader _gPassShader         {"./shaders/gpass.vert",            "./shaders/gpass.frag"};
+    Shader _depthShader         {"./shaders/depth.vert",            "./shaders/depth.frag"};
     Shader _lightSpheresShader  {"./shaders/lightSpheres.vert",     "./shaders/lightSpheres.frag"};
     Shader _textureShader       {"./shaders/texture.vert",          "./shaders/texture.frag"};
     Shader _tiledDeferredShader {"./shaders/tiledDeferred.comp"};
+    Shader _tiledForwardShader  {"./shaders/tiledForward.comp"};
 
     GLuint _defaultAlbedoTexture;
     GLuint _defaultMetallicRoughnessTexture;
 
     GLuint _gBuffer;
+    GLuint _gDepthBuffer;
+    GLuint _gDepth;
     GLuint _gPosition;
     GLuint _gNormal;
     GLuint _gAlbedo;
     GLuint _gMetallicRoughness;
+    unsigned int rboDepth;
 
     GLuint _lightsBuffer;
 

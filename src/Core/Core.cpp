@@ -69,7 +69,7 @@ int Core::Run()
 
         const auto stopTime = std::chrono::high_resolution_clock::now();
 		dt = std::chrono::duration<float, std::chrono::seconds::period>(stopTime - startTime).count();
-        INFO("FPS: " << 1.0/dt);
+        //INFO("FPS: " << 1.0/dt);
     }
 
     return EXIT_SUCCESS;  

@@ -10,7 +10,7 @@
 #include <ctime>
 
 extern Window g_Window;
-const uint16_t NR_LIGHTS = 1024;
+const uint16_t NR_LIGHTS = 256;
 
 void GLAPIENTRY MessageCallback(const GLenum source, const GLenum type, const GLuint id, const GLenum severity, const GLsizei length, const GLchar* message, const void* userParam)
 {
@@ -29,10 +29,12 @@ Renderer::Renderer()
 {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_DEBUG_OUTPUT);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glDebugMessageCallback(MessageCallback, 0);
 
     loadDefaultTextures();
     prepareGBuffer();
+    prepareDepthBuffer();
 
     generateRandomLights();
     glGenBuffers(1, &_lightsBuffer);
@@ -119,6 +121,34 @@ void Renderer::prepareGBuffer()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void Renderer::prepareDepthBuffer()
+{
+    glGenFramebuffers(1, &_gDepthBuffer); 
+    glBindFramebuffer(GL_FRAMEBUFFER, _gDepthBuffer);
+
+    glGenTextures(1, &_gDepth);
+    glBindTexture(GL_TEXTURE_2D, _gDepth);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1280, 720, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _gDepth, 0);
+
+    unsigned int attachments[1] = { GL_COLOR_ATTACHMENT0 };
+    glDrawBuffers(1, attachments);
+
+    unsigned int rboDepth;
+    glGenRenderbuffers(1, &rboDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1280, 720);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+    // finally check if framebuffer is complete
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cout << "Framebuffer not complete!" << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 // Draw the frame by executing the queues while staying synchronised
 void Renderer::drawFrame()
 {
@@ -138,14 +168,40 @@ void Renderer::drawFrame()
     }
     copyLightDataToGPU();
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-    geometryPass();
 
     const auto projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 1000.0f);
     const auto view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
 
-    // Tiled Shading
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    
+    depthPass();
+    drawTextureToScreen(_gDepth);
+
+    //debugPass();
+
+    _tiledForwardShader.use();
+    _tiledForwardShader.setMat4f("invProjection", glm::inverse(projection));
+    _tiledForwardShader.setMat4f("projection", projection);
+    _tiledForwardShader.setMat4f("view", view);
+    _tiledForwardShader.set3f("viewPos", _cameraParameters.position);
+
+    _tiledForwardShader.set1i("numLights", NR_LIGHTS);
+    _tiledForwardShader.set1i("maxLightsPerTile", 64);
+    _tiledForwardShader.set1i("workGroupSize", 16);
+    _tiledForwardShader.set1i("screenWidth", 1280);
+    _tiledForwardShader.set1i("screenHeight", 720);
+
+    glBindImageTexture(0, _gDepth,              0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA32F);
+    glBindImageTexture(4, _output,              0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, _lightsBuffer);
+    glDispatchCompute(80, 45, 1);
+    drawTextureToScreen(_output);
+
+    /*
+
+
+    // Tiled Deferred Shading
     _tiledDeferredShader.use();
     _tiledDeferredShader.setMat4f("projection", projection);
     _tiledDeferredShader.setMat4f("view", view);
@@ -174,8 +230,37 @@ void Renderer::drawFrame()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     debugPass();
+    */
 
     glBindVertexArray(0);
+}
+
+void Renderer::depthPass()
+{
+    const auto projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 1000.0f);
+    const auto view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
+    glBindFramebuffer(GL_FRAMEBUFFER, _gDepthBuffer);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    _depthShader.use();
+    _depthShader.setMat4f("projection", projection);
+    _depthShader.setMat4f("view", view);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, _gDepth);
+
+    for (const auto& node : _world.getNodes())
+    {
+        if (node.gotMesh())
+        {
+            _depthShader.setMat4f("model", node.getTransform());
+
+            for (const auto& primitive : node.getPrimitives())
+            {
+                glBindVertexArray(primitive.VAO);
+                glDrawElements(GL_TRIANGLES, primitive.indices.size(), GL_UNSIGNED_INT, 0);
+            }
+        }
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Renderer::geometryPass()
@@ -232,7 +317,6 @@ void Renderer::geometryPass()
 
 void Renderer::copyLightDataToGPU()
 {
-
     glBindBuffer(GL_ARRAY_BUFFER, _lightsBuffer);
     PointLight* ptr = reinterpret_cast<PointLight*>(glMapBufferRange(GL_ARRAY_BUFFER, 0, pointLights.size() * sizeof(PointLight), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
     for (uint16_t i = 0; i < pointLights.size(); ++i)
@@ -275,7 +359,7 @@ void Renderer::debugPass()
     {
         glm::mat4 model{1.0f};
         model = glm::translate(model, pointLights[i].position);
-        model = glm::scale(model, glm::vec3(0.1f));
+        model = glm::scale(model, glm::vec3(0.7f));
         _lightSpheresShader.setMat4f("model", model);
         _lightSpheresShader.set3f("color", pointLights[i].color);
 
@@ -298,7 +382,7 @@ void Renderer::generateRandomLights()
         float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         pointLights.emplace_back(glm::vec3{r, g, b}, 1.0f, glm::vec3{x+4,y-8,z});
-        pointLightsSpeed.emplace_back(r/200);
+        pointLightsSpeed.emplace_back(r/2000);
     }
 }
 
