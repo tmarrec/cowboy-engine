@@ -36,16 +36,47 @@ Renderer::Renderer()
     prepareGBuffer();
     prepareDepthBuffer();
 
+
+
     generateRandomLights();
     glGenBuffers(1, &_lightsBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _lightsBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, pointLights.size() * sizeof(PointLight), nullptr, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &_lightIndexCounterBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _lightIndexCounterBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, pointLights.size() * sizeof(uint32_t), nullptr, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &_lightIndexListBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _lightIndexListBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, pointLights.size() * sizeof(uint32_t), nullptr, GL_STATIC_DRAW);
+
+    glGenTextures(1, &_gLightGrid);
+    glBindTexture(GL_TEXTURE_2D, _gLightGrid);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32UI, 1280, 720, 0, GL_RG_INTEGER, GL_UNSIGNED_INT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glGenTextures(1, &_output);
     glBindTexture(GL_TEXTURE_2D, _output);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_INT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    // Compute frustum once and for all
+    _computeFrustumShader.use();
+    _computeFrustumShader.setMat4f("invProjection", glm::inverse(_cameraParameters.projection));
+    _computeFrustumShader.setMat4f("view", _cameraParameters.view);
+
+    _computeFrustumShader.set1i("workGroupSize", 16);
+    _computeFrustumShader.set1i("screenWidth", 1280);
+    _computeFrustumShader.set1i("screenHeight", 720);
+
+    glGenBuffers(1, &_frustumBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _frustumBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 80 * 45 * 1 * sizeof(Frustum), nullptr, GL_STATIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _frustumBuffer);
+    glDispatchCompute(80, 45, 1);
 
     generateRenderingQuad();
     generateSphereVAO();
@@ -169,70 +200,106 @@ void Renderer::drawFrame()
     copyLightDataToGPU();
 
 
-    const auto projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 1000.0f);
-    const auto view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     
     depthPass();
-    drawTextureToScreen(_gDepth);
 
     //debugPass();
 
     _tiledForwardShader.use();
-    _tiledForwardShader.setMat4f("invProjection", glm::inverse(projection));
-    _tiledForwardShader.setMat4f("projection", projection);
-    _tiledForwardShader.setMat4f("view", view);
-    _tiledForwardShader.set3f("viewPos", _cameraParameters.position);
+    _tiledForwardShader.setMat4f("invProjection", glm::inverse(_cameraParameters.projection));
+    _tiledForwardShader.setMat4f("view", _cameraParameters.view);
 
     _tiledForwardShader.set1i("numLights", NR_LIGHTS);
-    _tiledForwardShader.set1i("maxLightsPerTile", 64);
     _tiledForwardShader.set1i("workGroupSize", 16);
     _tiledForwardShader.set1i("screenWidth", 1280);
     _tiledForwardShader.set1i("screenHeight", 720);
 
     glBindImageTexture(0, _gDepth,              0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA32F);
-    glBindImageTexture(4, _output,              0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindImageTexture(1, _gLightGrid,          0, GL_FALSE, 0, GL_READ_WRITE, GL_RG32UI);
+    glBindImageTexture(2, _output,              0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, _lightIndexCounterBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _lightIndexListBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, _lightsBuffer);
-    glDispatchCompute(80, 45, 1);
-    drawTextureToScreen(_output);
-
-    /*
-
-
-    // Tiled Deferred Shading
-    _tiledDeferredShader.use();
-    _tiledDeferredShader.setMat4f("projection", projection);
-    _tiledDeferredShader.setMat4f("view", view);
-    _tiledDeferredShader.set3f("viewPos", _cameraParameters.position);
-
-    _tiledDeferredShader.set1i("numLights", NR_LIGHTS);
-    _tiledDeferredShader.set1i("maxLightsPerTile", 64);
-    _tiledDeferredShader.set1i("workGroupSize", 16);
-    _tiledDeferredShader.set1i("screenWidth", 1280);
-    _tiledDeferredShader.set1i("screenHeight", 720);
-
-    glBindImageTexture(0, _gPosition,           0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA32F);
-    glBindImageTexture(1, _gNormal,             0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA16F);
-    glBindImageTexture(2, _gAlbedo,             0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA16F);
-    glBindImageTexture(3, _gMetallicRoughness,  0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA16F);
-    glBindImageTexture(4, _output,              0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, _lightsBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, _frustumBuffer);
     glDispatchCompute(80, 45, 1);
 
+    tiledForwardPass();
     drawTextureToScreen(_output);
-
-    // Copy depth buffer to default framebuffer
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, _gBuffer);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, 1280, 720, 0, 0, 1280, 720, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    debugPass();
-    */
 
     glBindVertexArray(0);
+}
+
+void Renderer::tiledForwardPass()
+{
+    const auto projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 1000.0f);
+    const auto view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
+
+    _tiledForwardPassShader.use();
+    _tiledForwardPassShader.set1i("lightGrid", 0);
+    _tiledForwardPassShader.set1i("albedoMap", 1);
+    _tiledForwardPassShader.set1i("metallicRoughnessMap", 2);
+
+    _tiledForwardPassShader.setMat4f("projection", projection);
+    _tiledForwardPassShader.setMat4f("view", view);
+    _tiledForwardPassShader.set3f("viewPos", _cameraParameters.position);
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _lightIndexListBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _lightsBuffer);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, _gLightGrid);
+
+    const auto& textures = _world.getTextures();
+    for (const auto& node : _world.getNodes())
+    {
+        if (node.gotMesh())
+        {
+            _tiledForwardPassShader.setMat4f("model", node.getTransform());
+
+            for (const auto& primitive : node.getPrimitives())
+            {
+                // Albedo texture
+                glActiveTexture(GL_TEXTURE1);
+                if (primitive.material.hasAlbedoTexture)
+                {
+                    glBindTexture(GL_TEXTURE_2D, textures[primitive.material.albedoTexture].id);
+                }
+                else
+                {
+                    glBindTexture(GL_TEXTURE_2D, _defaultAlbedoTexture);
+                }
+
+                // MetallicRoughness texture
+                glActiveTexture(GL_TEXTURE2);
+                if (primitive.material.hasMetallicRoughnessTexture)
+                {
+                    glBindTexture(GL_TEXTURE_2D, textures[primitive.material.metallicRoughnessTexture].id);
+                }
+                else
+                {
+                    glBindTexture(GL_TEXTURE_2D, _defaultMetallicRoughnessTexture);
+                }
+
+                glBindVertexArray(primitive.VAO);
+                glDrawElements(GL_TRIANGLES, primitive.indices.size(), GL_UNSIGNED_INT, 0);
+            }
+        }
+    }
+    for (uint16_t i = 0; i < pointLights.size(); ++i)
+    {
+        glm::mat4 model{1.0f};
+        model = glm::translate(model, pointLights[i].position);
+        model = glm::scale(model, glm::vec3(0.5f));
+        _tiledForwardPassShader.setMat4f("model", model);
+
+        glBindVertexArray(_sphereVAO);
+        glDrawElements(GL_TRIANGLES, sphereIndices.size(), GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Renderer::depthPass()
@@ -381,7 +448,7 @@ void Renderer::generateRandomLights()
         float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        pointLights.emplace_back(glm::vec3{r, g, b}, 1.0f, glm::vec3{x+4,y-8,z});
+        pointLights.emplace_back(glm::vec3{r, g, b}, 4.0f, glm::vec3{x+4,y-8,z});
         pointLightsSpeed.emplace_back(r/2000);
     }
 }
@@ -399,10 +466,12 @@ void Renderer::drawTextureToScreen(const GLuint texture)
 
 void Renderer::setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up)
 {
-    _cameraParameters.position = position;
     _cameraParameters.FOV = FOV;
+    _cameraParameters.position = position;
     _cameraParameters.front = front;
     _cameraParameters.up = up;
+    _cameraParameters.projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 1000.0f);
+    _cameraParameters.view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
 }
 
 void Renderer::generateSphereVAO()

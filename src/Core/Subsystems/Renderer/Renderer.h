@@ -20,10 +20,12 @@
 
 struct CameraParameters
 {
+    float FOV;
     glm::vec3 position;
     glm::vec3 front;
     glm::vec3 up;
-    float FOV;
+    glm::mat4 projection;
+    glm::mat4 view;
 };
 
 struct PointLight
@@ -31,6 +33,18 @@ struct PointLight
     glm::vec3   color;
     float       radius;
     glm::vec3   position;
+    unsigned int : 32;
+};
+
+struct Plane
+{
+    glm::vec3   N; // Normal
+    float       d; // Distance to origin
+};
+
+struct Frustum
+{
+    Plane planes[4]; // Left, Right, Top, Bottom
     unsigned int : 32;
 };
 
@@ -51,6 +65,7 @@ class Renderer
     void copyLightDataToGPU();
     void drawTextureToScreen(const GLuint texture);
     void generateRenderingQuad();
+    void tiledForwardPass();
 
     void debugPass();
     void generateSphereVAO();
@@ -60,12 +75,15 @@ class Renderer
 
     World _world {};
 
-    Shader _gPassShader         {"./shaders/gpass.vert",            "./shaders/gpass.frag"};
-    Shader _depthShader         {"./shaders/depth.vert",            "./shaders/depth.frag"};
-    Shader _lightSpheresShader  {"./shaders/lightSpheres.vert",     "./shaders/lightSpheres.frag"};
-    Shader _textureShader       {"./shaders/texture.vert",          "./shaders/texture.frag"};
-    Shader _tiledDeferredShader {"./shaders/tiledDeferred.comp"};
-    Shader _tiledForwardShader  {"./shaders/tiledForward.comp"};
+    Shader _gPassShader             {"./shaders/gpass.vert",            "./shaders/gpass.frag"};
+    Shader _depthShader             {"./shaders/depth.vert",            "./shaders/depth.frag"};
+    Shader _lightSpheresShader      {"./shaders/lightSpheres.vert",     "./shaders/lightSpheres.frag"};
+    Shader _textureShader           {"./shaders/texture.vert",          "./shaders/texture.frag"};
+    Shader _tiledForwardPassShader  {"./shaders/test.vert",            "./shaders/test.frag"};
+
+    Shader _computeFrustumShader    {"./shaders/computeFrustum.comp"};
+    Shader _tiledDeferredShader     {"./shaders/tiledDeferred.comp"};
+    Shader _tiledForwardShader      {"./shaders/tiledForward.comp"};
 
     GLuint _defaultAlbedoTexture;
     GLuint _defaultMetallicRoughnessTexture;
@@ -79,9 +97,13 @@ class Renderer
     GLuint _gMetallicRoughness;
     unsigned int rboDepth;
 
+    GLuint _frustumBuffer;
     GLuint _lightsBuffer;
+    GLuint _lightIndexCounterBuffer;
+    GLuint _lightIndexListBuffer;
 
     GLuint _output;
+    GLuint _gLightGrid;
 
     GLuint _quadVAO = 0;
     GLuint _quadVBO = 0;
