@@ -18,6 +18,10 @@ struct Plane
     float   d; // Distance to origin
 };
 
+struct Frustum
+{
+    Plane planes[4]; // left, right, top, bottom
+};
 
 struct Sphere
 {
@@ -25,27 +29,22 @@ struct Sphere
     float   r; // Radius 
 };
 
-struct Frustum
-{
-    Plane planes[4]; // left, right, top, bottom
-};
-
 layout (binding = 0, rgba32f) uniform readonly  image2D gDepth;
 layout (binding = 1, rg32f)   uniform           image2D gLightGrid;
 layout (binding = 2, rgba32f) uniform writeonly image2D gOutput;
-layout (std430, binding = 3) buffer LightIndexCounter
+layout (std430, binding = 3) writeonly buffer LightIndexCounter
 {
     uint gLightIndexCounter[];
 };
-layout (std430, binding = 4) buffer LightIndexList
+layout (std430, binding = 4) writeonly buffer LightIndexList
 {
     uint gLightIndexList[];
 };
-layout (std430, binding = 5) buffer LightsBuffer
+layout (std430, binding = 5) readonly buffer LightsBuffer
 {
     PointLight gPointLights[];
 };
-layout (std430, binding = 6) buffer FrustumBuffer
+layout (std430, binding = 6) readonly buffer FrustumBuffer
 {
     Frustum gFrustumBuffer[];
 };
@@ -54,18 +53,18 @@ uniform mat4 invProjection;
 uniform mat4 view;
 
 uniform int numLights;
-uniform int workGroupSize;
+uniform int blockSize;
 uniform int screenWidth;
 uniform int screenHeight;
 
-shared uint uMinDepth;
-shared uint uMaxDepth;
+shared uint suMinDepth;
+shared uint suMaxDepth;
 
-shared uint lightCount;
-shared uint lightIndexStartOffset;
-shared uint lightList[MAX_LIGHTS_PER_TILE];
+shared uint sLightCount;
+shared uint sLightIndexStartOffset;
+shared uint sLightList[MAX_LIGHTS_PER_TILE];
 
-shared Frustum groupFrustum;
+shared Frustum sGroupFrustum;
 
 // Convert clip space coordinates to view space
 vec4 clipToView(vec4 clip)
@@ -106,17 +105,15 @@ bool sphereInsideFrustum(Sphere sphere, Frustum frustum, float zNear, float zFar
 void appendLight(uint lightIndex)
 {
     uint i;
-    i = atomicAdd(lightCount, 1);
+    i = atomicAdd(sLightCount, 1);
     if (i < MAX_LIGHTS_PER_TILE)
     {
-        lightList[i] = lightIndex;
+        sLightList[i] = lightIndex;
     }
 }
 
 void main()
 {
-
-
     // Light Culling
     ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
     float fDepth = imageLoad(gDepth, texCoord).r;
@@ -124,21 +121,21 @@ void main()
 
     if (gl_LocalInvocationIndex == 0)
     {
-        uMinDepth = 0xffffffff;
-        uMaxDepth = 0;
-        lightCount = 0;
-        groupFrustum = gFrustumBuffer[gl_WorkGroupID.x + gl_WorkGroupID.y * workGroupSize];
+        suMinDepth = 0xffffffff;
+        suMaxDepth = 0;
+        sLightCount = 0;
+        sGroupFrustum = gFrustumBuffer[gl_WorkGroupID.x + (gl_WorkGroupID.y * gl_GlobalInvocationID.x)];
     }
 
     barrier();
 
-    atomicMin(uMinDepth, uDepth);
-    atomicMax(uMaxDepth, uDepth);
+    atomicMin(suMinDepth, uDepth);
+    atomicMax(suMaxDepth, uDepth);
 
     barrier();
 
-    float fMinDepth = uintBitsToFloat(uMinDepth);
-    float fMaxDepth = uintBitsToFloat(uMaxDepth);
+    float fMinDepth = uintBitsToFloat(suMinDepth);
+    float fMaxDepth = uintBitsToFloat(suMaxDepth);
 
     float minDepthVS = clipToView(vec4(0, 0, fMinDepth, 1)).z;
     float maxDepthVS = clipToView(vec4(0, 0, fMaxDepth, 1)).z;
@@ -148,13 +145,13 @@ void main()
     minPlane.N = vec3(0, 0, 1);
     minPlane.d = minDepthVS;
 
-    for (uint i = gl_LocalInvocationIndex; i < numLights; i += workGroupSize * workGroupSize)
+    for (uint i = gl_LocalInvocationIndex; i < numLights; i += blockSize * blockSize)
     {
         PointLight pointLight = gPointLights[i];
         Sphere sphere;
         sphere.c = pointLight.position.xyz;
         sphere.r = pointLight.radius;
-        if (sphereInsideFrustum(sphere, groupFrustum, nearClipVS, maxDepthVS))
+        if (sphereInsideFrustum(sphere, sGroupFrustum, nearClipVS, maxDepthVS))
         {
             if (!sphereInsidePlane(sphere, minPlane))
             {
@@ -167,18 +164,16 @@ void main()
 
     if (gl_LocalInvocationIndex == 0)
     {
-        lightIndexStartOffset = atomicAdd(gLightIndexCounter[0], lightCount);
-        imageStore(gLightGrid, texCoord, uvec4(uvec2(lightIndexStartOffset, lightCount), 0, 0));
+        sLightIndexStartOffset = atomicAdd(gLightIndexCounter[0], sLightCount);
+        imageStore(gLightGrid, texCoord, uvec4(uvec2(sLightIndexStartOffset, sLightCount), 0, 0));
     }
 
     barrier();
 
-    for (uint i = gl_LocalInvocationIndex; i < lightCount; i += workGroupSize * workGroupSize)
+    for (uint i = gl_LocalInvocationIndex; i < sLightCount; i += blockSize * blockSize)
     {
-        gLightIndexList[lightIndexStartOffset + i] = lightList[i];
+        gLightIndexList[sLightIndexStartOffset + i] = sLightList[i];
     }
 
-    barrier();
-
-    imageStore(gOutput, texCoord, vec4(0, 0, float(lightCount)/MAX_LIGHTS_PER_TILE, 0.25));
+    imageStore(gOutput, texCoord, vec4(0, 0, float(sLightCount/32), 0.5));
 }

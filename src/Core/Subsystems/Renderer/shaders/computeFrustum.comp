@@ -1,8 +1,5 @@
 #version 460 core
 
-#define PI 3.14159265359
-#define MAX_LIGHTS_PER_TILE 128
-
 layout (local_size_x = 16, local_size_y = 16) in;
 
 struct PointLight
@@ -12,17 +9,16 @@ struct PointLight
     vec3    position;
 };
 
-struct Plane
-{
-    vec3    N; // Normal
-    float   d; // Distance to origin
-};
-
-
 struct Sphere
 {
     vec3    c; // Center point
     float   r; // Radius 
+};
+
+struct Plane
+{
+    vec3    N; // Normal
+    float   d; // Distance to origin
 };
 
 struct Frustum
@@ -30,7 +26,7 @@ struct Frustum
     Plane planes[4]; // Left, Right, Top, Bottom
 };
 
-layout (std430, binding = 0) buffer FrustumBuffer
+layout (std430, binding = 0) writeonly buffer FrustumBuffer
 {
     Frustum gFrustumBuffer[];
 };
@@ -38,7 +34,7 @@ layout (std430, binding = 0) buffer FrustumBuffer
 uniform mat4 invProjection;
 uniform mat4 view;
 
-uniform int workGroupSize;
+uniform int blockSize;
 uniform int screenWidth;
 uniform int screenHeight;
 
@@ -99,14 +95,13 @@ bool sphereInsideFrustum(Sphere sphere, Frustum frustum, float zNear, float zFar
 
 void main()
 {
-    // Compute tile frustum
-    const vec3 eyePos = vec3(0,0,0);
+    const vec3 eyePos = vec3(0,0,0); // Screenspace
 
     vec4 screenSpace[4];
-    screenSpace[0] = vec4(gl_WorkGroupID.xy * workGroupSize, 1.0f, 1.0f);
-    screenSpace[1] = vec4(vec2(gl_WorkGroupID.x + 1, gl_WorkGroupID.y) * workGroupSize, 1.0f, 1.0f);
-    screenSpace[2] = vec4(vec2(gl_WorkGroupID.x, gl_WorkGroupID.y + 1) * workGroupSize, 1.0f, 1.0f);
-    screenSpace[3] = vec4(vec2(gl_WorkGroupID.x + 1, gl_WorkGroupID.y + 1) * workGroupSize, 1.0f, 1.0f);
+    screenSpace[0] = vec4(gl_WorkGroupID.xy * blockSize, 1.0f, 1.0f);
+    screenSpace[1] = vec4(vec2(gl_WorkGroupID.x + 1, gl_WorkGroupID.y) * blockSize, 1.0f, 1.0f);
+    screenSpace[2] = vec4(vec2(gl_WorkGroupID.x, gl_WorkGroupID.y + 1) * blockSize, 1.0f, 1.0f);
+    screenSpace[3] = vec4(vec2(gl_WorkGroupID.x + 1, gl_WorkGroupID.y + 1) * blockSize, 1.0f, 1.0f);
 
     vec3 viewSpace[4];
     for (int i = 0; i < 4; ++i)
@@ -120,5 +115,8 @@ void main()
     frustum.planes[2] = computePlane(eyePos, viewSpace[0], viewSpace[1]);
     frustum.planes[3] = computePlane(eyePos, viewSpace[3], viewSpace[2]);
 
-    gFrustumBuffer[gl_WorkGroupID.x + gl_WorkGroupID.y * workGroupSize] = frustum;
+    if (gl_WorkGroupID.x < gl_GlobalInvocationID.x && gl_WorkGroupID.y < gl_GlobalInvocationID.y)
+    {
+        gFrustumBuffer[gl_WorkGroupID.x + (gl_WorkGroupID.y * gl_GlobalInvocationID.x)] = frustum;
+    }
 }

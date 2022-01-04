@@ -28,24 +28,22 @@ struct CameraParameters
     glm::mat4 view;
 };
 
-struct PointLight
+struct alignas(16) PointLight
 {
     glm::vec3   color;
     float       radius;
     glm::vec3   position;
-    unsigned int : 32;
 };
 
-struct Plane
+struct alignas(16) Plane
 {
     glm::vec3   N; // Normal
     float       d; // Distance to origin
 };
 
-struct Frustum
+struct alignas(16) Frustum
 {
     Plane planes[4]; // Left, Right, Top, Bottom
-    unsigned int : 32;
 };
 
 class Renderer
@@ -102,7 +100,7 @@ class Renderer
     GLuint _lightIndexCounterBuffer;
     GLuint _lightIndexListBuffer;
 
-    GLuint _output;
+    GLuint _debugTexture;
     GLuint _gLightGrid;
 
     GLuint _quadVAO = 0;
