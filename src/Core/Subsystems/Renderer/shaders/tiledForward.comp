@@ -20,7 +20,8 @@ struct Plane
 
 struct Frustum
 {
-    Plane planes[4]; // left, right, top, bottom
+    vec3    N[4];
+    float   d[4];
 };
 
 struct Sphere
@@ -92,7 +93,10 @@ bool sphereInsideFrustum(Sphere sphere, Frustum frustum, float zNear, float zFar
     // Check if in frustum with its 4 planes
     for (int i = 0; i < 4 && result; ++i)
     {
-        if (sphereInsidePlane(sphere, frustum.planes[i]))
+        Plane plane;
+        plane.N = frustum.N[i];
+        plane.d = frustum.d[i];
+        if (sphereInsidePlane(sphere, plane))
         {
             result = false;
         }
@@ -124,7 +128,7 @@ void main()
         suMinDepth = 0xffffffff;
         suMaxDepth = 0;
         sLightCount = 0;
-        sGroupFrustum = gFrustumBuffer[gl_WorkGroupID.x + (gl_WorkGroupID.y * gl_GlobalInvocationID.x)];
+        sGroupFrustum = gFrustumBuffer[gl_GlobalInvocationID.x + (gl_GlobalInvocationID.y * (gl_NumWorkGroups.x * gl_WorkGroupSize.x))];
     }
 
     barrier();
@@ -175,5 +179,12 @@ void main()
         gLightIndexList[sLightIndexStartOffset + i] = sLightList[i];
     }
 
-    imageStore(gOutput, texCoord, vec4(0, 0, float(sLightCount/32), 0.5));
+    if (sLightCount > 0)
+    {
+        imageStore(gOutput, texCoord, vec4(0, 0, 1, 0.5));
+    }
+    else
+    {
+        imageStore(gOutput, texCoord, vec4(0, 0, 0, 0.5));
+    }
 }
