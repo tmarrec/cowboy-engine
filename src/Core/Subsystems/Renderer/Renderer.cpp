@@ -62,6 +62,18 @@ Renderer::Renderer()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
+
+    generateRenderingQuad();
+    generateSphereVAO();
+}
+
+void Renderer::init()
+{
+    initTiledFrustum();
+}
+
+void Renderer::initTiledFrustum()
+{
     // Compute frustum once and for all
     _computeFrustumShader.use();
     _computeFrustumShader.setMat4f("invProjection", glm::inverse(_cameraParameters.projection));
@@ -73,13 +85,10 @@ Renderer::Renderer()
 
     glGenBuffers(1, &_frustumBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _frustumBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 80 * 45 * 2 * sizeof(Frustum), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 80 * 45 * 1 * sizeof(Frustum), nullptr, GL_STATIC_DRAW);
      
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _frustumBuffer);
     glDispatchCompute(80, 45, 1);
-
-    generateRenderingQuad();
-    generateSphereVAO();
 }
 
 void Renderer::loadDefaultTextures()

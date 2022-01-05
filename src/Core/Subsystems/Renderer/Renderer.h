@@ -35,21 +35,18 @@ struct alignas(16) PointLight
     glm::vec3   position;
 };
 
-struct alignas(16) Plane
+struct Frustum
 {
-    glm::vec3   N; // Normal
-    float       d; // Distance to origin
-};
-
-struct alignas(16) Frustum
-{
-    Plane planes[4]; // Left, Right, Top, Bottom
+    glm::vec3   N[4]; // Normals
+    float       pad[4];
+    float       d[4]; // Distance to origins
 };
 
 class Renderer
 {
  public:
     Renderer();
+    void init();
     void drawFrame();
     void setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up);
 
@@ -64,6 +61,7 @@ class Renderer
     void drawTextureToScreen(const GLuint texture);
     void generateRenderingQuad();
     void tiledForwardPass();
+    void initTiledFrustum();
 
     void debugPass();
     void generateSphereVAO();

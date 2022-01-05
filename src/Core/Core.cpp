@@ -19,7 +19,6 @@ int Core::Run()
 {
     RegisterAllComponents();
 
-
     // Camera system initialization
     const auto cameraSystem = g_ECSManager.registerSystem<CameraHandler>();
     const Signature cameraSignature = [&](){
@@ -53,6 +52,10 @@ int Core::Run()
             .speed = 7.5f,
         }
     );
+
+    // Important //
+    cameraSystem->Update(0);
+    g_Renderer.init();
 
     float dt = 0.0f;
 
