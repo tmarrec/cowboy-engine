@@ -5,6 +5,7 @@
 #include <cassert>
 #include <limits>
 #include <unordered_map>
+#include <array>
 
 class IComponentArray
 {
