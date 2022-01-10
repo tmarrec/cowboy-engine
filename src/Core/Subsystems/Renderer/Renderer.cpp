@@ -482,8 +482,8 @@ void Renderer::setCameraParameters(const glm::vec3& position, const float FOV, c
 
 void Renderer::generateSphereVAO()
 {
-    const uint8_t sectorCount = 32;
-    const uint8_t stackCount = 32;
+    const uint8_t sectorCount = 16;
+    const uint8_t stackCount = 16;
     float x, y, z, xy;
     const float sectorStep = 2 * std::numbers::pi / sectorCount;
     const float stackStep = std::numbers::pi / stackCount;

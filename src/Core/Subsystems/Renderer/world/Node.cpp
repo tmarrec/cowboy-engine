@@ -12,7 +12,7 @@ Node::Node(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
 {
     const auto& node = model.nodes[idx];
     INFO("Loading node \"" << node.name << "\""); 
-
+    
     // If local transform matrix specified
     if (!node.matrix.empty())
     {
@@ -27,26 +27,31 @@ Node::Node(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
     // If need to build the local transform matrix
     else
     {
-        glm::mat4 translation {1} ;
+        _transform = glm::mat4(1.0f);
         if (!node.translation.empty())
         {
-            translation = glm::translate(glm::mat4(), glm::vec3(node.translation[0], node.translation[1], node.translation[2]));
+            glm::mat4 translation {1};
+            translation[3][0] = node.translation[0];
+            translation[3][1] = node.translation[1];
+            translation[3][2] = node.translation[2];
+            _transform *= translation;
         }
-        glm::mat4 rotation {1};
         if (!node.rotation.empty())
         {
-            rotation = glm::toMat4(glm::quat(node.rotation[0],node.rotation[1],node.rotation[2],node.rotation[3]));
+            const glm::mat4 rotation = glm::toMat4(glm::quat(node.rotation[3],node.rotation[0],node.rotation[1],node.rotation[2]));
+            _transform *= rotation;
         }
-        glm::mat4 scale {1};
         if (!node.scale.empty())
         {
-            scale = glm::scale(scale, glm::vec3(node.scale[0], node.scale[1], node.scale[2]));
+            glm::mat4 scale {1};
+            scale[0][0] = node.scale[0];
+            scale[1][1] = node.scale[1];
+            scale[2][2] = node.scale[2];
+            _transform *= scale;
         }
-        _transform = translation * rotation * scale;
     }
 
     _transform = parentTransform * _transform;
-
 
     for (const auto childrenIdx : node.children)
     {

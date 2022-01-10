@@ -13,6 +13,6 @@ class Node
     const bool gotMesh() const;
 
  private:
-    std::shared_ptr<Mesh>   _mesh = nullptr;
+    std::shared_ptr<Mesh>   _mesh       = nullptr;
     glm::mat4               _transform;
 };

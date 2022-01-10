@@ -81,7 +81,8 @@ void main()
     float metallic = texture(metallicRoughnessMap, texCoords).b;
     float roughness = texture(metallicRoughnessMap, texCoords).g;
 
-    FragColor = vec4(albedo.xy, float(lightCount)/64, 1);
+    //FragColor = vec4(albedo.xy, float(lightCount)/64, 1);
+    FragColor = vec4(albedo, 1);
 
     /*
 
