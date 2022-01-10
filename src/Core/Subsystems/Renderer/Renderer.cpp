@@ -93,7 +93,7 @@ void Renderer::initTiledFrustum()
 void Renderer::loadDefaultTextures()
 {
     // Default Albedo texture
-    const uint8_t albedo[3] = {255, 0, 0};
+    const uint8_t albedo[3] = {255, 255, 255};
     glGenTextures(1, &_defaultAlbedoTexture);
     glBindTexture(GL_TEXTURE_2D, _defaultAlbedoTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, &albedo);
@@ -273,7 +273,10 @@ void Renderer::tiledForwardPass()
                 }
                 else
                 {
+                    // Using default texture
                     glBindTexture(GL_TEXTURE_2D, _defaultAlbedoTexture);
+                    const uint8_t albedo[3] = { 255 * primitive.material.albedoFactor.x, 255 * primitive.material.albedoFactor.y, 255 * primitive.material.albedoFactor.z };
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, &albedo);
                 }
 
                 // MetallicRoughness texture

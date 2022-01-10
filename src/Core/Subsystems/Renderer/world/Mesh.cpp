@@ -63,6 +63,7 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
                 p.material.hasMetallicRoughnessTexture = true;
                 p.material.metallicRoughnessTexture = pbr.metallicRoughnessTexture.index;
             }
+            p.material.albedoFactor = glm::vec3(pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2]);
         }
 
         p.indices = std::vector<GLuint>(pIndicesBuffer.buffer, pIndicesBuffer.buffer+pIndicesBuffer.size);

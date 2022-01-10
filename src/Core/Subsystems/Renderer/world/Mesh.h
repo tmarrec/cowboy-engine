@@ -24,10 +24,11 @@ struct Vertex
 
 struct Material
 {
-    bool    hasAlbedoTexture = false;
-    GLuint  albedoTexture;
-    bool    hasMetallicRoughnessTexture = false;
-    GLuint  metallicRoughnessTexture;
+    bool        hasAlbedoTexture = false;
+    GLuint      albedoTexture;
+    bool        hasMetallicRoughnessTexture = false;
+    GLuint      metallicRoughnessTexture;
+    glm::vec3   albedoFactor;
 };
 
 struct Primitive
