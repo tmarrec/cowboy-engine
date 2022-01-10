@@ -54,6 +54,7 @@ vec4 screenToView(vec4 screen)
     vec2 texCoord = screen.xy / vec2(screenWidth, screenHeight);
     // Convert to clip space
     vec4 clip = vec4(vec2(texCoord.x, 1.0f - texCoord.y) * 2.0f - 1.0f, screen.z, screen.w);
+
     return clipToView(clip);
 }
 
@@ -69,8 +70,6 @@ Plane computePlane(vec3 p0, vec3 p1, vec3 p2)
 
 void main()
 {
-    const vec3 eyePos = vec3(0,0,0); // Screenspace
-
     vec4 screenSpace[4];
     screenSpace[0] = vec4(gl_WorkGroupID.xy * blockSize,                                1.0f, 1.0f);
     screenSpace[1] = vec4(vec2(gl_WorkGroupID.x + 1, gl_WorkGroupID.y) * blockSize,     1.0f, 1.0f);
@@ -82,6 +81,8 @@ void main()
     {
         viewSpace[i] = screenToView(screenSpace[i]).xyz;
     }
+
+    const vec3 eyePos = vec3(0,0,0); // Screenspace
 
     Plane p0 = computePlane(eyePos, viewSpace[2], viewSpace[0]);
     Plane p1 = computePlane(eyePos, viewSpace[1], viewSpace[3]);

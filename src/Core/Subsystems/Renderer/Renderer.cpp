@@ -10,7 +10,7 @@
 #include <ctime>
 
 extern Window g_Window;
-const uint16_t NR_LIGHTS = 1024;
+const uint16_t NR_LIGHTS = 64;
 
 void GLAPIENTRY MessageCallback(const GLenum source, const GLenum type, const GLuint id, const GLenum severity, const GLsizei length, const GLchar* message, const void* userParam)
 {
@@ -51,17 +51,16 @@ Renderer::Renderer()
     glBufferData(GL_SHADER_STORAGE_BUFFER, pointLights.size() * sizeof(uint32_t), nullptr, GL_STATIC_DRAW);
 
     glGenTextures(1, &_gLightGrid);
-    glBindTexture(GL_TEXTURE_2D, _gLightGrid);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32UI, 1280, 720, 0, GL_RG_INTEGER, GL_UNSIGNED_INT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_RECTANGLE, _gLightGrid);
+    glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RG32UI, 1280, 720, 0, GL_RG_INTEGER, GL_UNSIGNED_INT, nullptr);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glGenTextures(1, &_debugTexture);
     glBindTexture(GL_TEXTURE_2D, _debugTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_INT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
 
     generateRenderingQuad();
     generateSphereVAO();
@@ -203,19 +202,14 @@ void Renderer::drawFrame()
         float x = l.position.x * c - l.position.z * s;
         float z = l.position.x * s + l.position.z * c;
 
-        l.position.x = x;
-        l.position.z = z;
+        //l.position.x = x;
+        //l.position.z = z;
     }
     copyLightDataToGPU();
 
-
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     
     depthPass();
-
-    //debugPass();
 
     _tiledForwardShader.use();
     _tiledForwardShader.setMat4f("invProjection", glm::inverse(_cameraParameters.projection));
@@ -226,9 +220,9 @@ void Renderer::drawFrame()
     _tiledForwardShader.set1i("screenWidth", 1280);
     _tiledForwardShader.set1i("screenHeight", 720);
 
-    glBindImageTexture(                         0, _gDepth,     0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA32F);
-    glBindImageTexture(                         1, _gLightGrid, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RG32UI);
-    glBindImageTexture(                         2, _debugTexture,     0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindImageTexture(                         0, _gDepth,             0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA32F);
+    glBindImageTexture(                         1, _gLightGrid,         0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32UI);
+    glBindImageTexture(                         2, _debugTexture,       0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER,  3, _lightIndexCounterBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER,  4, _lightIndexListBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER,  5, _lightsBuffer);
@@ -255,11 +249,12 @@ void Renderer::tiledForwardPass()
     _tiledForwardPassShader.setMat4f("view", view);
     _tiledForwardPassShader.set3f("viewPos", _cameraParameters.position);
 
+    
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _lightIndexListBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _lightsBuffer);
-
+    
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, _gLightGrid);
+    glBindTexture(GL_TEXTURE_RECTANGLE, _gLightGrid);
 
     const auto& textures = _world.getTextures();
     for (const auto& node : _world.getNodes())
@@ -297,6 +292,7 @@ void Renderer::tiledForwardPass()
             }
         }
     }
+    
     for (uint16_t i = 0; i < pointLights.size(); ++i)
     {
         glm::mat4 model{1.0f};
@@ -308,6 +304,7 @@ void Renderer::tiledForwardPass()
         glDrawElements(GL_TRIANGLES, sphereIndices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
+    
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -457,7 +454,7 @@ void Renderer::generateRandomLights()
         float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        pointLights.emplace_back(glm::vec3{r, g, b}, 2.0f, glm::vec3{x+4,y-8,z});
+        pointLights.emplace_back(glm::vec3{r, g, b}, 1.5f, glm::vec3{x+4,y-8,z});
         pointLightsSpeed.emplace_back(r/2000);
     }
 }

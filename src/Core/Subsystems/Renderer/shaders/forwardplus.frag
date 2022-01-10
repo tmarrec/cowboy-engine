@@ -24,7 +24,7 @@ layout (std430, binding = 1) buffer LightsBuffer
     PointLight gPointLights[];
 };
 
-uniform sampler2D   lightGrid;
+uniform usampler2DRect lightGrid;
 uniform sampler2D   albedoMap;
 uniform sampler2D   metallicRoughnessMap;
 
@@ -72,13 +72,18 @@ float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 
 void main()
 {             
-    uvec2 tileIndex = uvec2(floor(fragPos.xy / 16));
-    uint startOffset = uint(texture(lightGrid, tileIndex).x);
-    uint lightCount = uint(texture(lightGrid, tileIndex).y);
+    vec4 coord = gl_FragCoord-0.5;
+    uvec2 tileIndex = uvec2(floor(coord / 16.0) * 16);
+    uint startOffset = texture(lightGrid, tileIndex).x;
+    uint lightCount = texture(lightGrid, tileIndex).y;
 
     vec3 albedo = pow(texture(albedoMap, texCoords).rgb, vec3(2.2, 2.2, 2.2));
     float metallic = texture(metallicRoughnessMap, texCoords).b;
     float roughness = texture(metallicRoughnessMap, texCoords).g;
+
+    FragColor = vec4(albedo.xy, float(lightCount)/64, 1);
+
+    /*
 
     vec3 N = normalize(normal);
     vec3 V = normalize(viewPos - fragPos);
@@ -123,6 +128,6 @@ void main()
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0/2.2));
 
-    //FragColor = vec4(vec3(lightCount/32), 1.0);
-    FragColor = vec4(vec3(1), 1.0);
+    FragColor = vec4(1,0,0, 1.0);
+    */
 }

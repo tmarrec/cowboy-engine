@@ -76,7 +76,7 @@ class Renderer
     Shader _depthShader             {"./shaders/depth.vert",            "./shaders/depth.frag"};
     Shader _lightSpheresShader      {"./shaders/lightSpheres.vert",     "./shaders/lightSpheres.frag"};
     Shader _textureShader           {"./shaders/texture.vert",          "./shaders/texture.frag"};
-    Shader _tiledForwardPassShader  {"./shaders/test.vert",            "./shaders/test.frag"};
+    Shader _tiledForwardPassShader  {"./shaders/forwardplus.vert",      "./shaders/forwardplus.frag"};
 
     Shader _computeFrustumShader    {"./shaders/computeFrustum.comp"};
     Shader _tiledDeferredShader     {"./shaders/tiledDeferred.comp"};

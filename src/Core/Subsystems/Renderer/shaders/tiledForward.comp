@@ -30,9 +30,9 @@ struct Sphere
     float   r; // Radius 
 };
 
-layout (binding = 0, rgba32f) uniform readonly  image2D gDepth;
-layout (binding = 1, rg32f)   uniform           image2D gLightGrid;
-layout (binding = 2, rgba32f) uniform writeonly image2D gOutput;
+layout (binding = 0, rgba32f) uniform readonly  image2D  gDepth;
+layout (binding = 1, rg32ui)  uniform writeonly uimage2D gLightGrid;
+layout (binding = 2, rgba32f) uniform writeonly image2D  gOutput;
 layout (std430, binding = 3) writeonly buffer LightIndexCounter
 {
     uint gLightIndexCounter[];
@@ -84,11 +84,13 @@ bool sphereInsideFrustum(Sphere sphere, Frustum frustum, float zNear, float zFar
 {
     bool result = true;
 
+    /*
     // Check if in range of depth
     if (sphere.c.z - sphere.r > zFar || sphere.c.z + sphere.r < zNear)
     {
         result = false;
     }
+    */
     
     // Check if in frustum with its 4 planes
     for (int i = 0; i < 4 && result; ++i)
@@ -101,6 +103,7 @@ bool sphereInsideFrustum(Sphere sphere, Frustum frustum, float zNear, float zFar
             result = false;
         }
     }
+    
 
     return result;
 }
@@ -108,11 +111,11 @@ bool sphereInsideFrustum(Sphere sphere, Frustum frustum, float zNear, float zFar
 // Atomic add a light index to the light list of a work group
 void appendLight(uint lightIndex)
 {
-    uint i;
-    i = atomicAdd(sLightCount, 1);
-    if (i < MAX_LIGHTS_PER_TILE)
+    uint index; // Index into the visible lights array
+    index = atomicAdd(sLightCount, 1);
+    if (index < numLights) // should be MAX_LIGHTS_PER_TILE
     {
-        sLightList[i] = lightIndex;
+        sLightList[index] = lightIndex;
     }
 }
 
@@ -155,12 +158,16 @@ void main()
         Sphere sphere;
         sphere.c = pointLight.position.xyz;
         sphere.r = pointLight.radius;
+
         if (sphereInsideFrustum(sphere, sGroupFrustum, nearClipVS, maxDepthVS))
         {
+            appendLight(i);
+            /*
             if (!sphereInsidePlane(sphere, minPlane))
             {
                 appendLight(i);
             }
+            */
         }
     }
 
@@ -171,20 +178,13 @@ void main()
         sLightIndexStartOffset = atomicAdd(gLightIndexCounter[0], sLightCount);
         imageStore(gLightGrid, texCoord, uvec4(uvec2(sLightIndexStartOffset, sLightCount), 0, 0));
     }
-
+    
     barrier();
 
     for (uint i = gl_LocalInvocationIndex; i < sLightCount; i += blockSize * blockSize)
     {
         gLightIndexList[sLightIndexStartOffset + i] = sLightList[i];
     }
-
-    if (sLightCount > 0)
-    {
-        imageStore(gOutput, texCoord, vec4(0, 0, 1, 0.5));
-    }
-    else
-    {
-        imageStore(gOutput, texCoord, vec4(0, 0, 0, 0.5));
-    }
+    
+    //imageStore(gOutput, texCoord, vec4(vec3(fMaxDepth), 0.5));
 }
