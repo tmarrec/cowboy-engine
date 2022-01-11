@@ -36,10 +36,9 @@ struct alignas(16) PointLight
     glm::vec3   position;
 };
 
-struct Frustum
+struct alignas(16) Frustum
 {
-    glm::vec3   N[4]; // Normals
-    float       pad[4];
+    glm::vec4   N[4]; // Normals
     float       d[4]; // Distance to origins
 };
 

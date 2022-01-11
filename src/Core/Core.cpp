@@ -47,9 +47,9 @@ int Core::Run()
         Camera
         {
             .FOV = 70.0f,
-            .yaw = -68.0f,
-            .pitch = -5.0f,
-            .speed = 7.5f,
+            .yaw = -0.0f,
+            .pitch = -0.0f,
+            .speed = 10.0f,
         }
     );
 

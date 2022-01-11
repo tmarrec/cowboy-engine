@@ -20,8 +20,8 @@ struct Plane
 
 struct Frustum
 {
-    vec3    N[4];
-    float   d[4];
+    vec4    N[4]; // Planes frustum
+    float   d[4]; // Planes distances
 };
 
 struct Sphere
@@ -84,19 +84,17 @@ bool sphereInsideFrustum(Sphere sphere, Frustum frustum, float zNear, float zFar
 {
     bool result = true;
 
-    /*
     // Check if in range of depth
-    if (sphere.c.z - sphere.r > zFar || sphere.c.z + sphere.r < zNear)
+    if (sphere.c.z - sphere.r > zNear || sphere.c.z + sphere.r < zFar)
     {
         result = false;
-    }
-    */
-    
+    }   
+
     // Check if in frustum with its 4 planes
     for (int i = 0; i < 4 && result; ++i)
     {
         Plane plane;
-        plane.N = frustum.N[i];
+        plane.N = frustum.N[i].xyz;
         plane.d = frustum.d[i];
         if (sphereInsidePlane(sphere, plane))
         {
@@ -104,7 +102,6 @@ bool sphereInsideFrustum(Sphere sphere, Frustum frustum, float zNear, float zFar
         }
     }
     
-
     return result;
 }
 
@@ -113,7 +110,7 @@ void appendLight(uint lightIndex)
 {
     uint index; // Index into the visible lights array
     index = atomicAdd(sLightCount, 1);
-    if (index < numLights) // should be MAX_LIGHTS_PER_TILE
+    if (index < MAX_LIGHTS_PER_TILE) // should be MAX_LIGHTS_PER_TILE
     {
         sLightList[index] = lightIndex;
     }
@@ -131,7 +128,7 @@ void main()
         suMinDepth = 0xffffffff;
         suMaxDepth = 0;
         sLightCount = 0;
-        sGroupFrustum = gFrustumBuffer[gl_GlobalInvocationID.x + (gl_GlobalInvocationID.y * (gl_NumWorkGroups.x * gl_WorkGroupSize.x))];
+        sGroupFrustum = gFrustumBuffer[gl_WorkGroupID.x + (gl_WorkGroupID.y * gl_NumWorkGroups.x)];
     }
 
     barrier();
@@ -146,11 +143,12 @@ void main()
 
     float minDepthVS = clipToView(vec4(0, 0, fMinDepth, 1)).z;
     float maxDepthVS = clipToView(vec4(0, 0, fMaxDepth, 1)).z;
-    float nearClipVS = clipToView(vec4(0, 0, 0, 1)).z;
 
     Plane minPlane;
-    minPlane.N = vec3(0, 0, 1);
-    minPlane.d = minDepthVS;
+    minPlane.N = vec3(0, 0, -1);
+    minPlane.d = -minDepthVS;
+
+    //imageStore(gOutput, texCoord, vec4(vec3(maxDepthVS), 0.75));
 
     for (uint i = gl_LocalInvocationIndex; i < numLights; i += blockSize * blockSize)
     {
@@ -158,33 +156,34 @@ void main()
         Sphere sphere;
         sphere.c = pointLight.position.xyz;
         sphere.r = pointLight.radius;
-
-        if (sphereInsideFrustum(sphere, sGroupFrustum, nearClipVS, maxDepthVS))
+        
+        if (sphereInsideFrustum(sphere, sGroupFrustum, minDepthVS, maxDepthVS))
         {
-            appendLight(i);
-            /*
             if (!sphereInsidePlane(sphere, minPlane))
             {
                 appendLight(i);
             }
-            */
         }
+        
     }
 
     barrier();
 
+    //imageStore(gOutput, texCoord, vec4(vec3(sLightCount/numLights), 0.75));
+    imageStore(gLightGrid, texCoord, uvec4(uvec2(0, sLightCount), 0, 0));
+
+    /*
     if (gl_LocalInvocationIndex == 0)
     {
         sLightIndexStartOffset = atomicAdd(gLightIndexCounter[0], sLightCount);
         imageStore(gLightGrid, texCoord, uvec4(uvec2(sLightIndexStartOffset, sLightCount), 0, 0));
     }
-    
+
     barrier();
 
     for (uint i = gl_LocalInvocationIndex; i < sLightCount; i += blockSize * blockSize)
     {
         gLightIndexList[sLightIndexStartOffset + i] = sLightList[i];
-    }
-    
-    //imageStore(gOutput, texCoord, vec4(vec3(fMaxDepth), 0.5));
+    }    
+    */
 }

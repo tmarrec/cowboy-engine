@@ -87,7 +87,7 @@ void Renderer::initTiledFrustum()
     glBufferData(GL_SHADER_STORAGE_BUFFER, 80 * 45 * 1 * sizeof(Frustum), nullptr, GL_STATIC_DRAW);
      
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _frustumBuffer);
-    glDispatchCompute(80, 45, 1);
+    glDispatchCompute(5, 3, 1);
 }
 
 void Renderer::loadDefaultTextures()
@@ -95,8 +95,6 @@ void Renderer::loadDefaultTextures()
     // Default Albedo texture
     const uint8_t albedo[3] = {255, 255, 255};
     glGenTextures(1, &_defaultAlbedoTexture);
-    glBindTexture(GL_TEXTURE_2D, _defaultAlbedoTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, &albedo);
 
     // Default MetallicRoughness texture
     const uint8_t metallicRoughness[3] = {0, 0, 0};
@@ -237,16 +235,13 @@ void Renderer::drawFrame()
 
 void Renderer::tiledForwardPass()
 {
-    const auto projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 1000.0f);
-    const auto view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
-
     _tiledForwardPassShader.use();
     _tiledForwardPassShader.set1i("lightGrid", 0);
     _tiledForwardPassShader.set1i("albedoMap", 1);
     _tiledForwardPassShader.set1i("metallicRoughnessMap", 2);
 
-    _tiledForwardPassShader.setMat4f("projection", projection);
-    _tiledForwardPassShader.setMat4f("view", view);
+    _tiledForwardPassShader.setMat4f("projection", _cameraParameters.projection);
+    _tiledForwardPassShader.setMat4f("view", _cameraParameters.view);
     _tiledForwardPassShader.set3f("viewPos", _cameraParameters.position);
 
     
@@ -296,6 +291,7 @@ void Renderer::tiledForwardPass()
         }
     }
     
+    /*
     for (uint16_t i = 0; i < pointLights.size(); ++i)
     {
         glm::mat4 model{1.0f};
@@ -307,19 +303,19 @@ void Renderer::tiledForwardPass()
         glDrawElements(GL_TRIANGLES, sphereIndices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
+    */
     
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Renderer::depthPass()
 {
-    const auto projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 1000.0f);
-    const auto view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
+    std::cout << glm::to_string(_cameraParameters.position) << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, _gDepthBuffer);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     _depthShader.use();
-    _depthShader.setMat4f("projection", projection);
-    _depthShader.setMat4f("view", view);
+    _depthShader.setMat4f("projection", _cameraParameters.projection);
+    _depthShader.setMat4f("view", _cameraParameters.view);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _gDepth);
 
@@ -341,16 +337,14 @@ void Renderer::depthPass()
 
 void Renderer::geometryPass()
 {
-    const auto projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 1000.0f);
-    const auto view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
     glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_BLEND);
     _gPassShader.use();
     _gPassShader.set1i("albedoMap", 0);
     _gPassShader.set1i("metallicRoughnessMap", 1);
-    _gPassShader.setMat4f("projection", projection);
-    _gPassShader.setMat4f("view", view);
+    _gPassShader.setMat4f("projection", _cameraParameters.projection);
+    _gPassShader.setMat4f("view", _cameraParameters.view);
 
     const auto& textures = _world.getTextures();
     for (const auto& node : _world.getNodes())
@@ -426,11 +420,9 @@ void Renderer::generateRenderingQuad()
 
 void Renderer::debugPass()
 {
-    const auto projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 1000.0f);
-    const auto view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
     _lightSpheresShader.use();
-    _lightSpheresShader.setMat4f("projection", projection);
-    _lightSpheresShader.setMat4f("view", view);
+    _lightSpheresShader.setMat4f("projection", _cameraParameters.projection);
+    _lightSpheresShader.setMat4f("view", _cameraParameters.view);
     for (uint16_t i = 0; i < pointLights.size(); ++i)
     {
         glm::mat4 model{1.0f};
@@ -451,13 +443,13 @@ void Renderer::generateRandomLights()
 
     for (unsigned int i = 0; i < NR_LIGHTS; i++)
     {
-        float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 10;
-        float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 20;
-        float z = 0;
+        float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 10 - 5;
+        float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 10 - 5;
+        float z = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 10 - 5;
         float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        pointLights.emplace_back(glm::vec3{r, g, b}, 1.5f, glm::vec3{x+4,y-8,z});
+        pointLights.emplace_back(glm::vec3{r, g, b}, 2.5f, glm::vec3{x,y,z});
         pointLightsSpeed.emplace_back(r/2000);
     }
 }
@@ -479,7 +471,7 @@ void Renderer::setCameraParameters(const glm::vec3& position, const float FOV, c
     _cameraParameters.position = position;
     _cameraParameters.front = front;
     _cameraParameters.up = up;
-    _cameraParameters.projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 1000.0f);
+    _cameraParameters.projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 1024.0f);
     _cameraParameters.view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
 }
 

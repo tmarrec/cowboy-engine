@@ -2,28 +2,15 @@
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-struct PointLight
-{
-    vec3    color;
-    float   radius;
-    vec3    position;
-};
-
-struct Sphere
-{
-    vec3    c; // Center point
-    float   r; // Radius 
-};
-
 struct Plane
 {
-    vec3    N;
-    float   d;
+    vec3    N; // Plane normal
+    float   d; // Distance to origin
 };
 
 struct Frustum
 {
-    vec3    N[4];
+    vec4    N[4];
     float   d[4];
 };
 
@@ -53,7 +40,7 @@ vec4 screenToView(vec4 screen)
     // Convert to normalized texture coordinates
     vec2 texCoord = screen.xy / vec2(screenWidth, screenHeight);
     // Convert to clip space
-    vec4 clip = vec4(vec2(texCoord.x, 1.0f - texCoord.y) * 2.0f - 1.0f, screen.z, screen.w);
+    vec4 clip = vec4(texCoord.xy * 2.0f - 1.0f, screen.z, screen.w);
 
     return clipToView(clip);
 }
@@ -71,10 +58,10 @@ Plane computePlane(vec3 p0, vec3 p1, vec3 p2)
 void main()
 {
     vec4 screenSpace[4];
-    screenSpace[0] = vec4(gl_WorkGroupID.xy * blockSize,                                1.0f, 1.0f);
-    screenSpace[1] = vec4(vec2(gl_WorkGroupID.x + 1, gl_WorkGroupID.y) * blockSize,     1.0f, 1.0f);
-    screenSpace[2] = vec4(vec2(gl_WorkGroupID.x, gl_WorkGroupID.y + 1) * blockSize,     1.0f, 1.0f);
-    screenSpace[3] = vec4(vec2(gl_WorkGroupID.x + 1, gl_WorkGroupID.y + 1) * blockSize, 1.0f, 1.0f);
+    screenSpace[0] = vec4(gl_GlobalInvocationID.xy * blockSize,                                       -1.0f, 1.0f);
+    screenSpace[1] = vec4(vec2(gl_GlobalInvocationID.x + 1, gl_GlobalInvocationID.y) * blockSize,     -1.0f, 1.0f);
+    screenSpace[2] = vec4(vec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y + 1) * blockSize,     -1.0f, 1.0f);
+    screenSpace[3] = vec4(vec2(gl_GlobalInvocationID.x + 1, gl_GlobalInvocationID.y + 1) * blockSize, -1.0f, 1.0f);
 
     vec3 viewSpace[4];
     for (int i = 0; i < 4; ++i)
@@ -84,23 +71,24 @@ void main()
 
     const vec3 eyePos = vec3(0,0,0); // Screenspace
 
-    Plane p0 = computePlane(eyePos, viewSpace[2], viewSpace[0]);
-    Plane p1 = computePlane(eyePos, viewSpace[1], viewSpace[3]);
-    Plane p2 = computePlane(eyePos, viewSpace[0], viewSpace[1]);
-    Plane p3 = computePlane(eyePos, viewSpace[3], viewSpace[2]);
+    Plane p0 = computePlane(eyePos, viewSpace[2], viewSpace[0]); // left
+    Plane p1 = computePlane(eyePos, viewSpace[1], viewSpace[3]); // right
+    Plane p2 = computePlane(eyePos, viewSpace[0], viewSpace[1]); // top
+    Plane p3 = computePlane(eyePos, viewSpace[3], viewSpace[2]); // bottom
 
     Frustum frustum;
-    frustum.N[0] = p0.N;
+    frustum.N[0] = vec4(p0.N, 0);
     frustum.d[0] = p0.d;
-    frustum.N[1] = p1.N;
+    frustum.N[1] = vec4(p1.N, 0);
     frustum.d[1] = p1.d;
-    frustum.N[2] = p2.N;
+    frustum.N[2] = vec4(p2.N, 0);
     frustum.d[2] = p2.d;
-    frustum.N[3] = p3.N;
+    frustum.N[3] = vec4(p3.N, 0);
     frustum.d[3] = p3.d;
 
-    //if (gl_WorkGroupID.x < gl_GlobalInvocationID.x && gl_WorkGroupID.y < gl_GlobalInvocationID.y)
+    if (gl_GlobalInvocationID.x < gl_NumWorkGroups.x * gl_WorkGroupSize.x && gl_GlobalInvocationID.y < gl_NumWorkGroups.y * gl_WorkGroupSize.y)
     {
-        gFrustumBuffer[gl_GlobalInvocationID.x + (gl_GlobalInvocationID.y * (gl_NumWorkGroups.x * gl_WorkGroupSize.x))] = frustum;
+        uint index = gl_GlobalInvocationID.x + ( gl_GlobalInvocationID.y * (gl_NumWorkGroups.x * gl_WorkGroupSize.x));
+        gFrustumBuffer[index] = frustum;
     }
 }
