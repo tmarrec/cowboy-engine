@@ -310,7 +310,6 @@ void Renderer::tiledForwardPass()
 
 void Renderer::depthPass()
 {
-    std::cout << glm::to_string(_cameraParameters.position) << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, _gDepthBuffer);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     _depthShader.use();

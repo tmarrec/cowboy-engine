@@ -54,14 +54,15 @@ void CameraHandler::lookAtMovements(Camera& camera)
 {
     const float sensitivity = 0.5f;
     camera.yaw += g_InputManager.mouseOffset.x * sensitivity;
-    camera.pitch = glm::clamp(camera.pitch - g_InputManager.mouseOffset.y * sensitivity, -89.9f, 89.9f);
+    camera.pitch = glm::clamp(camera.pitch - g_InputManager.mouseOffset.y * sensitivity, -89.99f, 89.99f);
 
-    glm::vec3 dir;
-    dir.x = cos(glm::radians(camera.yaw))*cos(glm::radians(camera.pitch));
-    dir.y = sin(glm::radians(camera.pitch));
-    dir.z = sin(glm::radians(camera.yaw))*cos(glm::radians(camera.pitch));
-    dir = glm::normalize(dir);
-    camera.front = dir;
+    const glm::vec3 dir =
+    {
+        cos(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch)),
+        sin(glm::radians(camera.pitch)),
+        sin(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch))
+    };
+    camera.front = glm::normalize(dir);
 
     g_InputManager.updateMouseMovements();
 }
