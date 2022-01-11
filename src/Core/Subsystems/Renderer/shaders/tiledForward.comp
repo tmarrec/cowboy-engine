@@ -9,7 +9,8 @@ struct PointLight
 {
     vec3    color;
     float   radius;
-    vec3    position;
+    vec4    position;
+    vec4    positionVS;
 };
 
 struct Plane
@@ -84,12 +85,14 @@ bool sphereInsideFrustum(Sphere sphere, Frustum frustum, float zNear, float zFar
 {
     bool result = true;
 
+    /*
     // Check if in range of depth
     if (sphere.c.z - sphere.r > zNear || sphere.c.z + sphere.r < zFar)
     {
         result = false;
-    }   
-
+    } 
+    */
+    
     // Check if in frustum with its 4 planes
     for (int i = 0; i < 4 && result; ++i)
     {
@@ -143,36 +146,34 @@ void main()
 
     float minDepthVS = clipToView(vec4(0, 0, fMinDepth, 1)).z;
     float maxDepthVS = clipToView(vec4(0, 0, fMaxDepth, 1)).z;
+    float nearClipVS = clipToView(vec4(0, 0, 0, 1)).z;
 
     Plane minPlane;
     minPlane.N = vec3(0, 0, -1);
     minPlane.d = -minDepthVS;
 
-    //imageStore(gOutput, texCoord, vec4(vec3(maxDepthVS), 0.75));
+    //imageStore(gOutput, texCoord, vec4(vec3(sphere.c.z), 0.75));
 
     for (uint i = gl_LocalInvocationIndex; i < numLights; i += blockSize * blockSize)
     {
         PointLight pointLight = gPointLights[i];
         Sphere sphere;
-        sphere.c = pointLight.position.xyz;
+        sphere.c = pointLight.positionVS.xyz;
         sphere.r = pointLight.radius;
         
-        if (sphereInsideFrustum(sphere, sGroupFrustum, minDepthVS, maxDepthVS))
+        if (sphereInsideFrustum(sphere, sGroupFrustum, nearClipVS, maxDepthVS))
         {
             if (!sphereInsidePlane(sphere, minPlane))
             {
                 appendLight(i);
             }
         }
-        
     }
 
     barrier();
 
-    //imageStore(gOutput, texCoord, vec4(vec3(sLightCount/numLights), 0.75));
-    imageStore(gLightGrid, texCoord, uvec4(uvec2(0, sLightCount), 0, 0));
+    imageStore(gOutput, texCoord, vec4(vec3(float(sLightCount)/min(MAX_LIGHTS_PER_TILE,numLights)), 0.85));
 
-    /*
     if (gl_LocalInvocationIndex == 0)
     {
         sLightIndexStartOffset = atomicAdd(gLightIndexCounter[0], sLightCount);
@@ -184,6 +185,5 @@ void main()
     for (uint i = gl_LocalInvocationIndex; i < sLightCount; i += blockSize * blockSize)
     {
         gLightIndexList[sLightIndexStartOffset + i] = sLightList[i];
-    }    
-    */
+    }
 }

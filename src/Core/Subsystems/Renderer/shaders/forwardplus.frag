@@ -24,11 +24,11 @@ layout (std430, binding = 1) buffer LightsBuffer
     PointLight gPointLights[];
 };
 
-uniform usampler2DRect lightGrid;
-uniform sampler2D   albedoMap;
-uniform sampler2D   metallicRoughnessMap;
+uniform usampler2DRect  lightGrid;
+uniform sampler2D       albedoMap;
+uniform sampler2D       metallicRoughnessMap;
 
-uniform vec3        viewPos;
+uniform vec3            viewPos;
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
@@ -84,6 +84,7 @@ void main()
     //FragColor = vec4(albedo.xy, float(lightCount)/64, 1);
     FragColor = vec4(albedo, 1);
 
+    /*
     vec3 N = normalize(normal);
     vec3 V = normalize(viewPos - fragPos);
 
@@ -128,4 +129,5 @@ void main()
     color = pow(color, vec3(1.0/2.2));
 
     FragColor = vec4(color, 1.0);
+    */
 }

@@ -2,6 +2,7 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_SWIZZLE
 
 #include <array>
 #include <vector>
@@ -33,7 +34,8 @@ struct alignas(16) PointLight
 {
     glm::vec3   color;
     float       radius;
-    glm::vec3   position;
+    glm::vec4   position;
+    glm::vec4   positionVS;
 };
 
 struct alignas(16) Frustum

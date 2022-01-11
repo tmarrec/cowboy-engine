@@ -70,6 +70,7 @@ void main()
     }
 
     const vec3 eyePos = vec3(0,0,0);
+
     // Tile planes
     Plane p0 = computePlane(eyePos, viewSpace[0], viewSpace[2]); // Left
     Plane p1 = computePlane(eyePos, viewSpace[3], viewSpace[1]); // Right

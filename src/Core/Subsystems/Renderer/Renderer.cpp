@@ -10,7 +10,7 @@
 #include <ctime>
 
 extern Window g_Window;
-const uint16_t NR_LIGHTS = 64;
+const uint16_t NR_LIGHTS = 4;
 
 void GLAPIENTRY MessageCallback(const GLenum source, const GLenum type, const GLuint id, const GLenum severity, const GLsizei length, const GLchar* message, const void* userParam)
 {
@@ -393,6 +393,7 @@ void Renderer::copyLightDataToGPU()
         ptr[i].color = pointLights[i].color;
         ptr[i].radius = pointLights[i].radius;
         ptr[i].position = pointLights[i].position;
+        ptr[i].positionVS = _cameraParameters.view * glm::vec4(pointLights[i].position.xyz(), 1);
     }
     glUnmapBuffer(GL_ARRAY_BUFFER);
 }
@@ -422,6 +423,7 @@ void Renderer::debugPass()
     _lightSpheresShader.use();
     _lightSpheresShader.setMat4f("projection", _cameraParameters.projection);
     _lightSpheresShader.setMat4f("view", _cameraParameters.view);
+    /*
     for (uint16_t i = 0; i < pointLights.size(); ++i)
     {
         glm::mat4 model{1.0f};
@@ -434,12 +436,21 @@ void Renderer::debugPass()
         glDrawElements(GL_TRIANGLES, sphereIndices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
+    */
 }
 
 void Renderer::generateRandomLights()
 {
     srand (static_cast <unsigned> (time(0)));
-
+    pointLights.emplace_back(glm::vec3{ 1, 1, 1 }, 1.0f, glm::vec4{ 0,1,0,0 });
+    pointLightsSpeed.emplace_back(1);
+    pointLights.emplace_back(glm::vec3{ 1, 1, 1 }, 1.0f, glm::vec4{ 1,1,0,0 });
+    pointLightsSpeed.emplace_back(1);
+    pointLights.emplace_back(glm::vec3{ 1, 1, 1 }, 1.0f, glm::vec4{ -1,1,0,0 });
+    pointLightsSpeed.emplace_back(1);
+    pointLights.emplace_back(glm::vec3{ 1, 1, 1 }, 1.0f, glm::vec4{ 0,1,-1,0 });
+    pointLightsSpeed.emplace_back(1);
+    /*
     for (unsigned int i = 0; i < NR_LIGHTS; i++)
     {
         float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 10 - 5;
@@ -448,9 +459,9 @@ void Renderer::generateRandomLights()
         float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        pointLights.emplace_back(glm::vec3{r, g, b}, 2.5f, glm::vec3{x,y,z});
+        pointLights.emplace_back(glm::vec3{r, g, b}, 1.0f, glm::vec4{0,1.0f,0,0});
         pointLightsSpeed.emplace_back(r/2000);
-    }
+    }*/
 }
 
 void Renderer::drawTextureToScreen(const GLuint texture)
