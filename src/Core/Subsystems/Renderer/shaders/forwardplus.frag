@@ -6,7 +6,8 @@ struct PointLight
 {
     vec3    color;
     float   radius;
-    vec3    position;
+    vec4    position;
+    vec4    positionVS;
 };
 
 in  vec2 texCoords;
@@ -72,8 +73,7 @@ float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 
 void main()
 {             
-    vec4 coord = gl_FragCoord-0.5;
-    uvec2 tileIndex = uvec2(floor(coord / 16.0) * 16);
+    uvec2 tileIndex = uvec2(floor(gl_FragCoord / 16.0) * 16);
     uint startOffset = texture(lightGrid, tileIndex).x;
     uint lightCount = texture(lightGrid, tileIndex).y;
 
@@ -81,10 +81,8 @@ void main()
     float metallic = texture(metallicRoughnessMap, texCoords).b;
     float roughness = texture(metallicRoughnessMap, texCoords).g;
 
-    //FragColor = vec4(albedo.xy, float(lightCount)/64, 1);
-    FragColor = vec4(albedo, 1);
+    //FragColor = vec4(albedo, 1);
 
-    /*
     vec3 N = normalize(normal);
     vec3 V = normalize(viewPos - fragPos);
 
@@ -95,10 +93,10 @@ void main()
         uint lightIndex = gLightIndexList[startOffset + i];
         PointLight light = gPointLights[lightIndex];
 
-        vec3 L = normalize(light.position - fragPos);
+        vec3 L = normalize(light.position.xyz - fragPos);
         vec3 H = normalize(V + L);
 
-        float dist = length(light.position - fragPos);
+        float dist = length(light.position.xyz - fragPos);
         float attenuation = 1.0 / (dist * dist);
         vec3 radiance = light.color * attenuation;
 
@@ -129,5 +127,4 @@ void main()
     color = pow(color, vec3(1.0/2.2));
 
     FragColor = vec4(color, 1.0);
-    */
 }
