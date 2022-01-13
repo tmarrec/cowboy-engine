@@ -13,6 +13,7 @@ struct PointLight
 in  vec2 texCoords;
 in  vec3 normal;
 in  vec3 fragPos;
+in  mat3 TBN;
 
 out vec4 FragColor;
 
@@ -28,6 +29,9 @@ layout (std430, binding = 1) buffer LightsBuffer
 uniform usampler2DRect  lightGrid;
 uniform sampler2D       albedoMap;
 uniform sampler2D       metallicRoughnessMap;
+uniform sampler2D       emissiveMap;
+uniform sampler2D       normalMap;
+uniform sampler2D       occlusionMap;
 
 uniform vec3            viewPos;
 
@@ -80,10 +84,12 @@ void main()
     vec3 albedo = pow(texture(albedoMap, texCoords).rgb, vec3(2.2, 2.2, 2.2));
     float metallic = texture(metallicRoughnessMap, texCoords).b;
     float roughness = texture(metallicRoughnessMap, texCoords).g;
+    float occlusion = texture(occlusionMap, texCoords).r;
 
     //FragColor = vec4(albedo, 1);
 
     vec3 N = normalize(normal);
+    //vec3 N = normalize(TBN * (texture(normalMap, texCoords).rgb * 2.0f - 1.0f));
     vec3 V = normalize(viewPos - fragPos);
 
     vec3 Lo = vec3(0.0);
@@ -120,8 +126,8 @@ void main()
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }
 
-    vec3 ambient = vec3(0.03) * albedo;
-    vec3 color = ambient + Lo;
+    //vec3 ambient = vec3(0.03) * albedo;
+    vec3 color = Lo * occlusion + pow(texture(emissiveMap, texCoords).rgb, vec3(2.2, 2.2, 2.2));
 
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0/2.2));

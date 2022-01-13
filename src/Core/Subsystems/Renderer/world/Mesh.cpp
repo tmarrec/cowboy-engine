@@ -25,7 +25,7 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
                 if (pData.attributes.find(s.str()) != pData.attributes.end())
                 {
                     return getBuffer<GLfloat>(pData.attributes.at(s.str()), model);
-                }
+                }         
             }
             // If no texture, zeros for all texcoord
             std::vector<GLfloat> buffer((pVertexBuffer.size / 3) * 2, 0);
@@ -44,6 +44,7 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
                 .position = {pVertexBuffer.buffer[i], pVertexBuffer.buffer[i+1], pVertexBuffer.buffer[i+2]},
                 .normal = {pNormalBuffer.buffer[i],pNormalBuffer.buffer[i+1],pNormalBuffer.buffer[i+2]},
                 .texCoords = {pTexCoordBuffer.buffer[t],pTexCoordBuffer.buffer[t+1]},
+                .tangent = {}
             };
             p.vertices.emplace_back(v);
             t += 2;
@@ -52,7 +53,8 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
         // If has material
         if (pData.material >= 0)
         {
-            const auto& pbr = model.materials[pData.material].pbrMetallicRoughness;
+            const auto& material = model.materials[pData.material];
+            const auto& pbr = material.pbrMetallicRoughness;
             if (pbr.baseColorTexture.index >= 0)
             {
                 p.material.hasAlbedoTexture = true;
@@ -63,7 +65,28 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
                 p.material.hasMetallicRoughnessTexture = true;
                 p.material.metallicRoughnessTexture = pbr.metallicRoughnessTexture.index;
             }
-            p.material.albedoFactor = glm::vec3(pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2]);
+            if (material.emissiveTexture.index >= 0)
+            {
+                p.material.hasEmissiveTexture = true;
+                p.material.emissiveTexture = material.emissiveTexture.index;
+            }
+            if (material.normalTexture.index >= 0)
+            {
+                p.material.hasNormalTexture = true;
+                p.material.normalTexture = material.normalTexture.index;
+            }
+            if (material.occlusionTexture.index >= 0)
+            {
+                p.material.hasOcclusionTexture = true;
+                p.material.occlusionTexture = material.occlusionTexture.index;
+            }
+            
+            p.material.albedoFactor = glm::dvec3(pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2]);
+            p.material.metallicFactor = pbr.metallicFactor;
+            p.material.roughnessFactor = pbr.roughnessFactor;
+            p.material.emissiveFactor = glm::dvec3(material.emissiveFactor[0], material.emissiveFactor[1], material.emissiveFactor[2]);
+            p.material.normalTextureScale = material.normalTexture.scale;
+            p.material.occlusionTextureStrength = material.occlusionTexture.strength;
         }
 
         p.indices = std::vector<GLuint>(pIndicesBuffer.buffer, pIndicesBuffer.buffer+pIndicesBuffer.size);
@@ -89,6 +112,9 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
         // Vertex texture coords
         glEnableVertexAttribArray(2);	
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoords));
+        // Vertex tangent
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoords));
 
         glBindVertexArray(0);
 

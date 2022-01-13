@@ -16,6 +16,8 @@
 #include <chrono>
 #include <unordered_map>
 #include <numbers>
+#include <algorithm>
+#include <execution>
 
 #include "world/World.h"
 #include "Shader.h"
@@ -54,8 +56,6 @@ class Renderer
 
  private:
     void loadDefaultTextures();
-    void prepareGBuffer();
-    void geometryPass();
     void prepareDepthBuffer();
     void depthPass();
     void generateRandomLights();
@@ -85,6 +85,9 @@ class Renderer
 
     GLuint _defaultAlbedoTexture;
     GLuint _defaultMetallicRoughnessTexture;
+    GLuint _defaultEmissiveTexture;
+    GLuint _defaultNormalTexture;
+    GLuint _defaultOcclusionTexture;
 
     GLuint _gBuffer;
     GLuint _gDepthBuffer;

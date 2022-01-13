@@ -20,15 +20,31 @@ struct Vertex
     glm::vec3 position;
     glm::vec3 normal;
     glm::vec2 texCoords;
+    glm::vec3 tangent;
 };
 
 struct Material
 {
     bool        hasAlbedoTexture = false;
     GLuint      albedoTexture;
+    glm::dvec3  albedoFactor;
+
     bool        hasMetallicRoughnessTexture = false;
     GLuint      metallicRoughnessTexture;
-    glm::vec3   albedoFactor;
+    double      metallicFactor;
+    double      roughnessFactor;
+
+    bool        hasEmissiveTexture = false;
+    GLuint      emissiveTexture;
+    glm::dvec3  emissiveFactor;
+
+    bool        hasNormalTexture = false;
+    GLuint      normalTexture;
+    double      normalTextureScale;
+
+    bool        hasOcclusionTexture = false;
+    GLuint      occlusionTexture;
+    double      occlusionTextureStrength;
 };
 
 struct Primitive

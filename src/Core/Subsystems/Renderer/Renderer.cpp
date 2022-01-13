@@ -10,7 +10,7 @@
 #include <ctime>
 
 extern Window g_Window;
-const uint16_t NR_LIGHTS = 256;
+const uint16_t NR_LIGHTS = 32;
 
 void GLAPIENTRY MessageCallback(const GLenum source, const GLenum type, const GLuint id, const GLenum severity, const GLsizei length, const GLchar* message, const void* userParam)
 {
@@ -33,9 +33,7 @@ Renderer::Renderer()
     glDebugMessageCallback(MessageCallback, 0);
 
     loadDefaultTextures();
-    prepareGBuffer();
     prepareDepthBuffer();
-
 
     generateRandomLights();
     glGenBuffers(1, &_lightsBuffer);
@@ -91,70 +89,13 @@ void Renderer::initTiledFrustum()
 
 void Renderer::loadDefaultTextures()
 {
-    // Default Albedo texture
-    const uint8_t albedo[3] = {255, 255, 255};
     glGenTextures(1, &_defaultAlbedoTexture);
-
-    // Default MetallicRoughness texture
-    const uint8_t metallicRoughness[3] = {0, 0, 0};
     glGenTextures(1, &_defaultMetallicRoughnessTexture);
-    glBindTexture(GL_TEXTURE_2D, _defaultMetallicRoughnessTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, &metallicRoughness);
-
+    glGenTextures(1, &_defaultEmissiveTexture);
+    glGenTextures(1, &_defaultNormalTexture);
+    glGenTextures(1, &_defaultOcclusionTexture);
+    
     OK("Default textures loaded");
-}
-
-void Renderer::prepareGBuffer()
-{
-    glGenFramebuffers(1, &_gBuffer); 
-    glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer);
-
-    // Position
-    glGenTextures(1, &_gPosition);
-    glBindTexture(GL_TEXTURE_2D, _gPosition);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1280, 720, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _gPosition, 0);
-
-    // Normal
-    glGenTextures(1, &_gNormal);
-    glBindTexture(GL_TEXTURE_2D, _gNormal);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 1280, 720, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, _gNormal, 0);
-
-    // Albedo
-    glGenTextures(1, &_gAlbedo);
-    glBindTexture(GL_TEXTURE_2D, _gAlbedo);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 1280, 720, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, _gAlbedo, 0);
-
-    // MetallicRoughness
-    glGenTextures(1, &_gMetallicRoughness);
-    glBindTexture(GL_TEXTURE_2D, _gMetallicRoughness);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 1280, 720, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, _gMetallicRoughness, 0);
-
-    unsigned int attachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
-    glDrawBuffers(4, attachments);
-
-    unsigned int rboDepth;
-    glGenRenderbuffers(1, &rboDepth);
-    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1280, 720);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-    // finally check if framebuffer is complete
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-    {
-        std::cout << "Framebuffer not complete!" << std::endl;
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Renderer::prepareDepthBuffer()
@@ -226,7 +167,7 @@ void Renderer::drawFrame()
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER,  5, _lightsBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER,  6, _frustumBuffer);
     glDispatchCompute(80, 45, 1);
-    debugPass();
+    //debugPass();
 
     tiledForwardPass();
     drawTextureToScreen(_debugTexture);
@@ -241,6 +182,9 @@ void Renderer::tiledForwardPass()
     _tiledForwardPassShader.set1i("lightGrid", 0);
     _tiledForwardPassShader.set1i("albedoMap", 1);
     _tiledForwardPassShader.set1i("metallicRoughnessMap", 2);
+    _tiledForwardPassShader.set1i("emissiveMap", 3);
+    _tiledForwardPassShader.set1i("normalMap", 4);
+    _tiledForwardPassShader.set1i("occlusionMap", 5);
 
     _tiledForwardPassShader.setMat4f("projection", _cameraParameters.projection);
     _tiledForwardPassShader.setMat4f("view", _cameraParameters.view);
@@ -285,6 +229,48 @@ void Renderer::tiledForwardPass()
                 else
                 {
                     glBindTexture(GL_TEXTURE_2D, _defaultMetallicRoughnessTexture);
+                    const float metallic[4] = { 0, primitive.material.roughnessFactor, primitive.material.metallicFactor, 0 };
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 1, 1, 0, GL_RGBA, GL_FLOAT, &metallic);
+                }
+
+                // Emissive texture
+                glActiveTexture(GL_TEXTURE3);
+                if (primitive.material.hasEmissiveTexture)
+                {
+                    glBindTexture(GL_TEXTURE_2D, textures[primitive.material.emissiveTexture].id);
+                }
+                else
+                {
+                    glBindTexture(GL_TEXTURE_2D, _defaultEmissiveTexture);
+                    const uint8_t emissive[3] = { 255*primitive.material.emissiveFactor.x, 255 * primitive.material.emissiveFactor.y, 255 * primitive.material.emissiveFactor.z };
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &emissive);
+                }
+
+                // Normal texture
+                glActiveTexture(GL_TEXTURE4);
+                if (primitive.material.hasNormalTexture)
+                {
+                    glBindTexture(GL_TEXTURE_2D, textures[primitive.material.normalTexture].id);
+                }
+                else
+                {
+                    // TODO FIX
+                    glBindTexture(GL_TEXTURE_2D, _defaultNormalTexture);
+                    const float normal[3] = { 0, 0, 1 };
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &normal);
+                }
+
+                // Occlusion texture
+                glActiveTexture(GL_TEXTURE5);
+                if (primitive.material.hasOcclusionTexture)
+                {
+                    glBindTexture(GL_TEXTURE_2D, textures[primitive.material.occlusionTexture].id);
+                }
+                else
+                {
+                    glBindTexture(GL_TEXTURE_2D, _defaultOcclusionTexture);
+                    const uint8_t occlusion[3] = { 255, 0, 0 };
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &occlusion);
                 }
 
                 glBindVertexArray(primitive.VAO);
@@ -322,60 +308,11 @@ void Renderer::depthPass()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void Renderer::geometryPass()
-{
-    glBindFramebuffer(GL_FRAMEBUFFER, _gBuffer);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glDisable(GL_BLEND);
-    _gPassShader.use();
-    _gPassShader.set1i("albedoMap", 0);
-    _gPassShader.set1i("metallicRoughnessMap", 1);
-    _gPassShader.setMat4f("projection", _cameraParameters.projection);
-    _gPassShader.setMat4f("view", _cameraParameters.view);
-
-    const auto& textures = _world.getTextures();
-    for (const auto& node : _world.getNodes())
-    {
-        if (node.gotMesh())
-        {
-            _gPassShader.setMat4f("model", node.getTransform());
-
-            for (const auto& primitive : node.getPrimitives())
-            {
-                // Albedo texture
-                glActiveTexture(GL_TEXTURE0);
-                if (primitive.material.hasAlbedoTexture)
-                {
-                    glBindTexture(GL_TEXTURE_2D, textures[primitive.material.albedoTexture].id);
-                }
-                else
-                {
-                    glBindTexture(GL_TEXTURE_2D, _defaultAlbedoTexture);
-                }
-
-                // MetallicRoughness texture
-                glActiveTexture(GL_TEXTURE1);
-                if (primitive.material.hasMetallicRoughnessTexture)
-                {
-                    glBindTexture(GL_TEXTURE_2D, textures[primitive.material.metallicRoughnessTexture].id);
-                }
-                else
-                {
-                    glBindTexture(GL_TEXTURE_2D, _defaultMetallicRoughnessTexture);
-                }
-
-                glBindVertexArray(primitive.VAO);
-                glDrawElements(GL_TRIANGLES, primitive.indices.size(), GL_UNSIGNED_INT, 0);
-            }
-        }
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
 void Renderer::copyLightDataToGPU()
 {
     glBindBuffer(GL_ARRAY_BUFFER, _lightsBuffer);
     PointLight* ptr = reinterpret_cast<PointLight*>(glMapBufferRange(GL_ARRAY_BUFFER, 0, pointLights.size() * sizeof(PointLight), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
+
     for (uint32_t i = 0; i < pointLights.size(); ++i)
     {
         ptr[i].color = pointLights[i].color;
@@ -383,6 +320,7 @@ void Renderer::copyLightDataToGPU()
         ptr[i].position = pointLights[i].position;
         ptr[i].positionVS = _cameraParameters.view * glm::vec4(pointLights[i].position.xyz(), 1);
     }
+        
     glUnmapBuffer(GL_ARRAY_BUFFER);
 }
 
@@ -431,14 +369,14 @@ void Renderer::generateRandomLights()
     srand(static_cast <unsigned> (time(0)));
     for (unsigned int i = 0; i < NR_LIGHTS; i++)
     {
-        float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 12 - 6;
-        float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 6;
-        float z = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 12 - 6;
+        float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 10 - 5;
+        float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 7 + 0.5f;
+        float z = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 10 - 5;
         float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        pointLights.emplace_back(glm::vec3{r*2, g*2, b*2}, 8.0f, glm::vec4{x,y,z,0});
-        pointLightsSpeed.emplace_back(r/1000);
+        pointLights.emplace_back(glm::vec3{r*2, g*2, b*2}, (r*2+g*2+b*2)*4, glm::vec4{x,y,z,0});
+        pointLightsSpeed.emplace_back(r/150);
     }
 }
 
