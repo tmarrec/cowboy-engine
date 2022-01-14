@@ -1,11 +1,11 @@
 #version 460 core
 
-#define PI 3.14159265359
+#define PI 3.1415926535897932384626433832795
 
 struct PointLight
 {
     vec3    color;
-    float   radius;
+    float   range;
     vec4    position;
     vec4    positionVS;
 };
@@ -80,13 +80,16 @@ void main()
     uint startOffset = texture(lightGrid, tileIndex).x;
     uint lightCount = texture(lightGrid, tileIndex).y;
 
+
     vec3 albedo = pow(texture(albedoMap, texCoords).rgb, vec3(2.2, 2.2, 2.2));
     float metallic = texture(metallicRoughnessMap, texCoords).b;
     float roughness = texture(metallicRoughnessMap, texCoords).g;
     float occlusion = texture(occlusionMap, texCoords).r;
 
-    vec3 N = texture(normalMap, texCoords).rgb * 2.0 - 1.0;
-    N = normalize(TBN * N);
+    //FragColor = vec4(albedo, 1.0);
+
+
+    vec3 N = normalize(TBN * (texture(normalMap, texCoords).rgb * 2.0 - 1.0));
     vec3 V = normalize(viewPos - fragPos);
 
     vec3 Lo = vec3(0.0);
@@ -100,7 +103,8 @@ void main()
         vec3 H = normalize(V + L);
 
         float dist = length(light.position.xyz - fragPos);
-        float attenuation = 1.0 / (dist * dist);
+        //float attenuation = 1.0 / (dist * dist);
+        float attenuation = 1.0 - smoothstep(light.range * 0.75f, light.range, dist);
         vec3 radiance = light.color * attenuation;
 
         vec3 F0 = vec3(0.04);
@@ -123,7 +127,6 @@ void main()
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }
 
-    //vec3 ambient = vec3(0.03) * albedo;
     vec3 color = Lo * occlusion + pow(texture(emissiveMap, texCoords).rgb, vec3(2.2, 2.2, 2.2));
 
     color = color / (color + vec3(1.0));

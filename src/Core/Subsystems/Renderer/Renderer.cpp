@@ -10,7 +10,7 @@
 #include <ctime>
 
 extern Window g_Window;
-const uint16_t NR_LIGHTS = 128;
+const uint32_t NR_LIGHTS = 65536;
 
 void GLAPIENTRY MessageCallback(const GLenum source, const GLenum type, const GLuint id, const GLenum severity, const GLsizei length, const GLchar* message, const void* userParam)
 {
@@ -167,11 +167,11 @@ void Renderer::drawFrame()
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER,  5, _lightsBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER,  6, _frustumBuffer);
     glDispatchCompute(80, 45, 1);
+    
     //debugPass();
 
     tiledForwardPass();
     drawTextureToScreen(_debugTexture);
-
 
     glBindVertexArray(0);
 }
@@ -189,7 +189,6 @@ void Renderer::tiledForwardPass()
     _tiledForwardPassShader.setMat4f("projection", _cameraParameters.projection);
     _tiledForwardPassShader.setMat4f("view", _cameraParameters.view);
     _tiledForwardPassShader.set3f("viewPos", _cameraParameters.position);
-
     
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _lightIndexListBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _lightsBuffer);
@@ -315,7 +314,7 @@ void Renderer::copyLightDataToGPU()
     for (uint32_t i = 0; i < pointLights.size(); ++i)
     {
         ptr[i].color = pointLights[i].color;
-        ptr[i].radius = pointLights[i].radius;
+        ptr[i].range = pointLights[i].range;
         ptr[i].position = pointLights[i].position;
         ptr[i].positionVS = _cameraParameters.view * glm::vec4(pointLights[i].position.xyz(), 1);
     }
@@ -353,7 +352,7 @@ void Renderer::debugPass()
     {
         glm::mat4 model{1.0f};
         model = glm::translate(model, pointLights[i].position.xyz());
-        model = glm::scale(model, glm::vec3(0.1f));
+        model = glm::scale(model, glm::vec3(0.05f));
         _lightSpheresShader.setMat4f("model", model);
         _lightSpheresShader.set3f("color", pointLights[i].color);
 
@@ -368,15 +367,20 @@ void Renderer::generateRandomLights()
     srand(static_cast <unsigned> (time(0)));
     for (unsigned int i = 0; i < NR_LIGHTS; i++)
     {
+        /*
         float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 11 - 5.5;
         float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 7 + 0.5f;
         float z = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 11 - 5.5;
+        */
+        float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 20 - 10;
+        float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 12;
+        float z = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 20 - 10;
         float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        float k = 1;
-        pointLights.emplace_back(glm::vec3{r*k, g*k, b*k}, (r*k+g*k+b*k)*5, glm::vec4{x,y,z,0});
-        pointLightsSpeed.emplace_back(r/1000);
+        float k = 1.f;
+        pointLights.emplace_back(glm::vec3{r*k, g*k, b*k}, 0.33f, glm::vec4{x,y,z,0});
+        pointLightsSpeed.emplace_back(r/500);
     }
 }
 

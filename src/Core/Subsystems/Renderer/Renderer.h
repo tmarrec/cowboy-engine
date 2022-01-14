@@ -32,15 +32,15 @@ struct CameraParameters
     glm::mat4 view;
 };
 
-struct alignas(16) PointLight
+struct PointLight
 {
     glm::vec3   color;
-    float       radius;
+    float       range;
     glm::vec4   position;
     glm::vec4   positionVS;
 };
 
-struct alignas(16) Frustum
+struct Frustum
 {
     glm::vec4   N[4]; // Normals
     float       d[4]; // Distance to origins

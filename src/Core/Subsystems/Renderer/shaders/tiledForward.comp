@@ -8,7 +8,7 @@ layout (local_size_x = 16, local_size_y = 16) in;
 struct PointLight
 {
     vec3    color;
-    float   radius;
+    float   range;
     vec4    position;
     vec4    positionVS;
 };
@@ -71,9 +71,9 @@ shared Frustum sGroupFrustum;
 // Convert clip space coordinates to view space
 vec4 clipToView(vec4 clip)
 {
-    vec4 view = invProjection * clip;
-    view = view / view.w;
-    return view;
+    vec4 a = invProjection * clip;
+    a = a / a.w;
+    return a;
 }
 
 bool sphereInsidePlane(Sphere sphere, Plane plane)
@@ -85,14 +85,12 @@ bool sphereInsideFrustum(Sphere sphere, Frustum frustum, float zNear, float zFar
 {
     bool result = true;
 
-    /*
     // Check if in range of depth (forward and backward frustum plane)
     if (sphere.c.z - sphere.r > zNear || sphere.c.z + sphere.r < zFar)
     {
         result = false;
     }
-    */
-    
+
     // Check if in frustum with its 4 planes
     for (int i = 0; i < 4 && result; ++i)
     {
@@ -148,28 +146,25 @@ void main()
     float fMinDepth = uintBitsToFloat(suMinDepth);
     float fMaxDepth = uintBitsToFloat(suMaxDepth);
 
-    float minDepthVS = clipToView(vec4(0, 0, fMinDepth, 1)).z;
-    float maxDepthVS = clipToView(vec4(0, 0, fMaxDepth, 1)).z;
-    float nearClipVS = clipToView(vec4(0, 0, 0, 1)).z;
-
-    //imageStore(gOutput, texCoord, vec4(vec3(minDepthVS), 0.75));
+    float minDepthVS = clipToView(vec4(0, 0, fMinDepth * 2.0f - 1.0f, 1)).z;
+    float maxDepthVS = clipToView(vec4(0, 0, fMaxDepth * 2.0f - 1.0f, 1)).z;
+    //float minDepthVS = clipToView(vec4(0, 0, fMinDepth, 1)).z;
+    //float maxDepthVS = clipToView(vec4(0, 0, fMaxDepth, 1)).z;
 
     for (uint i = gl_LocalInvocationIndex; i < numLights; i += blockSize * blockSize)
     {
         PointLight pointLight = gPointLights[i];
         Sphere sphere;
         sphere.c = pointLight.positionVS.xyz;
-        sphere.r = pointLight.radius;
+        sphere.r = pointLight.range;
 
         if (sphereInsideFrustum(sphere, sGroupFrustum, minDepthVS, maxDepthVS))
         {
-            appendLight(i);          
+            appendLight(i); 
         }
     }
 
     barrier();
-
-    //imageStore(gOutput, texCoord, vec4(vec3(float(sLightCount)/min(MAX_LIGHTS_PER_TILE,numLights)), 0.85));
 
     if (gl_LocalInvocationIndex == 0)
     {
@@ -177,6 +172,8 @@ void main()
         imageStore(gLightGrid, texCoord, uvec4(uvec2(sLightIndexStartOffset, sLightCount), 0, 0));
     }
 
+    imageStore(gOutput, texCoord, vec4(0, 0, float(sLightCount)/float(MAX_LIGHTS_PER_TILE), 0.5));
+    
     barrier();
 
     for (uint i = gl_LocalInvocationIndex; i < sLightCount; i += blockSize * blockSize)
