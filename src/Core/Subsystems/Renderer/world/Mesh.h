@@ -7,6 +7,7 @@
 #include <glad/gl.h>
 
 #include "./../../../utils.h"
+#include "MikkTSpace/mikktspace.h"
 
 template<typename T>
 struct Buffer
@@ -20,7 +21,7 @@ struct Vertex
     glm::vec3 position;
     glm::vec3 normal;
     glm::vec2 texCoords;
-    glm::vec3 tangent;
+    glm::vec4 tangent;
 };
 
 struct Material
@@ -97,3 +98,11 @@ class Mesh
 
     std::vector<Primitive> _primitives;
 };
+
+static int  getVertexIndex(const SMikkTSpaceContext* context, int iFace, int iVert);
+static int  getNumFaces(const SMikkTSpaceContext* context);
+static int  getNumVerticesOfFace(const SMikkTSpaceContext* context, int iFace);
+static void getNormal(const SMikkTSpaceContext* context, float outnormal[], int iFace, int iVert);
+static void getPosition(const SMikkTSpaceContext* context, float outpos[], int iFace, int iVert);
+static void getTexCoords(const SMikkTSpaceContext* context, float outuv[], int iFace, int iVert);
+static void setTSpaceBasic(const SMikkTSpaceContext* context, const float tangentu[], float fSign, int iFace, int iVert);

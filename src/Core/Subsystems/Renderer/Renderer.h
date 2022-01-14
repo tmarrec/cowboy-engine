@@ -73,14 +73,12 @@ class Renderer
 
     World _world {};
 
-    Shader _gPassShader             {"./shaders/gpass.vert",            "./shaders/gpass.frag"};
     Shader _depthShader             {"./shaders/depth.vert",            "./shaders/depth.frag"};
     Shader _lightSpheresShader      {"./shaders/lightSpheres.vert",     "./shaders/lightSpheres.frag"};
     Shader _textureShader           {"./shaders/texture.vert",          "./shaders/texture.frag"};
     Shader _tiledForwardPassShader  {"./shaders/forwardplus.vert",      "./shaders/forwardplus.frag"};
 
     Shader _computeFrustumShader    {"./shaders/computeFrustum.comp"};
-    Shader _tiledDeferredShader     {"./shaders/tiledDeferred.comp"};
     Shader _tiledForwardShader      {"./shaders/tiledForward.comp"};
 
     GLuint _defaultAlbedoTexture;

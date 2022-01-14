@@ -11,7 +11,6 @@ struct PointLight
 };
 
 in  vec2 texCoords;
-in  vec3 normal;
 in  vec3 fragPos;
 in  mat3 TBN;
 
@@ -86,10 +85,8 @@ void main()
     float roughness = texture(metallicRoughnessMap, texCoords).g;
     float occlusion = texture(occlusionMap, texCoords).r;
 
-    //FragColor = vec4(albedo, 1);
-
-    vec3 N = normalize(normal);
-    //vec3 N = normalize(TBN * (texture(normalMap, texCoords).rgb * 2.0f - 1.0f));
+    vec3 N = texture(normalMap, texCoords).rgb * 2.0 - 1.0;
+    N = normalize(TBN * N);
     vec3 V = normalize(viewPos - fragPos);
 
     vec3 Lo = vec3(0.0);

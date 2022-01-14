@@ -44,7 +44,7 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
                 .position = {pVertexBuffer.buffer[i], pVertexBuffer.buffer[i+1], pVertexBuffer.buffer[i+2]},
                 .normal = {pNormalBuffer.buffer[i],pNormalBuffer.buffer[i+1],pNormalBuffer.buffer[i+2]},
                 .texCoords = {pTexCoordBuffer.buffer[t],pTexCoordBuffer.buffer[t+1]},
-                .tangent = {}
+                .tangent = {0,0,0,0}
             };
             p.vertices.emplace_back(v);
             t += 2;
@@ -91,6 +91,26 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
 
         p.indices = std::vector<GLuint>(pIndicesBuffer.buffer, pIndicesBuffer.buffer+pIndicesBuffer.size);
 
+        // Primitive Tangent calculation
+        SMikkTSpaceInterface interface =
+        {
+            .m_getNumFaces = getNumFaces,
+            .m_getNumVerticesOfFace = getNumVerticesOfFace,
+            .m_getPosition = getPosition,
+            .m_getNormal = getNormal,
+            .m_getTexCoord = getTexCoords,
+            .m_setTSpaceBasic = setTSpaceBasic,
+            .m_setTSpace = nullptr
+        };
+
+        SMikkTSpaceContext context =
+        {
+            .m_pInterface = &interface,
+            .m_pUserData = &p
+        };
+
+        genTangSpaceDefault(&context);
+
         glGenVertexArrays(1, &p.VAO);
         glGenBuffers(1, &p.VBO);
         glGenBuffers(1, &p.EBO);
@@ -114,7 +134,7 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoords));
         // Vertex tangent
         glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoords));
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
 
         glBindVertexArray(0);
 
@@ -125,4 +145,59 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
 const std::vector<Primitive>& Mesh::getPrimitives() const
 {
     return _primitives;
+}
+
+int getVertexIndex(const SMikkTSpaceContext* context, int iFace, int iVert)
+{
+    const Primitive* prim = static_cast<const Primitive*>(context->m_pUserData);
+    const int faceSize = getNumVerticesOfFace(context, iFace);
+    return prim->indices[(iFace * faceSize) + iVert];
+}
+
+int getNumFaces(const SMikkTSpaceContext* context)
+{
+    const Primitive* prim = static_cast<const Primitive*>(context->m_pUserData);
+    return static_cast<int>(prim->indices.size() / 3);
+}
+
+int getNumVerticesOfFace(const SMikkTSpaceContext* context, int iFace)
+{
+    return 3;
+}
+
+void getNormal(const SMikkTSpaceContext* context, float outnormal[], int iFace, int iVert)
+{
+    const Primitive* prim = static_cast<const Primitive*>(context->m_pUserData);
+    const Vertex& vertex = prim->vertices[getVertexIndex(context, iFace, iVert)];
+    outnormal[0] = vertex.normal.x;
+    outnormal[1] = vertex.normal.y;
+    outnormal[2] = vertex.normal.z;
+}
+
+void getPosition(const SMikkTSpaceContext* context, float outpos[], int iFace, int iVert)
+{
+    const Primitive* prim = static_cast<const Primitive*>(context->m_pUserData);
+    const Vertex& vertex = prim->vertices[getVertexIndex(context, iFace, iVert)];
+    outpos[0] = vertex.position.x;
+    outpos[1] = vertex.position.y;
+    outpos[2] = vertex.position.z;
+}
+
+void getTexCoords(const SMikkTSpaceContext* context, float outuv[], int iFace, int iVert)
+{
+    const Primitive* prim = static_cast<const Primitive*>(context->m_pUserData);
+    const Vertex& vertex = prim->vertices[getVertexIndex(context, iFace, iVert)];
+    outuv[0] = vertex.texCoords.x;
+    outuv[1] = vertex.texCoords.y;
+}
+
+void setTSpaceBasic(const SMikkTSpaceContext* context, const float tangentu[], float fSign, int iFace, int iVert)
+{
+    Primitive* prim = static_cast<Primitive*>(context->m_pUserData);
+    Vertex& vertex = prim->vertices[getVertexIndex(context, iFace, iVert)];
+
+    vertex.tangent.x = tangentu[0];
+    vertex.tangent.y = tangentu[1];
+    vertex.tangent.z = tangentu[2];
+    vertex.tangent.w = fSign;
 }
