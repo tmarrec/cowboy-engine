@@ -127,7 +127,9 @@ void main()
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }
 
-    vec3 color = Lo * occlusion + pow(texture(emissiveMap, texCoords).rgb, vec3(2.2, 2.2, 2.2));
+    //vec3 color = Lo * occlusion + pow(texture(emissiveMap, texCoords).rgb, vec3(2.2, 2.2, 2.2));
+
+    vec3 color = Lo * occlusion;
 
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0/2.2));

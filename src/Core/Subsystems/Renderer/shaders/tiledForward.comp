@@ -1,7 +1,7 @@
 #version 460 core
 
 #define PI 3.14159265359
-#define MAX_LIGHTS_PER_TILE 256
+#define MAX_LIGHTS_PER_TILE 4096
 
 layout (local_size_x = 16, local_size_y = 16) in;
 
@@ -172,7 +172,7 @@ void main()
         imageStore(gLightGrid, texCoord, uvec4(uvec2(sLightIndexStartOffset, sLightCount), 0, 0));
     }
 
-    imageStore(gOutput, texCoord, vec4(0, 0, float(sLightCount)/float(MAX_LIGHTS_PER_TILE), 0.5));
+    //imageStore(gOutput, texCoord, vec4(0, 0, float(sLightCount)/float(MAX_LIGHTS_PER_TILE), 0.5));
     
     barrier();
 

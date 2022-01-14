@@ -133,6 +133,12 @@ void Renderer::drawFrame()
     for (int i = 0; i < pointLights.size(); ++i)
     {
         auto& l = pointLights[i];
+        l.position.y += pointLightsSpeed[i];
+        if (l.position.y > 10)
+        {
+            l.position.y = -5;
+        }
+        /*
         float angle = -pointLightsSpeed[i];
         float s = sin(angle);
         float c = cos(angle);
@@ -142,6 +148,7 @@ void Renderer::drawFrame()
 
         l.position.x = x;
         l.position.z = z;
+        */
     }
 
     copyLightDataToGPU();
@@ -171,7 +178,7 @@ void Renderer::drawFrame()
     //debugPass();
 
     tiledForwardPass();
-    drawTextureToScreen(_debugTexture);
+    //drawTextureToScreen(_debugTexture);
 
     glBindVertexArray(0);
 }
@@ -367,20 +374,16 @@ void Renderer::generateRandomLights()
     srand(static_cast <unsigned> (time(0)));
     for (unsigned int i = 0; i < NR_LIGHTS; i++)
     {
-        /*
-        float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 11 - 5.5;
-        float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 7 + 0.5f;
-        float z = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 11 - 5.5;
-        */
         float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 20 - 10;
-        float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 12;
+        float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 7 + 0.5f;
         float z = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 20 - 10;
+
         float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float k = 1.f;
-        pointLights.emplace_back(glm::vec3{r*k, g*k, b*k}, 0.33f, glm::vec4{x,y,z,0});
-        pointLightsSpeed.emplace_back(r/500);
+        pointLights.emplace_back(glm::vec3{r*k, g*k, b*k}, 1.01f, glm::vec4{x,-5,z,0});
+        pointLightsSpeed.emplace_back(r/50);
     }
 }
 
