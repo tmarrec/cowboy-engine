@@ -21,7 +21,7 @@ layout (std430, binding = 0) writeonly buffer FrustumBuffer
 
 uniform mat4 invProjection;
 
-uniform int blockSize;
+uniform int tileSize;
 uniform int screenWidth;
 uniform int screenHeight;
 
@@ -57,10 +57,10 @@ Plane computePlane(vec3 p0, vec3 p1, vec3 p2)
 void main()
 {
     vec4 screenSpace[4]; // Four corners of the tile in the screen space
-    screenSpace[0] = vec4(     gl_GlobalInvocationID.xy                                  * blockSize, -1.0f, 1.0f);
-    screenSpace[1] = vec4(vec2(gl_GlobalInvocationID.x + 1, gl_GlobalInvocationID.y)     * blockSize, -1.0f, 1.0f);
-    screenSpace[2] = vec4(vec2(gl_GlobalInvocationID.x,     gl_GlobalInvocationID.y + 1) * blockSize, -1.0f, 1.0f);
-    screenSpace[3] = vec4(vec2(gl_GlobalInvocationID.x + 1, gl_GlobalInvocationID.y + 1) * blockSize, -1.0f, 1.0f);
+    screenSpace[0] = vec4(     gl_GlobalInvocationID.xy                                  * tileSize, -1.0f, 1.0f);
+    screenSpace[1] = vec4(vec2(gl_GlobalInvocationID.x + 1, gl_GlobalInvocationID.y)     * tileSize, -1.0f, 1.0f);
+    screenSpace[2] = vec4(vec2(gl_GlobalInvocationID.x,     gl_GlobalInvocationID.y + 1) * tileSize, -1.0f, 1.0f);
+    screenSpace[3] = vec4(vec2(gl_GlobalInvocationID.x + 1, gl_GlobalInvocationID.y + 1) * tileSize, -1.0f, 1.0f);
 
     vec3 viewSpace[4]; // Get the corners in the view space
     for (int i = 0; i < 4; ++i)

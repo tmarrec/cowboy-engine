@@ -88,7 +88,7 @@ void main()
 
     //FragColor = vec4(albedo, 1.0);
 
-
+    
     vec3 N = normalize(TBN * (texture(normalMap, texCoords).rgb * 2.0 - 1.0));
     vec3 V = normalize(viewPos - fragPos);
 
@@ -135,4 +135,5 @@ void main()
     color = pow(color, vec3(1.0/2.2));
 
     FragColor = vec4(color, 1.0);
+    
 }

@@ -150,7 +150,7 @@ const std::vector<Primitive>& Mesh::getPrimitives() const
 int getVertexIndex(const SMikkTSpaceContext* context, int iFace, int iVert)
 {
     const Primitive* prim = static_cast<const Primitive*>(context->m_pUserData);
-    const int faceSize = getNumVerticesOfFace(context, iFace);
+    const int64_t faceSize = getNumVerticesOfFace(context, iFace);
     return prim->indices[(iFace * faceSize) + iVert];
 }
 

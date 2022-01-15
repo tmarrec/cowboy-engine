@@ -55,21 +55,24 @@ class Renderer
     void setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up);
 
  private:
-    void loadDefaultTextures();
-    void prepareDepthBuffer();
+    void initDefaultTextures();
+    void initDepthBuffer();
+    void initForwardPass();
+
+    void computeTiledFrustum();
+
     void depthPass();
     void generateRandomLights();
     void copyLightDataToGPU();
     void drawTextureToScreen(const GLuint texture);
     void generateRenderingQuad();
     void tiledForwardPass();
-    void initTiledFrustum();
+    
 
     void debugPass();
     void generateSphereVAO();
 
     CameraParameters _cameraParameters;
-    glm::mat4 _projView = {};
 
     World _world {};
 
@@ -79,7 +82,7 @@ class Renderer
     Shader _tiledForwardPassShader  {"./shaders/forwardplus.vert",      "./shaders/forwardplus.frag"};
 
     Shader _computeFrustumShader    {"./shaders/computeFrustum.comp"};
-    Shader _tiledForwardShader      {"./shaders/tiledForward.comp"};
+    Shader _tiledForwardShader      {"./shaders/tiledLightCulling.comp"};
 
     GLuint _defaultAlbedoTexture;
     GLuint _defaultMetallicRoughnessTexture;

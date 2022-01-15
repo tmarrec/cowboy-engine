@@ -10,7 +10,17 @@
 #include <ctime>
 
 extern Window g_Window;
-const uint32_t NR_LIGHTS = 65536;
+
+const uint64_t  TILE_SIZE           = 16;
+const uint64_t  NR_LIGHTS           = 14000;
+const uint64_t  MAX_LIGHTS_PER_TILE = 12000;
+const uint64_t  SCREEN_WIDTH        = 1280;
+const uint64_t  SCREEN_HEIGHT       = 720;
+
+
+uint64_t  X_DISPATCH      = 0;
+uint64_t  Y_DISPATCH      = 0;
+uint64_t  THREAD_DISPATCH = 0;
 
 void GLAPIENTRY MessageCallback(const GLenum source, const GLenum type, const GLuint id, const GLenum severity, const GLsizei length, const GLchar* message, const void* userParam)
 {
@@ -27,36 +37,25 @@ void GLAPIENTRY MessageCallback(const GLenum source, const GLenum type, const GL
 // Initialize the Renderer manager
 Renderer::Renderer()
 {
+    X_DISPATCH = static_cast<uint64_t>(ceil(static_cast<float>(SCREEN_WIDTH)  / TILE_SIZE));
+    Y_DISPATCH = static_cast<uint64_t>(ceil(static_cast<float>(SCREEN_HEIGHT) / TILE_SIZE));
+    THREAD_DISPATCH = X_DISPATCH * Y_DISPATCH;
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_DEBUG_OUTPUT);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glDebugMessageCallback(MessageCallback, 0);
 
-    loadDefaultTextures();
-    prepareDepthBuffer();
+    initDefaultTextures();
+    initDepthBuffer();
 
     generateRandomLights();
-    glGenBuffers(1, &_lightsBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _lightsBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, pointLights.size() * sizeof(PointLight), nullptr, GL_STATIC_DRAW);
 
-    glGenBuffers(1, &_lightIndexCounterBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _lightIndexCounterBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 1 * sizeof(uint32_t), nullptr, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &_lightIndexListBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _lightIndexListBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 80 * 45 * 1 * 256 * sizeof(uint32_t), nullptr, GL_STATIC_DRAW);
-
-    glGenTextures(1, &_gLightGrid);
-    glBindTexture(GL_TEXTURE_RECTANGLE, _gLightGrid);
-    glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RG32UI, 1280, 720, 0, GL_RG_INTEGER, GL_UNSIGNED_INT, nullptr);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    initForwardPass();
 
     glGenTextures(1, &_debugTexture);
     glBindTexture(GL_TEXTURE_2D, _debugTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_INT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, SCREEN_WIDTH, SCREEN_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_INT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -66,28 +65,28 @@ Renderer::Renderer()
 
 void Renderer::init()
 {
-    initTiledFrustum();
+    computeTiledFrustum();
 }
 
-void Renderer::initTiledFrustum()
+// Compute tiles frustum once and for all
+void Renderer::computeTiledFrustum()
 {
-    // Compute frustum once and for all
     _computeFrustumShader.use();
     _computeFrustumShader.setMat4f("invProjection", glm::inverse(_cameraParameters.projection));
 
-    _computeFrustumShader.set1i("blockSize", 16);
-    _computeFrustumShader.set1i("screenWidth", 1280);
-    _computeFrustumShader.set1i("screenHeight", 720);
+    _computeFrustumShader.set1i("tileSize", TILE_SIZE);
+    _computeFrustumShader.set1i("screenWidth", SCREEN_WIDTH);
+    _computeFrustumShader.set1i("screenHeight", SCREEN_HEIGHT);
 
     glGenBuffers(1, &_frustumBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _frustumBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 80 * 45 * 1 * sizeof(Frustum), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, THREAD_DISPATCH * sizeof(Frustum), nullptr, GL_STATIC_DRAW);
      
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _frustumBuffer);
-    glDispatchCompute(5, 3, 1);
+    glDispatchCompute(ceil(static_cast<float>(X_DISPATCH) / TILE_SIZE), ceil(static_cast<float>(Y_DISPATCH) / TILE_SIZE), 1);
 }
 
-void Renderer::loadDefaultTextures()
+void Renderer::initDefaultTextures()
 {
     glGenTextures(1, &_defaultAlbedoTexture);
     glGenTextures(1, &_defaultMetallicRoughnessTexture);
@@ -98,32 +97,52 @@ void Renderer::loadDefaultTextures()
     OK("Default textures loaded");
 }
 
-void Renderer::prepareDepthBuffer()
+void Renderer::initDepthBuffer()
 {
     glGenFramebuffers(1, &_gDepthBuffer); 
     glBindFramebuffer(GL_FRAMEBUFFER, _gDepthBuffer);
 
     glGenTextures(1, &_gDepth);
     glBindTexture(GL_TEXTURE_2D, _gDepth);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1280, 720, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, SCREEN_WIDTH, SCREEN_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _gDepth, 0);
 
-    unsigned int attachments[1] = { GL_COLOR_ATTACHMENT0 };
+    const GLuint attachments[1] = { GL_COLOR_ATTACHMENT0 };
     glDrawBuffers(1, attachments);
 
-    unsigned int rboDepth;
+    GLuint rboDepth;
     glGenRenderbuffers(1, &rboDepth);
     glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1280, 720);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCREEN_WIDTH, SCREEN_HEIGHT);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-    // finally check if framebuffer is complete
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     {
-        std::cout << "Framebuffer not complete!" << std::endl;
+        ERROR_EXIT("Depth framebuffer not complete");
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Renderer::initForwardPass()
+{
+    glGenBuffers(1, &_lightsBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _lightsBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, NR_LIGHTS * sizeof(PointLight), nullptr, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &_lightIndexCounterBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _lightIndexCounterBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 1 * sizeof(uint32_t), nullptr, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &_lightIndexListBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _lightIndexListBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, THREAD_DISPATCH * MAX_LIGHTS_PER_TILE * sizeof(uint32_t), nullptr, GL_STATIC_DRAW);
+
+    glGenTextures(1, &_gLightGrid);
+    glBindTexture(GL_TEXTURE_RECTANGLE, _gLightGrid);
+    glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RG32UI, SCREEN_WIDTH, SCREEN_HEIGHT, 0, GL_RG_INTEGER, GL_UNSIGNED_INT, nullptr);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
 // Draw the frame by executing the queues while staying synchronised
@@ -134,7 +153,7 @@ void Renderer::drawFrame()
     {
         auto& l = pointLights[i];
         l.position.y += pointLightsSpeed[i];
-        if (l.position.y > 10)
+        if (l.position.y > 25)
         {
             l.position.y = -5;
         }
@@ -159,12 +178,11 @@ void Renderer::drawFrame()
 
     _tiledForwardShader.use();
     _tiledForwardShader.setMat4f("invProjection", glm::inverse(_cameraParameters.projection));
-    _tiledForwardShader.setMat4f("view", _cameraParameters.view);
 
-    _tiledForwardShader.set1i("numLights", NR_LIGHTS);
-    _tiledForwardShader.set1i("blockSize", 16);
-    _tiledForwardShader.set1i("screenWidth", 1280);
-    _tiledForwardShader.set1i("screenHeight", 720);
+    _tiledForwardShader.set1i("numLights",      NR_LIGHTS);
+    _tiledForwardShader.set1i("tileSize",       TILE_SIZE);
+    _tiledForwardShader.set1i("screenWidth",    SCREEN_WIDTH);
+    _tiledForwardShader.set1i("screenHeight",   SCREEN_HEIGHT);
 
     glBindImageTexture(                         0, _gDepth,             0, GL_FALSE, 0, GL_READ_ONLY,  GL_RGBA32F);
     glBindImageTexture(                         1, _gLightGrid,         0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32UI);
@@ -173,7 +191,7 @@ void Renderer::drawFrame()
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER,  4, _lightIndexListBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER,  5, _lightsBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER,  6, _frustumBuffer);
-    glDispatchCompute(80, 45, 1);
+    glDispatchCompute(X_DISPATCH, Y_DISPATCH, 1);
     
     //debugPass();
 
@@ -374,15 +392,15 @@ void Renderer::generateRandomLights()
     srand(static_cast <unsigned> (time(0)));
     for (unsigned int i = 0; i < NR_LIGHTS; i++)
     {
-        float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 20 - 10;
+        float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 18 - 9;
         float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 7 + 0.5f;
-        float z = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 20 - 10;
+        float z = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 18 - 9;
 
         float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        float k = 1.f;
-        pointLights.emplace_back(glm::vec3{r*k, g*k, b*k}, 1.01f, glm::vec4{x,-5,z,0});
+        float k = 1.0f;
+        pointLights.emplace_back(glm::vec3{r*k, g*k, b*k}, 2.0f, glm::vec4{x,-5,z,0});
         pointLightsSpeed.emplace_back(r/50);
     }
 }
@@ -404,7 +422,7 @@ void Renderer::setCameraParameters(const glm::vec3& position, const float FOV, c
     _cameraParameters.position = position;
     _cameraParameters.front = front;
     _cameraParameters.up = up;
-    _cameraParameters.projection = glm::perspective(glm::radians(_cameraParameters.FOV), 1280.0f / 720.0f, 0.1f, 1024.0f);
+    _cameraParameters.projection = glm::perspective(glm::radians(_cameraParameters.FOV), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 1024.0f);
     _cameraParameters.view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
 }
 
