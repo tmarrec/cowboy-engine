@@ -35,7 +35,7 @@ int Core::Run()
         mainEntity,
         Transform
         {
-            .position = {3.428745f, 5.222096f, 7.725323f},
+            .position = {9.5, 5.25, -0.275},
             .rotation = glm::vec3(0, 0, 0),
             .scale = glm::vec3(1.0f, 1.0f, 1.0f)
         }
@@ -47,9 +47,9 @@ int Core::Run()
         Camera
         {
             .FOV = 70.0f,
-            .yaw = -112.0f,
-            .pitch = -9.5f,
-            .speed = 10.0f,
+            .yaw = 180.0f,
+            .pitch = 0.0f,
+            .speed = 5.0f,
         }
     );
 

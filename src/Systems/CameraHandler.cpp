@@ -18,6 +18,8 @@ void CameraHandler::Update(const float dt)
         positionMovements(transform, camera, dt);
         lookAtMovements(camera);
 
+        transform.position.z = -0.275 + sin(glfwGetTime()/2.5)*2.15;
+
         g_Renderer.setCameraParameters(transform.position, camera.FOV, camera.front, camera.up);
     }
 }

@@ -12,8 +12,8 @@
 extern Window g_Window;
 
 const uint64_t  TILE_SIZE           = 16;
-const uint64_t  NR_LIGHTS           = 14000;
-const uint64_t  MAX_LIGHTS_PER_TILE = 12000;
+const uint64_t  NR_LIGHTS           = 65536;
+const uint64_t  MAX_LIGHTS_PER_TILE = 256;
 const uint64_t  SCREEN_WIDTH        = 1280;
 const uint64_t  SCREEN_HEIGHT       = 720;
 
@@ -196,7 +196,7 @@ void Renderer::drawFrame()
     //debugPass();
 
     tiledForwardPass();
-    //drawTextureToScreen(_debugTexture);
+    drawTextureToScreen(_debugTexture);
 
     glBindVertexArray(0);
 }
@@ -392,16 +392,17 @@ void Renderer::generateRandomLights()
     srand(static_cast <unsigned> (time(0)));
     for (unsigned int i = 0; i < NR_LIGHTS; i++)
     {
-        float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 18 - 9;
+        float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 23.0 - 23.0/2.0;
         float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 7 + 0.5f;
-        float z = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 18 - 9;
+        float z = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 11.0 - 11.0/2.0;
 
         float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
         float k = 1.0f;
-        pointLights.emplace_back(glm::vec3{r*k, g*k, b*k}, 2.0f, glm::vec4{x,-5,z,0});
-        pointLightsSpeed.emplace_back(r/50);
+        pointLights.emplace_back(glm::vec3{r*k, g*k, b*k}, 0.4f, glm::vec4{x,-5,z,0});
+        float speed = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+        pointLightsSpeed.emplace_back(speed/25.0);
     }
 }
 
