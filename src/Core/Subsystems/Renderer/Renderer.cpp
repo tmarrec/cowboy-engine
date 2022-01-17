@@ -1,6 +1,11 @@
 #include "Renderer.h"
 
 #include "../Window/Window.h"
+#include "../ECS/ECSManager.h"
+#include "../../../Systems/CameraHandler.h"
+#include "../../../Systems/PointLightsHandler.h"
+#include "../../../Components/PointLight.h"
+
 
 #include <glm/gtx/string_cast.hpp>
 
@@ -9,14 +14,10 @@
 #include <cstdlib>
 #include <ctime>
 
-extern Window g_Window;
-
-const uint64_t  TILE_SIZE           = 16;
-const uint64_t  NR_LIGHTS           = 65536;
-const uint64_t  MAX_LIGHTS_PER_TILE = 256;
-const uint64_t  SCREEN_WIDTH        = 1280;
-const uint64_t  SCREEN_HEIGHT       = 720;
-
+extern Window                               g_Window;
+extern std::shared_ptr<CameraHandler>       g_Camera;
+extern std::shared_ptr<PointLightsHandler>  g_PointLights;
+extern ECSManager                           g_ECSManager;
 
 uint64_t  X_DISPATCH      = 0;
 uint64_t  Y_DISPATCH      = 0;
@@ -49,7 +50,7 @@ Renderer::Renderer()
     initDefaultTextures();
     initDepthBuffer();
 
-    generateRandomLights();
+    //generateRandomLights();
 
     initForwardPass();
 
@@ -65,6 +66,8 @@ Renderer::Renderer()
 
 void Renderer::init()
 {
+    _camera          = g_Camera->camera();
+    _cameraTransform = g_Camera->transform();
     computeTiledFrustum();
 }
 
@@ -72,7 +75,7 @@ void Renderer::init()
 void Renderer::computeTiledFrustum()
 {
     _computeFrustumShader.use();
-    _computeFrustumShader.setMat4f("invProjection", glm::inverse(_cameraParameters.projection));
+    _computeFrustumShader.setMat4f("invProjection", g_Camera->camera().invProjection);
 
     _computeFrustumShader.set1i("tileSize", TILE_SIZE);
     _computeFrustumShader.set1i("screenWidth", SCREEN_WIDTH);
@@ -148,27 +151,8 @@ void Renderer::initForwardPass()
 // Draw the frame by executing the queues while staying synchronised
 void Renderer::drawFrame()
 {
-    // rotate lights
-    for (int i = 0; i < pointLights.size(); ++i)
-    {
-        auto& l = pointLights[i];
-        l.position.y += pointLightsSpeed[i];
-        if (l.position.y > 25)
-        {
-            l.position.y = -5;
-        }
-        /*
-        float angle = -pointLightsSpeed[i];
-        float s = sin(angle);
-        float c = cos(angle);
-
-        float x = l.position.x * c - l.position.z * s;
-        float z = l.position.x * s + l.position.z * c;
-
-        l.position.x = x;
-        l.position.z = z;
-        */
-    }
+    _camera          = g_Camera->camera();
+    _cameraTransform = g_Camera->transform();
 
     copyLightDataToGPU();
     
@@ -177,7 +161,7 @@ void Renderer::drawFrame()
     depthPass();
 
     _tiledForwardShader.use();
-    _tiledForwardShader.setMat4f("invProjection", glm::inverse(_cameraParameters.projection));
+    _tiledForwardShader.setMat4f("invProjection", _camera.invProjection);
 
     _tiledForwardShader.set1i("numLights",      NR_LIGHTS);
     _tiledForwardShader.set1i("tileSize",       TILE_SIZE);
@@ -211,9 +195,9 @@ void Renderer::tiledForwardPass()
     _tiledForwardPassShader.set1i("normalMap", 4);
     _tiledForwardPassShader.set1i("occlusionMap", 5);
 
-    _tiledForwardPassShader.setMat4f("projection", _cameraParameters.projection);
-    _tiledForwardPassShader.setMat4f("view", _cameraParameters.view);
-    _tiledForwardPassShader.set3f("viewPos", _cameraParameters.position);
+    _tiledForwardPassShader.setMat4f("projection", _camera.projection);
+    _tiledForwardPassShader.setMat4f("view", _camera.view);
+    _tiledForwardPassShader.set3f("viewPos", _cameraTransform.position);
     
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _lightIndexListBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _lightsBuffer);
@@ -310,8 +294,8 @@ void Renderer::depthPass()
     glBindFramebuffer(GL_FRAMEBUFFER, _gDepthBuffer);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     _depthShader.use();
-    _depthShader.setMat4f("projection", _cameraParameters.projection);
-    _depthShader.setMat4f("view", _cameraParameters.view);
+    _depthShader.setMat4f("projection", _camera.projection);
+    _depthShader.setMat4f("view", _camera.view);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _gDepth);
 
@@ -334,14 +318,22 @@ void Renderer::depthPass()
 void Renderer::copyLightDataToGPU()
 {
     glBindBuffer(GL_ARRAY_BUFFER, _lightsBuffer);
+    const auto& pointLights = g_PointLights->pointLights();
+    
     PointLight* ptr = reinterpret_cast<PointLight*>(glMapBufferRange(GL_ARRAY_BUFFER, 0, pointLights.size() * sizeof(PointLight), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
 
-    for (uint32_t i = 0; i < pointLights.size(); ++i)
+    uint32_t i = 0;
+    for (const auto& entity : pointLights)
     {
-        ptr[i].color = pointLights[i].color;
-        ptr[i].range = pointLights[i].range;
-        ptr[i].position = pointLights[i].position;
-        ptr[i].positionVS = _cameraParameters.view * glm::vec4(pointLights[i].position.xyz(), 1);
+        auto& pointLight = g_ECSManager.getComponent<PointLight>(entity);
+        auto& pointLightTransform = g_ECSManager.getComponent<Transform>(entity);
+
+        ptr[i].color = pointLight.color;
+        ptr[i].range = pointLight.range;
+        ptr[i].position = glm::vec4(pointLightTransform.position, 1);
+        ptr[i].positionVS = _camera.view * glm::vec4(pointLightTransform.position, 1);
+
+        i++;
     }
         
     glUnmapBuffer(GL_ARRAY_BUFFER);
@@ -370,9 +362,10 @@ void Renderer::generateRenderingQuad()
 void Renderer::debugPass()
 {
     _lightSpheresShader.use();
-    _lightSpheresShader.setMat4f("projection", _cameraParameters.projection);
-    _lightSpheresShader.setMat4f("view", _cameraParameters.view);
+    _lightSpheresShader.setMat4f("projection", _camera.projection);
+    _lightSpheresShader.setMat4f("view", _camera.view);
     
+    /*
     for (uint16_t i = 0; i < pointLights.size(); ++i)
     {
         glm::mat4 model{1.0f};
@@ -385,25 +378,7 @@ void Renderer::debugPass()
         glDrawElements(GL_TRIANGLES, sphereIndices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
-}
-
-void Renderer::generateRandomLights()
-{
-    srand(static_cast <unsigned> (time(0)));
-    for (unsigned int i = 0; i < NR_LIGHTS; i++)
-    {
-        float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 23.0 - 23.0/2.0;
-        float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 7 + 0.5f;
-        float z = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 11.0 - 11.0/2.0;
-
-        float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        float k = 1.0f;
-        pointLights.emplace_back(glm::vec3{r*k, g*k, b*k}, 0.4f, glm::vec4{x,-5,z,0});
-        float speed = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        pointLightsSpeed.emplace_back(speed/25.0);
-    }
+    */
 }
 
 void Renderer::drawTextureToScreen(const GLuint texture)
@@ -417,20 +392,10 @@ void Renderer::drawTextureToScreen(const GLuint texture)
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-void Renderer::setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up)
-{
-    _cameraParameters.FOV = FOV;
-    _cameraParameters.position = position;
-    _cameraParameters.front = front;
-    _cameraParameters.up = up;
-    _cameraParameters.projection = glm::perspective(glm::radians(_cameraParameters.FOV), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 1024.0f);
-    _cameraParameters.view = glm::lookAt(_cameraParameters.position, _cameraParameters.position+_cameraParameters.front, _cameraParameters.up);
-}
-
 void Renderer::generateSphereVAO()
 {
-    const uint8_t sectorCount = 16;
-    const uint8_t stackCount = 16;
+    const uint8_t sectorCount = 8;
+    const uint8_t stackCount = 8;
     float x, y, z, xy;
     const float sectorStep = 2 * std::numbers::pi / sectorCount;
     const float stackStep = std::numbers::pi / stackCount;

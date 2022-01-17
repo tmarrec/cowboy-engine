@@ -10,6 +10,9 @@ class CameraHandler : public System
 {
  public:
     void Update(const float dt);
+    const Camera& camera() const;
+    const Transform& transform() const;
+
  private:
     void positionMovements(Transform& transform, const Camera& camera, const float dt);
     void lookAtMovements(Camera& camera);

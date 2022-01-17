@@ -19,26 +19,11 @@
 #include <algorithm>
 #include <execution>
 
+
 #include "world/World.h"
 #include "Shader.h"
-
-struct CameraParameters
-{
-    float FOV;
-    glm::vec3 position;
-    glm::vec3 front;
-    glm::vec3 up;
-    glm::mat4 projection;
-    glm::mat4 view;
-};
-
-struct PointLight
-{
-    glm::vec3   color;
-    float       range;
-    glm::vec4   position;
-    glm::vec4   positionVS;
-};
+#include "../../../Components/Camera.h"
+#include "../../../Components/Transform.h"
 
 struct Frustum
 {
@@ -52,7 +37,12 @@ class Renderer
     Renderer();
     void init();
     void drawFrame();
-    void setCameraParameters(const glm::vec3& position, const float FOV, const glm::vec3& front, const glm::vec3& up);
+
+    const uint64_t  TILE_SIZE = 16;
+    const uint64_t  NR_LIGHTS = 32768;
+    const uint64_t  MAX_LIGHTS_PER_TILE = 256;
+    const uint64_t  SCREEN_WIDTH = 1280;
+    const uint64_t  SCREEN_HEIGHT = 720;
 
  private:
     void initDefaultTextures();
@@ -62,7 +52,6 @@ class Renderer
     void computeTiledFrustum();
 
     void depthPass();
-    void generateRandomLights();
     void copyLightDataToGPU();
     void drawTextureToScreen(const GLuint texture);
     void generateRenderingQuad();
@@ -72,7 +61,8 @@ class Renderer
     void debugPass();
     void generateSphereVAO();
 
-    CameraParameters _cameraParameters;
+    Camera      _camera;
+    Transform   _cameraTransform;
 
     World _world {};
 
@@ -114,7 +104,4 @@ class Renderer
     GLuint _sphereEBO = 0;
     std::vector<GLfloat> sphereVertices;
     std::vector<GLuint> sphereIndices;
-
-    std::vector<PointLight> pointLights;
-    std::vector<float> pointLightsSpeed;
 };

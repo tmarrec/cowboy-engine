@@ -1,5 +1,8 @@
 #include "CameraHandler.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "../Core/Subsystems/ECS/ECSManager.h"
 #include "../Core/Subsystems/Renderer/Renderer.h"
 #include "../Core/Subsystems/Input/InputManager.h"
@@ -20,7 +23,9 @@ void CameraHandler::Update(const float dt)
 
         transform.position.z = -0.275 + sin(glfwGetTime()/2.5)*2.15;
 
-        g_Renderer.setCameraParameters(transform.position, camera.FOV, camera.front, camera.up);
+        camera.projection = glm::perspective(glm::radians(camera.FOV), (float)g_Renderer.SCREEN_WIDTH / (float)g_Renderer.SCREEN_HEIGHT, 1.0f/32.0f, 1024.0f);
+        camera.invProjection = glm::inverse(camera.projection);
+        camera.view = glm::lookAt(transform.position, transform.position + camera.front, camera.up);
     }
 }
 
@@ -67,4 +72,22 @@ void CameraHandler::lookAtMovements(Camera& camera)
     camera.front = glm::normalize(dir);
 
     g_InputManager.updateMouseMovements();
+}
+
+const Camera& CameraHandler::camera() const
+{
+    for (const auto& entity : _entities)
+    {
+        auto& camera = g_ECSManager.getComponent<Camera>(entity);
+        return camera;
+    }
+}
+
+const Transform& CameraHandler::transform() const
+{
+    for (const auto& entity : _entities)
+    {
+        auto& transform = g_ECSManager.getComponent<Transform>(entity);
+        return transform;
+    }
 }

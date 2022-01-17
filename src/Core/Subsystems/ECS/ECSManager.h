@@ -75,6 +75,6 @@ class ECSManager
 
  private:
     std::unique_ptr<ComponentManager> _componentManager = std::make_unique<ComponentManager>();
-    std::unique_ptr<EntityManager> _entityManager = std::make_unique<EntityManager>();
-    std::unique_ptr<SystemManager> _systemManager = std::make_unique<SystemManager>();
+    std::unique_ptr<EntityManager>    _entityManager    = std::make_unique<EntityManager>();
+    std::unique_ptr<SystemManager>    _systemManager    = std::make_unique<SystemManager>();
 };
