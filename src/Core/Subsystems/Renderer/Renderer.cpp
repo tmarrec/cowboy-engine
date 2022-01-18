@@ -2,7 +2,6 @@
 
 #include "../Window/Window.h"
 #include "../ECS/ECSManager.h"
-#include "../../../Systems/CameraHandler.h"
 #include "../../../Systems/PointLightsHandler.h"
 #include "../../../Components/PointLight.h"
 
@@ -14,7 +13,7 @@
 #include <ctime>
 
 extern Window                               g_Window;
-extern std::shared_ptr<CameraHandler>       g_Camera;
+extern Camera                               g_Camera;
 extern std::shared_ptr<PointLightsHandler>  g_PointLights;
 extern ECSManager                           g_ECSManager;
 
@@ -65,8 +64,6 @@ Renderer::Renderer()
 
 void Renderer::init()
 {
-    _camera          = g_Camera->camera();
-    _cameraTransform = g_Camera->transform();
     computeTiledFrustum();
 }
 
@@ -74,7 +71,7 @@ void Renderer::init()
 void Renderer::computeTiledFrustum()
 {
     _computeFrustumShader.use();
-    _computeFrustumShader.setMat4f("invProjection", g_Camera->camera().invProjection);
+    _computeFrustumShader.setMat4f("invProjection", g_Camera.invProjection);
 
     _computeFrustumShader.set1i("tileSize", TILE_SIZE);
     _computeFrustumShader.set1i("screenWidth", SCREEN_WIDTH);
@@ -150,9 +147,6 @@ void Renderer::initForwardPass()
 // Draw the frame by executing the queues while staying synchronised
 void Renderer::drawFrame()
 {
-    _camera          = g_Camera->camera();
-    _cameraTransform = g_Camera->transform();
-
     copyLightDataToGPU();
     
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -160,7 +154,7 @@ void Renderer::drawFrame()
     depthPass();
 
     _tiledForwardShader.use();
-    _tiledForwardShader.setMat4f("invProjection", _camera.invProjection);
+    _tiledForwardShader.setMat4f("invProjection", g_Camera.invProjection);
 
     _tiledForwardShader.set1i("numLights",      NR_LIGHTS);
     _tiledForwardShader.set1i("tileSize",       TILE_SIZE);
@@ -179,7 +173,7 @@ void Renderer::drawFrame()
     //debugPass();
 
     tiledForwardPass();
-    drawTextureToScreen(_debugTexture);
+    //drawTextureToScreen(_debugTexture);
 
     glBindVertexArray(0);
 }
@@ -194,9 +188,9 @@ void Renderer::tiledForwardPass()
     _tiledForwardPassShader.set1i("normalMap", 4);
     _tiledForwardPassShader.set1i("occlusionMap", 5);
 
-    _tiledForwardPassShader.setMat4f("projection", _camera.projection);
-    _tiledForwardPassShader.setMat4f("view", _camera.view);
-    _tiledForwardPassShader.set3f("viewPos", _cameraTransform.position);
+    _tiledForwardPassShader.setMat4f("projection", g_Camera.projection);
+    _tiledForwardPassShader.setMat4f("view", g_Camera.view);
+    _tiledForwardPassShader.set3f("viewPos", g_Camera.position);
     
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _lightIndexListBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _lightsBuffer);
@@ -293,8 +287,8 @@ void Renderer::depthPass()
     glBindFramebuffer(GL_FRAMEBUFFER, _gDepthBuffer);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     _depthShader.use();
-    _depthShader.setMat4f("projection", _camera.projection);
-    _depthShader.setMat4f("view", _camera.view);
+    _depthShader.setMat4f("projection", g_Camera.projection);
+    _depthShader.setMat4f("view", g_Camera.view);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _gDepth);
 
@@ -330,7 +324,7 @@ void Renderer::copyLightDataToGPU()
         ptr[i].color = pointLight.color;
         ptr[i].range = pointLight.range;
         ptr[i].position = glm::vec4(pointLightTransform.position, 1);
-        ptr[i].positionVS = _camera.view * glm::vec4(pointLightTransform.position, 1);
+        ptr[i].positionVS = g_Camera.view * glm::vec4(pointLightTransform.position, 1);
 
         i++;
     }
@@ -361,8 +355,8 @@ void Renderer::generateRenderingQuad()
 void Renderer::debugPass()
 {
     _lightSpheresShader.use();
-    _lightSpheresShader.setMat4f("projection", _camera.projection);
-    _lightSpheresShader.setMat4f("view", _camera.view);
+    _lightSpheresShader.setMat4f("projection", g_Camera.projection);
+    _lightSpheresShader.setMat4f("view", g_Camera.view);
     
     /*
     for (uint16_t i = 0; i < pointLights.size(); ++i)

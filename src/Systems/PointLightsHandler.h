@@ -9,6 +9,6 @@
 class PointLightsHandler : public System
 {
  public:
-    void Update(const float dt);
+    void update(const float dt);
     std::set<Entity>& pointLights();
 };

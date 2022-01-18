@@ -4,7 +4,7 @@
 
 // Entity alias and maximum
 using Entity = uint64_t;
-const Entity MAX_ENTITIES = 65536+5000;
+const Entity MAX_ENTITIES = 65536;
 
 // Components alias and maximum
 using ComponentType = uint8_t;

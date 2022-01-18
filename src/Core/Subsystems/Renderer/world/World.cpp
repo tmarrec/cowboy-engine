@@ -13,7 +13,6 @@ World::World()
     std::string err;
     std::string warn;
 
-    //bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, "models/scene.gltf");
     bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, "models/Sponza.gltf");
     //bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, "models/MetalRoughSpheres.glb");
     //bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, "models/scene-light.glb");

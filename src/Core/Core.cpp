@@ -1,36 +1,26 @@
 #include "Core.h"
 
 #include "../Components/Transform.h"
-#include "../Components/Camera.h"
 #include "../Components/PointLight.h"
 
-#include "../Systems/CameraHandler.h"
 #include "../Systems/PointLightsHandler.h"
 
 #include "Subsystems/ECS/ECSManager.h"
 #include "Subsystems/Window/Window.h"
 #include "Subsystems/Renderer/Renderer.h"
+#include "Subsystems/Renderer/Camera.h"
 
 #include <random>
 
 ECSManager          g_ECSManager;
 Window              g_Window;
 Renderer            g_Renderer;
-auto                g_Camera      = g_ECSManager.registerSystem<CameraHandler>();
+Camera              g_Camera;
 auto                g_PointLights = g_ECSManager.registerSystem<PointLightsHandler>();
 
 int Core::Run()
 {
     RegisterAllComponents();
-
-    // Camera system initialization
-    const Signature cameraSignature = [&](){
-        Signature s;
-        s.set(g_ECSManager.getComponentType<Transform>());
-        s.set(g_ECSManager.getComponentType<Camera>());
-        return s;
-    }();
-    g_ECSManager.setSystemSignature<CameraHandler>(cameraSignature);
 
     // Light system initialization
     const Signature pointLightsSignature = [&]() {
@@ -41,39 +31,17 @@ int Core::Run()
     }();
     g_ECSManager.setSystemSignature<PointLightsHandler>(pointLightsSignature);
 
-    Entity mainEntity = g_ECSManager.createEntity();
-    g_ECSManager.addComponent
-    (
-        mainEntity,
-        Transform
-        {
-            .position = {9.5, 5.25, -0.275},
-            .rotation = glm::vec3(0, 0, 0),
-            .scale = glm::vec3(1.0f, 1.0f, 1.0f)
-        }
-    );
+    std::vector<Entity> lightEntities(50000);
 
-    g_ECSManager.addComponent
-    (
-        mainEntity,
-        Camera{}
-    );
-
-    std::vector<Entity> entities(32768);
-    srand(static_cast <unsigned> (time(0)));
+    float lightIntensity = 1.0f;
+    std::default_random_engine genR;
+    std::uniform_real_distribution<float> randX(-16.0f, 15.0f);
+    std::uniform_real_distribution<float> randZ(-10.0f, 9.5f);
+    std::uniform_real_distribution<float> randColor(0.0f, lightIntensity);
+    std::uniform_real_distribution<float> randRange(0.2f, 0.4f);
     
-    for (auto& entity : entities)
+    for (auto& entity : lightEntities)
     {
-        // should use uniform_real_distribution
-        float x = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 23.0 - 23.0 / 2.0;
-        float y = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 7 + 0.5f;
-        float z = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 11.0 - 11.0 / 2.0;
-
-        float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-        float k = 10.0f;
-
         entity = g_ECSManager.createEntity();
         
         g_ECSManager.addComponent
@@ -81,7 +49,7 @@ int Core::Run()
             entity,
             Transform
             {
-                .position = {x, -5, z},
+                .position = {randX(genR), -5, randZ(genR)},
                 .rotation = glm::vec3(0, 0, 0),
                 .scale = glm::vec3(1.0f, 1.0f, 1.0f)
             }
@@ -91,8 +59,8 @@ int Core::Run()
             entity,
             PointLight
             {
-                .color = {r * k, g * k, b * k},
-                .range = 0.4f,
+                .color = {randColor(genR), randColor(genR), randColor(genR)},
+                .range = randRange(genR),
                 .position = glm::vec4(1),   // ignored
                 .positionVS = glm::vec4(1)  // ignored
             }
@@ -100,7 +68,7 @@ int Core::Run()
     }
 
     // Important //
-    g_Camera->Update(0);
+    g_Camera.update(0);
     g_Renderer.init();
 
     float dt = 0.0f;
@@ -109,8 +77,8 @@ int Core::Run()
     {
         const auto startTime = std::chrono::high_resolution_clock::now();
 
-        g_Camera->Update(dt);
-        g_PointLights->Update(dt);
+        g_Camera.update(dt);
+        g_PointLights->update(dt);
 
         g_Renderer.drawFrame();
 
@@ -128,7 +96,6 @@ int Core::Run()
 void Core::RegisterAllComponents() const
 {
     g_ECSManager.registerComponent<Transform>();
-    g_ECSManager.registerComponent<Camera>();
     g_ECSManager.registerComponent<PointLight>();
 }
 

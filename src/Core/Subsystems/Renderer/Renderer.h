@@ -22,7 +22,7 @@
 
 #include "world/World.h"
 #include "Shader.h"
-#include "../../../Components/Camera.h"
+#include "Camera.h"
 #include "../../../Components/Transform.h"
 
 struct Frustum
@@ -39,7 +39,7 @@ class Renderer
     void drawFrame();
 
     const uint64_t  TILE_SIZE = 16;
-    const uint64_t  NR_LIGHTS = 32768;
+    const uint64_t  NR_LIGHTS = 32768*2;
     const uint64_t  MAX_LIGHTS_PER_TILE = 256;
     const uint64_t  SCREEN_WIDTH = 1280;
     const uint64_t  SCREEN_HEIGHT = 720;
@@ -60,9 +60,6 @@ class Renderer
 
     void debugPass();
     void generateSphereVAO();
-
-    Camera      _camera;
-    Transform   _cameraTransform;
 
     World _world {};
 
