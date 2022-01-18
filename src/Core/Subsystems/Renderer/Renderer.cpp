@@ -6,7 +6,6 @@
 #include "../../../Systems/PointLightsHandler.h"
 #include "../../../Components/PointLight.h"
 
-
 #include <glm/gtx/string_cast.hpp>
 
 #include <memory>

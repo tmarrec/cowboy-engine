@@ -79,7 +79,7 @@ void InputManager::cursorPositionCallback(GLFWwindow* window, double xpos, doubl
     _lastMousePos.y = ypos;
 }
 
-void InputManager::updateMouseMovements()
+void InputManager::resetMouseMovements()
 {
     mouseOffset.x = 0.0f;
     mouseOffset.y = 0.0f;

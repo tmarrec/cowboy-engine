@@ -14,6 +14,7 @@ class CameraHandler : public System
     const Transform& transform() const;
 
  private:
-    void positionMovements(Transform& transform, const Camera& camera, const float dt);
-    void lookAtMovements(Camera& camera);
+    bool positionMovements(Transform& transform, const Camera& camera, const float dt);
+    bool lookAtMovements(Camera& camera);
+    bool _init = false;
 };

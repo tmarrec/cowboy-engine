@@ -24,7 +24,7 @@ class InputManager
     static bool keyIsDown(const InputKey key);
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mobs);
     static void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos);
-    static void updateMouseMovements();
+    static void resetMouseMovements();
     static glm::vec2 mouseOffset;
     
  private:
