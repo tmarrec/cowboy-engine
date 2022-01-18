@@ -4,6 +4,6 @@
 [submodule "extern/tinygltf"]
 	path = extern/tinygltf
 	url = git@github.com:syoyo/tinygltf.git
-[submodule ".\\extern\\MikkTSpace"]
-	path = .\\extern\\MikkTSpace
-	url = https://github.com/mmikk/MikkTSpace.git
+[submodule "extern/MikkTSpace"]
+	path = extern/MikkTSpace
+	url = git@github.com:mmikk/MikkTSpace.git
