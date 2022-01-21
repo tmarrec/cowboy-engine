@@ -19,6 +19,7 @@ class Window
     void pollEvents();
     void swapBuffers();
     void windowGetFramebufferSize(uint32_t& width, uint32_t& height);
+    const std::unique_ptr<GLFWwindow, glfwDeleter>& window() const;
 
  private:
     void windowInit();

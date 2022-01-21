@@ -70,9 +70,8 @@ bool Camera::lookAtMovements()
         return false;
     }
     
-    const float sensitivity = 0.5f;
-    yaw  += g_InputManager.mouseOffset.x * sensitivity;
-    pitch = glm::clamp(pitch - g_InputManager.mouseOffset.y * sensitivity, -89.99f, 89.99f);
+    yaw  += g_InputManager.mouseOffset.x;
+    pitch = glm::clamp(pitch - g_InputManager.mouseOffset.y, -89.99f, 89.99f);
 
     const glm::vec3 dir =
     {

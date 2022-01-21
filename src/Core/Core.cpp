@@ -9,6 +9,7 @@
 #include "Subsystems/Window/Window.h"
 #include "Subsystems/Renderer/Renderer.h"
 #include "Subsystems/Renderer/Camera.h"
+#include "Subsystems/Debugger/Debugger.h"
 
 #include <random>
 
@@ -16,6 +17,7 @@ ECSManager          g_ECSManager;
 Window              g_Window;
 Renderer            g_Renderer;
 Camera              g_Camera;
+Debugger            g_Debugger;
 auto                g_PointLights = g_ECSManager.registerSystem<PointLightsHandler>();
 
 int Core::Run()
@@ -31,7 +33,8 @@ int Core::Run()
     }();
     g_ECSManager.setSystemSignature<PointLightsHandler>(pointLightsSignature);
 
-    std::vector<Entity> lightEntities(50000);
+    
+    std::vector<Entity> lightEntities(4096*8);
 
     float lightIntensity = 1.0f;
     std::default_random_engine genR;
@@ -70,6 +73,7 @@ int Core::Run()
     // Important //
     g_Camera.update(0);
     g_Renderer.init();
+    g_Debugger.init();
 
     float dt = 0.0f;
 
@@ -79,8 +83,12 @@ int Core::Run()
 
         g_Camera.update(dt);
         g_PointLights->update(dt);
-
         g_Renderer.drawFrame();
+
+        const auto stopRenderTime = std::chrono::high_resolution_clock::now();
+        const float renderTime = std::chrono::duration<float, std::chrono::seconds::period>(stopRenderTime - startTime).count();
+
+        g_Debugger.update(renderTime);
 
         g_Window.pollEvents();
         g_Window.swapBuffers();

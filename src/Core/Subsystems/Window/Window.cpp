@@ -3,7 +3,6 @@
 #include "../Renderer/Renderer.h"
 #include "../Input/InputManager.h"
 
-
 extern Renderer     g_Renderer;
 extern InputManager g_InputManager;
 
@@ -20,11 +19,11 @@ Window::Window()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_SAMPLES, 1);
 
     windowInit();
 
-    glfwSwapInterval(0);
+    glfwSwapInterval(1);
 
     glfwSetKeyCallback(_glfwWindow.get(), g_InputManager.keyCallback);
     glfwSetCursorPosCallback(_glfwWindow.get(), g_InputManager.cursorPositionCallback);
@@ -40,6 +39,7 @@ Window::Window()
     }
 
     glViewport(0, 0, 1280, 720);
+
 
     OK("OpenGL");
 }
@@ -73,7 +73,7 @@ void Window::swapBuffers()
 // Create the window
 void Window::windowInit()
 {
-	_glfwWindow.reset(glfwCreateWindow(1280, 720, "OpenGL Testings", nullptr, nullptr));
+	_glfwWindow.reset(glfwCreateWindow(1280, 720, "Cowboy-Engine 0.2", nullptr, nullptr));
     glfwMakeContextCurrent(_glfwWindow.get());
 }
 
@@ -97,4 +97,9 @@ void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, 
     {
         //g_Renderer.updateGraphicsPipeline();
     }
+}
+
+const std::unique_ptr<GLFWwindow, glfwDeleter>& Window::window() const
+{
+    return _glfwWindow;
 }

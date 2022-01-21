@@ -19,7 +19,6 @@
 #include <algorithm>
 #include <execution>
 
-
 #include "world/World.h"
 #include "Shader.h"
 #include "Camera.h"
@@ -39,7 +38,7 @@ class Renderer
     void drawFrame();
 
     const uint64_t  TILE_SIZE = 16;
-    const uint64_t  NR_LIGHTS = 32768*2;
+    const uint64_t  NR_LIGHTS = 32768;
     const uint64_t  MAX_LIGHTS_PER_TILE = 256;
     const uint64_t  SCREEN_WIDTH = 1280;
     const uint64_t  SCREEN_HEIGHT = 720;
@@ -56,7 +55,6 @@ class Renderer
     void drawTextureToScreen(const GLuint texture);
     void generateRenderingQuad();
     void tiledForwardPass();
-    
 
     void debugPass();
     void generateSphereVAO();
@@ -77,13 +75,9 @@ class Renderer
     GLuint _defaultNormalTexture;
     GLuint _defaultOcclusionTexture;
 
-    GLuint _gBuffer;
     GLuint _gDepthBuffer;
     GLuint _gDepth;
-    GLuint _gPosition;
-    GLuint _gNormal;
-    GLuint _gAlbedo;
-    GLuint _gMetallicRoughness;
+    
     unsigned int rboDepth;
 
     GLuint _frustumBuffer;

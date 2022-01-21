@@ -15,7 +15,7 @@ World::World()
 
     bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, "models/Sponza.gltf");
     //bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, "models/MetalRoughSpheres.glb");
-    //bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, "models/scene-light.glb");
+    //bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, "models/scene.glb");
  
     if (!warn.empty())
     {

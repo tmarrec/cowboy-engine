@@ -12,7 +12,7 @@ class Camera
     float FOV   = 70.0f;
     float yaw   = 180.0f;
     float pitch = 0.0f;
-    float speed = 5.0f;
+    float speed = 10.0f;
 
     glm::vec3 position         = { 9.5f, 5.25f, -0.275f };
     glm::vec3 front            = { 0.0f, 0.0f, -1.0f };
