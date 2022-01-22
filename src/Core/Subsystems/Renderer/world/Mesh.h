@@ -67,6 +67,13 @@ class Mesh
 
  private:
     template<typename T>
+    void setIndices(std::vector<GLuint>& indices, const tinygltf::Primitive& pData, const tinygltf::Model& model)
+    {
+        const auto& pIndicesBuffer = getBuffer<T>(pData.indices, model);
+        indices = std::vector<GLuint>(pIndicesBuffer.buffer, pIndicesBuffer.buffer + pIndicesBuffer.size);
+    }
+
+    template<typename T>
     const Buffer<T> getBuffer(const int from, const tinygltf::Model& model) const
     {
         const auto&  accessor   = model.accessors[from];

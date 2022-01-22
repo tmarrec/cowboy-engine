@@ -86,7 +86,8 @@ void main()
     float roughness = texture(metallicRoughnessMap, texCoords).g;
     float occlusion = texture(occlusionMap, texCoords).r;
 
-    //FragColor = vec4(albedo, 1.0);
+    FragColor = vec4(albedo, 1.0);
+    return;
 
     
     vec3 N = normalize(TBN * (texture(normalMap, texCoords).rgb * 2.0 - 1.0));

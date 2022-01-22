@@ -10,44 +10,56 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
     {
         Primitive p;
 
-        const auto& pIndicesBuffer   = getBuffer<uint16_t>(pData.indices, model);
-        const auto& pVertexBuffer    = getBuffer<GLfloat>(pData.attributes.at("POSITION"), model);
-        const auto& pNormalBuffer    = getBuffer<GLfloat>(pData.attributes.at("NORMAL"), model);
+        // Set primitive indices
+        switch (model.accessors[pData.indices].componentType)
+        {
+            case 5121:
+                setIndices<const uint8_t>(p.indices, pData, model);
+                break;
+            case 5123:
+                setIndices<const uint16_t>(p.indices, pData, model);
+                break;
+            default:
+                ERROR_EXIT("Indices buffer type not yet implemented");
+                break;
+        }
+
+        ASSERT(model.accessors[pData.attributes.at("POSITION")].componentType == 5126, "Non-float POSITION attributes not yet implemented");
+        ASSERT(model.accessors[pData.attributes.at("NORMAL")].componentType == 5126, "Non-float NORMAL attributes not yet implemented");
+        const auto& pVertexBuffer    = getBuffer<const GLfloat>(pData.attributes.at("POSITION"), model);
+        const auto& pNormalBuffer    = getBuffer<const GLfloat>(pData.attributes.at("NORMAL"), model);
         const auto& pTexCoordBuffer  = [&]()
         {
             // If has material
             if (pData.material >= 0)
             {
-                const auto material = model.materials[pData.material];
+                const auto& material = model.materials[pData.material];
                 std::stringstream s;
                 s << "TEXCOORD_" << material.pbrMetallicRoughness.baseColorTexture.texCoord;
                 // If has texture
                 if (pData.attributes.find(s.str()) != pData.attributes.end())
                 {
-                    return getBuffer<GLfloat>(pData.attributes.at(s.str()), model);
+                    ASSERT(model.accessors[pData.attributes.at(s.str())].componentType == 5126, "Non-float TexCoord attributes not yet implemented");
+                    return getBuffer<const GLfloat>(pData.attributes.at(s.str()), model);
                 }         
             }
             // If no texture, zeros for all texcoord
             std::vector<GLfloat> buffer((pVertexBuffer.size / 3) * 2, 0);
-            return Buffer<GLfloat>
+            return Buffer<const GLfloat>
             {
                 .buffer = reinterpret_cast<const GLfloat*>(buffer.data()),
                 .size = (pVertexBuffer.size / 3) * 2,
             };
         }();
 
-        size_t t = 0;
-        for (size_t i = 0; i < pVertexBuffer.size; i += 3)
+        for (size_t i = 0, t = 0; i < pVertexBuffer.size; i += 3, t += 2)
         {
-            const Vertex v =
-            {
-                .position = {pVertexBuffer.buffer[i], pVertexBuffer.buffer[i+1], pVertexBuffer.buffer[i+2]},
-                .normal = {pNormalBuffer.buffer[i],pNormalBuffer.buffer[i+1],pNormalBuffer.buffer[i+2]},
-                .texCoords = {pTexCoordBuffer.buffer[t],pTexCoordBuffer.buffer[t+1]},
-                .tangent = {0,0,0,0}
-            };
-            p.vertices.emplace_back(v);
-            t += 2;
+            p.vertices.emplace_back(
+                glm::vec3{ pVertexBuffer.buffer[i], pVertexBuffer.buffer[i + 1], pVertexBuffer.buffer[i + 2] },
+                glm::vec3{ pNormalBuffer.buffer[i], pNormalBuffer.buffer[i + 1],pNormalBuffer.buffer[i + 2] },
+                glm::vec2{ pTexCoordBuffer.buffer[t], pTexCoordBuffer.buffer[t + 1] },
+                glm::vec4(0)
+            );
         }
 
         // If has material
@@ -89,18 +101,16 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
             p.material.occlusionTextureStrength = material.occlusionTexture.strength;
         }
 
-        p.indices = std::vector<GLuint>(pIndicesBuffer.buffer, pIndicesBuffer.buffer+pIndicesBuffer.size);
-
         // Primitive Tangent calculation
         SMikkTSpaceInterface interface =
         {
-            .m_getNumFaces = getNumFaces,
+            .m_getNumFaces          = getNumFaces,
             .m_getNumVerticesOfFace = getNumVerticesOfFace,
-            .m_getPosition = getPosition,
-            .m_getNormal = getNormal,
-            .m_getTexCoord = getTexCoords,
-            .m_setTSpaceBasic = setTSpaceBasic,
-            .m_setTSpace = nullptr
+            .m_getPosition          = getPosition,
+            .m_getNormal            = getNormal,
+            .m_getTexCoord          = getTexCoords,
+            .m_setTSpaceBasic       = setTSpaceBasic,
+            .m_setTSpace            = nullptr
         };
 
         SMikkTSpaceContext context =
