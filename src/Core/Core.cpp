@@ -34,14 +34,14 @@ int Core::Run()
     g_ECSManager.setSystemSignature<PointLightsHandler>(pointLightsSignature);
 
     
-    std::vector<Entity> lightEntities(4096*8);
+    std::vector<Entity> lightEntities(128);
 
     float lightIntensity = 1.0f;
     std::default_random_engine genR;
     std::uniform_real_distribution<float> randX(-16.0f, 15.0f);
     std::uniform_real_distribution<float> randZ(-10.0f, 9.5f);
     std::uniform_real_distribution<float> randColor(0.0f, lightIntensity);
-    std::uniform_real_distribution<float> randRange(0.2f, 0.4f);
+    std::uniform_real_distribution<float> randRange(4.0f, 8.0f);
     
     for (auto& entity : lightEntities)
     {
@@ -95,7 +95,6 @@ int Core::Run()
 
         const auto stopTime = std::chrono::high_resolution_clock::now();
 		dt = std::chrono::duration<float, std::chrono::seconds::period>(stopTime - startTime).count();
-        INFO("FPS: " << 1.0/dt);
     }
 
     return EXIT_SUCCESS;  

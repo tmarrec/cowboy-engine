@@ -62,6 +62,7 @@ class Mesh
 {
  public:
     Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& indicesBuffer, std::vector<float>& vertexBuffer, std::vector<Primitive>& primitives);
+    ~Mesh();
     const std::vector<Primitive>& getPrimitives() const;
 
  private:

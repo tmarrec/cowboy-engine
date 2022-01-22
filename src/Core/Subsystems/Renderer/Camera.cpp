@@ -14,7 +14,7 @@ void Camera::update(const float dt)
 
     // Testings
     //position.z = -0.275 + sin(glfwGetTime() / 2.5) * 2.15;
-    isMoving = true;
+    //isMoving = true;
     // End Testings
 
     if (isMoving || !_init)

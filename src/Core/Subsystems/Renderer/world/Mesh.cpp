@@ -142,6 +142,16 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
     }
 }
 
+Mesh::~Mesh()
+{
+    for (auto& p : getPrimitives())
+    {
+        glDeleteVertexArrays(1, &p.VAO);
+        glDeleteBuffers(1, &p.VBO);
+        glDeleteBuffers(1, &p.EBO);
+    }
+}
+
 const std::vector<Primitive>& Mesh::getPrimitives() const
 {
     return _primitives;

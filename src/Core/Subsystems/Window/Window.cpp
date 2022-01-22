@@ -40,7 +40,6 @@ Window::Window()
 
     glViewport(0, 0, 1280, 720);
 
-
     OK("OpenGL");
 }
 

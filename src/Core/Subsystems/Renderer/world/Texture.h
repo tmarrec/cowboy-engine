@@ -53,5 +53,10 @@ struct Texture
         OK("Texture " << gltfTexture.source);
     }
 
+    ~Texture()
+    {
+        glDeleteTextures(1, &id);
+    }
+
     GLuint id;
 };

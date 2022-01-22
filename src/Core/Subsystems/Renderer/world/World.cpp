@@ -32,18 +32,18 @@ World::World()
         ERROR_EXIT("Failed to load glTF file.");
     }
 
+    _scenes.reserve(model.scenes.size());
     for (const auto& gltfScene : model.scenes)
     {
-        const Scene scene {gltfScene.nodes, model};
-        _scenes.emplace_back(scene);
+        _scenes.emplace_back(gltfScene.nodes, model);
     }
 
     _currentScene = model.defaultScene;
 
+    _textures.reserve(model.textures.size());
     for (const auto& gltfTexture : model.textures)
     {
-        const Texture texture {gltfTexture, model};
-        _textures.emplace_back(texture);
+        _textures.emplace_back(gltfTexture, model);
     }
 }
 
