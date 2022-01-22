@@ -47,9 +47,6 @@ Renderer::Renderer()
 
     initDefaultTextures();
     initDepthBuffer();
-
-    //generateRandomLights();
-
     initForwardPass();
 
     glGenTextures(1, &_debugTexture);
@@ -271,6 +268,16 @@ void Renderer::tiledForwardPass()
                     glBindTexture(GL_TEXTURE_2D, _defaultOcclusionTexture);
                     const uint8_t occlusion[3] = { 255, 0, 0 };
                     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &occlusion);
+                }
+
+                // Handle alpha cutoff
+                if (primitive.material.blendMode == Blend::mask)
+                {
+                    _tiledForwardPassShader.set1f("alphaCutoff", primitive.material.alphaCutoff);
+                }
+                else
+                {
+                    _tiledForwardPassShader.set1f("alphaCutoff", 0.0f);
                 }
 
                 glBindVertexArray(primitive.VAO);

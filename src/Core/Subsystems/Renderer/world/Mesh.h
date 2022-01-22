@@ -9,6 +9,11 @@
 #include "./../../../utils.h"
 #include "MikkTSpace/mikktspace.h"
 
+enum class Blend
+{
+    opaque, blend, mask
+};
+
 template<typename T>
 struct Buffer
 {
@@ -32,8 +37,8 @@ struct Material
 
     bool        hasMetallicRoughnessTexture = false;
     GLuint      metallicRoughnessTexture;
-    double      metallicFactor;
-    double      roughnessFactor;
+    float       metallicFactor;
+    float       roughnessFactor;
 
     bool        hasEmissiveTexture = false;
     GLuint      emissiveTexture;
@@ -41,11 +46,14 @@ struct Material
 
     bool        hasNormalTexture = false;
     GLuint      normalTexture;
-    double      normalTextureScale;
+    float       normalTextureScale;
 
     bool        hasOcclusionTexture = false;
     GLuint      occlusionTexture;
-    double      occlusionTextureStrength;
+    float       occlusionTextureStrength;
+
+    Blend       blendMode;
+    float       alphaCutoff;
 };
 
 struct Primitive

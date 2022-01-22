@@ -99,6 +99,20 @@ Mesh::Mesh(const int idx, const tinygltf::Model& model, std::vector<uint16_t>& i
             p.material.emissiveFactor = glm::dvec3(material.emissiveFactor[0], material.emissiveFactor[1], material.emissiveFactor[2]);
             p.material.normalTextureScale = material.normalTexture.scale;
             p.material.occlusionTextureStrength = material.occlusionTexture.strength;
+
+            p.material.alphaCutoff = material.alphaCutoff;
+            p.material.blendMode = [](const std::string& alphaMode)
+            {
+                if (alphaMode == "OPAQUE")
+                {
+                    return Blend::opaque;
+                }
+                if (alphaMode == "BLEND")
+                {
+                    return Blend::blend;
+                }
+                return Blend::mask;
+            }(material.alphaMode);
         }
 
         // Primitive Tangent calculation

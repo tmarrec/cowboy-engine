@@ -33,6 +33,7 @@ uniform sampler2D       normalMap;
 uniform sampler2D       occlusionMap;
 
 uniform vec3            viewPos;
+uniform float           alphaCutoff;
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
@@ -80,16 +81,19 @@ void main()
     uint startOffset = texture(lightGrid, tileIndex).x;
     uint lightCount = texture(lightGrid, tileIndex).y;
 
-
-    vec3 albedo = pow(texture(albedoMap, texCoords).rgb, vec3(2.2, 2.2, 2.2));
+    vec4 albedo = pow(texture(albedoMap, texCoords).rgba, vec4(2.2, 2.2, 2.2, 1.0));
     float metallic = texture(metallicRoughnessMap, texCoords).b;
     float roughness = texture(metallicRoughnessMap, texCoords).g;
     float occlusion = texture(occlusionMap, texCoords).r;
 
-    FragColor = vec4(albedo, 1.0);
+    if (albedo.a < alphaCutoff)
+    {
+        discard;
+    }
+
+    FragColor = vec4(albedo);
     return;
 
-    
     vec3 N = normalize(TBN * (texture(normalMap, texCoords).rgb * 2.0 - 1.0));
     vec3 V = normalize(viewPos - fragPos);
 
@@ -109,7 +113,7 @@ void main()
         vec3 radiance = light.color * attenuation;
 
         vec3 F0 = vec3(0.04);
-        F0 = mix(F0, albedo, metallic);
+        F0 = mix(F0, albedo.rgb, metallic);
         vec3 F = fresnelSchlick(max(dot(H,V), 0.0), F0);
 
         float NDF = distributionGGX(N, H, roughness);
@@ -125,7 +129,7 @@ void main()
         kD *= 1.0 - metallic;
 
         float NdotL = max(dot(N, L), 0.0);
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+        Lo += (kD * albedo.rgb / PI + specular) * radiance * NdotL;
     }
 
     //vec3 color = Lo * occlusion + pow(texture(emissiveMap, texCoords).rgb, vec3(2.2, 2.2, 2.2));
